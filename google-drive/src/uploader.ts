@@ -3,32 +3,34 @@ import fs from 'fs';
 import path from 'path';
 
 interface UploadOptions {
-  filePath: string;
+  fileName: string;
   mimeType: string;
+  body: any;
 }
 
 class GoogleDriveUploader {
   constructor(private auth: any) {}
 
   public async uploadFile({
-    filePath,
+    fileName,
     mimeType,
+    body
   }: UploadOptions): Promise<void> {
     const drive = google.drive({ version: 'v3', auth: this.auth });
     const fileMetadata = {
-      name: path.basename(filePath),
-      mimeType: mimeType,
+      name: fileName,
+      mimeType
     };
     const media = {
-      mimeType: mimeType,
-      body: fs.createReadStream(filePath),
+      mimeType,
+      body
     };
 
     try {
       const response = await drive.files.create({
         requestBody: fileMetadata,
         media: media,
-        fields: 'id',
+        fields: 'id'
       });
       console.log('File ID:', response.data.id);
     } catch (error) {

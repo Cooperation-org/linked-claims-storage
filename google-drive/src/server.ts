@@ -1,10 +1,13 @@
-import express from 'express';
+import express, { Request } from 'express';
 import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import fs from 'fs';
-import GoogleDriveUploader from './uploader'; // Assuming this class is in a separate file
+import GoogleDriveUploader from './uploader.js';
+import multer from 'multer';
+
+const upload = multer();
 
 dotenv.config();
 
@@ -39,13 +42,22 @@ app.get('/oauth2callback', async (req, res) => {
   res.redirect('/upload');
 });
 
-app.get('/upload', async (req, res) => {
-  const uploader = new GoogleDriveUploader(oauth2Client);
+app.get('/upload', (req, res) => {
+  res.render('upload');
+});
 
+app.post('/upload', upload.single('file'), async (req, res) => {
+  const file = req.file;
+  if (!file) {
+    return res.status(400).send('No file uploaded.');
+  }
+
+  const uploader = new GoogleDriveUploader(oauth2Client);
   try {
     await uploader.uploadFile({
-      filePath: path.join(__dirname, 'credentials.json'),
-      mimeType: 'application/json'
+      fileName: file.originalname,
+      mimeType: file.mimetype,
+      body: file.stream
     });
     res.send('File uploaded successfully to Google Drive.');
   } catch (error) {
