@@ -7,6 +7,7 @@ npm i OR yarn
 
 ## usage
 ```bash
+cd google-drive
 npm start OR yarn start
 ```
 
