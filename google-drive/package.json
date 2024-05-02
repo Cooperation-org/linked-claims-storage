@@ -5,7 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc && cp -R src/views dist/views",
+    "build": "tsc && node copy-views.js",
     "dev": "yarn build && node dist/server.js"
   },
   "author": "",
@@ -24,6 +24,7 @@
     "@types/multer": "^1.4.11",
     "@types/node": "^20.12.7",
     "@types/open": "^6.2.1",
+    "fs-extra": "^11.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   }

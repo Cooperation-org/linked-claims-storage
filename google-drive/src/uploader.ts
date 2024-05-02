@@ -1,6 +1,4 @@
 import { google } from 'googleapis';
-import fs from 'fs';
-import path from 'path';
 
 interface UploadOptions {
   fileName: string;
