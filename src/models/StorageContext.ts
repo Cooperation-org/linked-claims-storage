@@ -1,5 +1,5 @@
 import { GoogleDriveStorage } from './GoogleDriveStorage.js';
-import { StorageStrategy } from './interfaces';
+import { StorageStrategy, StorageType } from './interfaces';
 
 class StorageContext {
   public strategy: StorageStrategy;
@@ -26,7 +26,7 @@ class StorageContext {
 }
 
 class StorageFactory {
-  static getStorageStrategy(type: string, options: any): StorageStrategy {
+  static getStorageStrategy(type: StorageType, options: any): StorageStrategy {
     switch (type) {
       case 'googleDrive':
         const { clientId, clientSecret, redirectUri } = options;

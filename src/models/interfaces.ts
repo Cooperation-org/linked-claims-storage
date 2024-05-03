@@ -17,3 +17,5 @@ export interface DataToSaveI {
   mimeType: string;
   body: any;
 }
+
+export type StorageType = 'googleDrive';
