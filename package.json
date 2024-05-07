@@ -1,0 +1,31 @@
+{
+  "name": "google-drive",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && node copy-views.js",
+    "dev": "yarn build && node dist/server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "googleapis": "^135.0.0",
+    "multer": "^1.4.5-lts.1",
+    "open": "^10.1.0",
+    "tsc": "^2.0.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.12.7",
+    "@types/open": "^6.2.1",
+    "fs-extra": "^11.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
