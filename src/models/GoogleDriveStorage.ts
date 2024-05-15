@@ -1,67 +1,67 @@
 import { google } from 'googleapis';
 
 import { DataToSaveI, GoogleAuthI, StorageStrategy } from './interfaces';
+import { PassThrough } from 'stream';
 
 export class GoogleDriveStorage implements StorageStrategy {
-  public oauth2Client;
+	public oauth2Client;
 
-  constructor(authCred: GoogleAuthI) {
-    this.oauth2Client = new google.auth.OAuth2(
-      authCred.clientId,
-      authCred.clientSecret,
-      authCred.redirectUri
-    );
-  }
+	constructor(authCred: GoogleAuthI) {
+		this.oauth2Client = new google.auth.OAuth2(authCred.clientId, authCred.clientSecret, authCred.redirectUri);
+	}
 
-  setCredentials(tokens: any) {
-    this.oauth2Client.setCredentials(tokens);
-  }
+	async authenticate(authCode: string) {
+		const { tokens } = await this.oauth2Client.getToken(authCode);
+		this.oauth2Client.setCredentials(tokens);
+		console.log('Authenticated successfully');
+	}
 
-  async authenticate(code: any) {
-    const { tokens } = await this.oauth2Client.getToken(code);
-    this.oauth2Client.setCredentials(tokens);
-    // TODO store the tokens
-  }
+	async save(data: DataToSaveI) {
+		try {
+			if (!data.fileName.endsWith('.json') || data.mimeType !== 'application/json') {
+				throw new Error('Only .json files are allowed');
+			}
 
-  initiateAuth(): string {
-    return this.oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/drive'],
-      prompt: 'consent'
-    });
-  }
+			const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
 
-  async finalizeAuth(code: string): Promise<void> {
-    await this.authenticate(code);
-  }
-  async save(data: DataToSaveI) {
-    const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
+			const fileMetadata = {
+				name: data.fileName,
+				mimeType: data.mimeType,
+			};
 
-    const fileMetadata = {
-      name: data.fileName,
-      mimeType: data.mimeType
-    };
+			// Check if buffer is not empty
+			if (data.body.length === 0) {
+				throw new Error('File buffer is empty.');
+			}
 
-    const media = {
-      mimeType: data.mimeType,
-      body: data.body
-    };
+			// Convert buffer to stream
+			const bufferStream = new PassThrough();
+			bufferStream.end(data.body);
 
-    const file = await drive.files.create({
-      requestBody: fileMetadata,
-      media: media,
-      fields: 'id'
-    });
-    // TODO store the file ID
-  }
+			const media = {
+				mimeType: data.mimeType,
+				body: bufferStream,
+			};
 
-  // TODO implement retrieve and delete methods
-  async retrieve(id: string): Promise<any> {
-    return;
-  }
+			const file = await drive.files.create({
+				requestBody: fileMetadata,
+				media: media,
+				fields: 'id',
+			});
 
-  async delete(id: string) {
-    return;
-  }
+			console.log('File uploaded:', file.data.id); // Logging file ID
+		} catch (error: any) {
+			console.error('Error uploading file:', error);
+			throw new Error(`Failed to upload file: ${error.message}`);
+		}
+	}
+
+	// TODO implement retrieve and delete methods
+	async retrieve(id: string): Promise<any> {
+		return;
+	}
+
+	async delete(id: string) {
+		return;
+	}
 }
-export { GoogleAuthI };
