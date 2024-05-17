@@ -2,47 +2,43 @@ import { GoogleDriveStorage } from './GoogleDriveStorage.js';
 import { StorageStrategy, StorageType } from './interfaces';
 
 class StorageContext {
-  public strategy: StorageStrategy;
+	public strategy: StorageStrategy;
 
-  constructor(strategy: StorageStrategy) {
-    this.strategy = strategy;
-  }
+	constructor(strategy: StorageStrategy) {
+		this.strategy = strategy;
+	}
 
-  setStrategy(strategy: StorageStrategy) {
-    this.strategy = strategy;
-  }
+	setStrategy(strategy: StorageStrategy) {
+		this.strategy = strategy;
+	}
 
-  async save(data: any) {
-    return this.strategy.save(data);
-  }
+	async save(data: any, folderId: string) {
+		return this.strategy.save(data, folderId);
+	}
 
-  async retrieve(id: string) {
-    return this.strategy.retrieve(id);
-  }
+	async retrieve(id: string) {
+		return this.strategy.retrieve(id);
+	}
 
-  async delete(id: string) {
-    return this.strategy.delete(id);
-  }
+	async delete(id: string) {
+		return this.strategy.delete(id);
+	}
 }
 
 class StorageFactory {
-  static getStorageStrategy(type: StorageType, options: any): StorageStrategy {
-    switch (type) {
-      case 'googleDrive':
-        const { clientId, clientSecret, redirectUri } = options;
-        if (!clientId || !clientSecret || !redirectUri) {
-          throw new Error('Missing required parameters');
-        }
+	static getStorageStrategy(type: StorageType, options: any): StorageStrategy {
+		switch (type) {
+			case 'googleDrive':
+				const { accessToken } = options;
+				if (!accessToken) {
+					throw new Error('Missing required parameters');
+				}
 
-        return new GoogleDriveStorage({
-          clientId: clientId,
-          clientSecret: clientSecret,
-          redirectUri: redirectUri
-        });
-      default:
-        throw new Error('Unsupported storage type');
-    }
-  }
+				return new GoogleDriveStorage(accessToken);
+			default:
+				throw new Error('Unsupported storage type');
+		}
+	}
 }
 
 export { StorageContext, StorageFactory };

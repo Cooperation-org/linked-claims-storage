@@ -1,67 +1,70 @@
-import { google } from 'googleapis';
+// GoogleDriveStorage.ts
 
-import { DataToSaveI, GoogleAuthI, StorageStrategy } from './interfaces';
+import { DataToSaveI, StorageStrategy } from './interfaces';
 
 export class GoogleDriveStorage implements StorageStrategy {
-  public oauth2Client;
+	private accessToken: string;
 
-  constructor(authCred: GoogleAuthI) {
-    this.oauth2Client = new google.auth.OAuth2(
-      authCred.clientId,
-      authCred.clientSecret,
-      authCred.redirectUri
-    );
-  }
+	constructor(accessToken: string) {
+		this.accessToken = accessToken;
+	}
 
-  setCredentials(tokens: any) {
-    this.oauth2Client.setCredentials(tokens);
-  }
+	async createFolder(folderName: string): Promise<string> {
+		const metadata = {
+			name: folderName,
+			mimeType: 'application/vnd.google-apps.folder',
+		};
 
-  async authenticate(code: any) {
-    const { tokens } = await this.oauth2Client.getToken(code);
-    this.oauth2Client.setCredentials(tokens);
-    // TODO store the tokens
-  }
+		const response = await fetch('https://www.googleapis.com/drive/v3/files', {
+			method: 'POST',
+			headers: new Headers({
+				Authorization: `Bearer ${this.accessToken}`,
+				'Content-Type': 'application/json',
+			}),
+			body: JSON.stringify(metadata),
+		});
 
-  initiateAuth(): string {
-    return this.oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/drive'],
-      prompt: 'consent'
-    });
-  }
+		const result = await response.json();
+		if (!response.ok) {
+			throw new Error(result.error.message);
+		}
 
-  async finalizeAuth(code: string): Promise<void> {
-    await this.authenticate(code);
-  }
-  async save(data: DataToSaveI) {
-    const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
+		console.log('Folder ID:', result.id); // Logging the new folder ID
+		return result.id; // Return the new folder ID
+	}
 
-    const fileMetadata = {
-      name: data.fileName,
-      mimeType: data.mimeType
-    };
+	async save(data: DataToSaveI, folderId: string): Promise<string> {
+		const fileMetadata = {
+			name: data.fileName,
+			mimeType: data.mimeType,
+			parents: [folderId], // Set the parent folder ID
+		};
 
-    const media = {
-      mimeType: data.mimeType,
-      body: data.body
-    };
+		const formData = new FormData();
+		formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+		formData.append('file', data.body);
 
-    const file = await drive.files.create({
-      requestBody: fileMetadata,
-      media: media,
-      fields: 'id'
-    });
-    // TODO store the file ID
-  }
+		const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+			method: 'POST',
+			headers: new Headers({ Authorization: `Bearer ${this.accessToken}` }),
+			body: formData,
+		});
 
-  // TODO implement retrieve and delete methods
-  async retrieve(id: string): Promise<any> {
-    return;
-  }
+		const result = await response.json();
+		if (!response.ok) {
+			throw new Error(result.error.message);
+		}
 
-  async delete(id: string) {
-    return;
-  }
+		console.log('File uploaded:', result.id); // Logging the file ID
+		return result.id; // Return the file ID
+	}
+
+	// TODO implemenmty read and delete methods
+	async retrieve(id: string): Promise<any> {
+		throw new Error('Method not implemented.');
+	}
+
+	async delete(id: string): Promise<void> {
+		throw new Error('Method not implemented.');
+	}
 }
-export { GoogleAuthI };
