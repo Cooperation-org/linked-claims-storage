@@ -1,9 +1,12 @@
 {
-	"name": "trust-storage",
+	"name": "trust_storage",
 	"type": "module",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "",
 	"main": "dist/index.js",
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "tsc",
 		"test": "jest"
