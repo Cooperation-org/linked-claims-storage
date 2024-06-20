@@ -1,6 +1,5 @@
-// GoogleDriveStorage.ts
-
-import { DataToSaveI, StorageStrategy } from './interfaces';
+// GoogleDriveStorage.ts=
+import { DataToSaveI, StorageStrategy } from '../index.d';
 
 export class GoogleDriveStorage implements StorageStrategy {
 	private accessToken: string;
