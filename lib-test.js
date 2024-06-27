@@ -2,7 +2,7 @@
 import { GoogleDriveStorage } from './dist/models/GoogleDriveStorage.js';
 async function createFolderAndUploadFile() {
   try {
-    const storage = new GoogleDriveStorage('ADD_YOUR_ACCESS_TOKEN'); // please contact to @0marSalah to add your account to the project
+    const storage = new GoogleDriveStorage('ya29.a0AXooCguNqk5IUs9xc1jn9jMOgUW6PBTEHnZE7LKX8cBNzVlCPR7gY0TOVwtIPD0ndzSRLLqaVhzddms71_lOVSPWsuB3k_PPFuoqx96Q-SfktdltqetZrIiUIsIhkeE70xc1Kzx8ddRwIJO3fYVWdnojGx6gFIFSrh_laCgYKATMSARMSFQHGX2MixLYPoX6_RxW_0sTnVCvqpA0171'); // please contact to @0marSalah to add your account to the project
     const folderName = 'USER_UN(IQUE_KEY'; // need to discussed with team how we sill set the folder name
     const folderId = await storage.createFolder(folderName);
 

@@ -16,7 +16,8 @@
 	"license": "ISC",
 	"dependencies": {
 		"jest": "^29.7.0",
-		"ts-jest": "^29.1.2",
+		"trust_storage": "^1.0.1",
+		"ts-jest": "^29.1.5",
 		"tsc": "^2.0.4"
 	},
 	"devDependencies": {
