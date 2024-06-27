@@ -1,5 +1,4 @@
 import { StorageContext, StorageFactory } from '../src/models/StorageContext';
-// import { GoogleDriveStorage } from '../src/models/GoogleDriveStorage';
 import { GoogleDriveStorage } from '../src/models/GoogleDriveStorage';
 import { StorageStrategy, StorageType } from '../src/index.d';
 
@@ -18,12 +17,14 @@ describe('StorageContext', () => {
     });
 
     it('should set initial strategy via constructor', () => {
+        // @ts-ignore
         expect(storageContext.strategy).toBe(mockStrategy);
     });
 
     it('should change strategy via setStrategy method', () => {
         const newStrategy = { ...mockStrategy };
         storageContext.setStrategy(newStrategy);
+        // @ts-ignore
         expect(storageContext.strategy).toBe(newStrategy);
     });
 
