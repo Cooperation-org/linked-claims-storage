@@ -2,14 +2,26 @@
 	"compilerOptions": {
 		"declaration": true,
 		"target": "ES2020",
-		"module": "ES2020",
+		"module": "commonjs",
 		"moduleResolution": "node",
 		"esModuleInterop": true,
 		"outDir": "./dist",
 		"rootDir": "./src",
 		"strict": true,
 		"forceConsistentCasingInFileNames": true,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"baseUrl": ".",
+		"paths": {
+			"src/*": [
+				"src/*"
+			]
+		}
 	},
-	"include": ["src/**/*"]
+	"include": [
+		"src/**/*",
+		"tests/**/*"
+	],
+	"exclude": [
+		"node_modules"
+	]
 }

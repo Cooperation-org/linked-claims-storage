@@ -1,44 +1,44 @@
-import { GoogleDriveStorage } from './GoogleDriveStorage.js';
+import { GoogleDriveStorage } from './GoogleDriveStorage';
 import { StorageStrategy, StorageType } from '../index.d';
 
-class StorageContext {
-	public strategy: StorageStrategy;
+export class StorageContext {
+  private strategy: StorageStrategy;
 
-	constructor(strategy: StorageStrategy) {
-		this.strategy = strategy;
-	}
+  constructor(strategy: StorageStrategy) {
+    this.strategy = strategy;
+  }
 
-	setStrategy(strategy: StorageStrategy) {
-		this.strategy = strategy;
-	}
+  setStrategy(strategy: StorageStrategy) {
+    this.strategy = strategy;
+  }
 
-	async save(data: any, folderId: string) {
-		return this.strategy.save(data, folderId);
-	}
+  async createFolder(folderName: string): Promise<string> {
+    return this.strategy.createFolder(folderName);
+  }
 
-	async retrieve(id: string) {
-		return this.strategy.retrieve(id);
-	}
+  async save(data: any, folderId: string): Promise<string> {
+    return this.strategy.save(data, folderId);
+  }
 
-	async delete(id: string) {
-		return this.strategy.delete(id);
-	}
+  async retrieve(id: string): Promise<any> {
+    return this.strategy.retrieve(id);
+  }
+
+  async delete(id: string): Promise<void> {
+    return this.strategy.delete(id);
+  }
 }
 
-class StorageFactory {
-	static getStorageStrategy(type: StorageType, options: any): StorageStrategy {
-		switch (type) {
-			case 'googleDrive':
-				const { accessToken } = options;
-				if (!accessToken) {
-					throw new Error('Missing required parameters');
-				}
-
-				return new GoogleDriveStorage(accessToken);
-			default:
-				throw new Error('Unsupported storage type');
-		}
-	}
+export class StorageFactory {
+  static getStorageStrategy(type: StorageType, options: any): StorageStrategy {
+    switch (type) {
+      case 'googleDrive':
+        if (!options.accessToken) {
+          throw new Error('Missing required parameters');
+        }
+        return new GoogleDriveStorage(options.accessToken);
+      default:
+        throw new Error('Unsupported storage type');
+    }
+  }
 }
-
-export { StorageContext, StorageFactory };
