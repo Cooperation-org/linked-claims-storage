@@ -12,6 +12,10 @@ class StorageContext {
 		this.strategy = strategy;
 	}
 
+	async createFolder(folderName: string) {
+		return this.strategy.createFolder(folderName);
+	}
+
 	async save(data: any, folderId: string) {
 		return this.strategy.save(data, folderId);
 	}

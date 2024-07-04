@@ -1,4 +1,3 @@
-// GoogleDriveStorage.ts=
 import { DataToSaveI, StorageStrategy } from '../index.d';
 
 export class GoogleDriveStorage implements StorageStrategy {
@@ -55,12 +54,30 @@ export class GoogleDriveStorage implements StorageStrategy {
 		}
 
 		console.log('File uploaded:', result.id); // Logging the file ID
-		return result.id; // Return the file ID
+		return result;
 	}
 
 	// TODO implemenmty read and delete methods
 	async retrieve(id: string): Promise<any> {
-		throw new Error('Method not implemented.');
+		try {
+			// get the file body
+			const response = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
+				method: 'GET',
+				headers: new Headers({
+					Authorization: `Bearer ${this.accessToken}`,
+				}),
+			});
+
+			const result = await response.json();
+			if (!response.ok) {
+				throw new Error(result.error.message);
+			}
+
+			console.log('File retrieved:', result); // Logging the file ID
+			return result; // Return the file ID
+		} catch (error) {
+			console.error(error);
+		}
 	}
 
 	async delete(id: string): Promise<void> {
