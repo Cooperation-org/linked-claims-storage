@@ -1,8 +1,7 @@
 export interface StorageStrategy {
-	save(data: any, folderId: string): Promise<string>;
+	save(data: any, folderId: string): Promise<string | null>;
 	createFolder(folderName: string): Promise<string>;
 	retrieve(id: string): Promise<any>;
-	delete(id: string): Promise<void>;
 }
 
 export interface GoogleAuthI {

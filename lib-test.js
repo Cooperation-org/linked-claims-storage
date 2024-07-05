@@ -1,23 +1,37 @@
-// const GoogleDriveStorage = require('./dist/models/GoogleDriveStorage.js');
-import { GoogleDriveStorage } from './dist/models/GoogleDriveStorage.js';
-async function createFolderAndUploadFile() {
-  try {
-    const storage = new GoogleDriveStorage('ADD_YOUR_ACCESS_TOKEN'); // please contact to @0marSalah to add your account to the project
-    const folderName = 'USER_UN(IQUE_KEY'; // need to discussed with team how we sill set the folder name
-    const folderId = await storage.createFolder(folderName);
+import { StorageContext, StorageFactory } from './dist/index.js';
 
-    const fileData = {
-      fileName: 'test.json',
-      mimeType: 'application/json',
-      body: new Blob([JSON.stringify({ name: 'John Doe' })], {
-        type: 'application/json'
-      })
-    };
-    const fileId = await storage.save(fileData, folderId);
-    console.log('File uploaded successfully with ID:', fileId);
-  } catch (error) {
-    console.error('Error:', error);
-  }
+const accessToken = 'ADD_YOUR_ACCESS';
+let fileId = '';
+const strategy = StorageFactory.getStorageStrategy('googleDrive', { accessToken });
+
+const storage = new StorageContext(strategy);
+
+async function createFolderAndUploadFile() {
+	try {
+		const folderName = 'USER_CREDENTIALS'; // chech the engineering doc for more clarity about naming
+		const folderId = await storage.createFolder(folderName);
+
+		const fileData = {
+			fileName: 'TIMESTAMP.json',
+			mimeType: 'application/json',
+			body: JSON.stringify({ name: 'John Doe' }),
+		};
+		const response = await storage.save(fileData, folderId);
+		fileId = response.id;
+		console.log('File uploaded successfully with ID:', fileId);
+	} catch (error) {
+		console.error('Error:', error);
+	}
 }
 
-createFolderAndUploadFile();
+const getFile = async () => {
+	const file = await storage.retrieve(fileId);
+	console.log('File:', file);
+};
+
+const main = async () => {
+	await createFolderAndUploadFile();
+	await getFile();
+};
+
+main();

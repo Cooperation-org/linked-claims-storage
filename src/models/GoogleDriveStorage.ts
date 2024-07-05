@@ -1,4 +1,3 @@
-// GoogleDriveStorage.ts=
 import { DataToSaveI, StorageStrategy } from '../index.d';
 
 export class GoogleDriveStorage implements StorageStrategy {
@@ -32,35 +31,59 @@ export class GoogleDriveStorage implements StorageStrategy {
 		return result.id; // Return the new folder ID
 	}
 
-	async save(data: DataToSaveI, folderId: string): Promise<string> {
-		const fileMetadata = {
-			name: data.fileName,
-			mimeType: data.mimeType,
-			parents: [folderId], // Set the parent folder ID
-		};
+	async save(data: DataToSaveI, folderId: string): Promise<string | null> {
+		try {
+			const fileMetadata = {
+				name: data.fileName,
+				mimeType: data.mimeType,
+				parents: [folderId], // Set the parent folder ID
+			};
 
-		const formData = new FormData();
-		formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-		formData.append('file', data.body);
+			const formData = new FormData();
+			formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+			formData.append('file', data.body);
 
-		const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-			method: 'POST',
-			headers: new Headers({ Authorization: `Bearer ${this.accessToken}` }),
-			body: formData,
-		});
+			const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+				method: 'POST',
+				headers: new Headers({ Authorization: `Bearer ${this.accessToken}` }),
+				body: formData,
+			});
 
-		const result = await response.json();
-		if (!response.ok) {
-			throw new Error(result.error.message);
+			const result = await response.json();
+			if (!response.ok) {
+				throw new Error(result.error.message);
+			}
+
+			console.log('File uploaded:', result.id);
+			return result;
+		} catch (error) {
+			console.error('Error uploading file:', error);
+			return null;
 		}
-
-		console.log('File uploaded:', result.id); // Logging the file ID
-		return result.id; // Return the file ID
 	}
 
 	// TODO implemenmty read and delete methods
 	async retrieve(id: string): Promise<any> {
-		throw new Error('Method not implemented.');
+		try {
+			// get the file body
+			const response = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
+				method: 'GET',
+				headers: new Headers({
+					Authorization: `Bearer ${this.accessToken}`,
+				}),
+			});
+
+			const result = await response.json();
+			if (!response.ok) {
+				throw new Error(result.error.message);
+			}
+
+			console.log('File retrieved:', result); // Logging the file ID
+			return result;
+		} catch (error) {
+			console.error('Error retrieving file:', error);
+			return;
+		}
 	}
 
 	async delete(id: string): Promise<void> {
