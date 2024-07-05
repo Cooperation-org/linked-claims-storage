@@ -23,10 +23,6 @@ class StorageContext {
 	async retrieve(id: string) {
 		return this.strategy.retrieve(id);
 	}
-
-	async delete(id: string) {
-		return this.strategy.delete(id);
-	}
 }
 
 class StorageFactory {
