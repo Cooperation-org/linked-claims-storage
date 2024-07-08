@@ -1,7 +1,6 @@
 import DIDManager from './dist/utils/didManager.js';
 
-const accessToken =
-	'ya29.a0AXooCgszmv2UYG4xZoVeOmiGgcA06jfihR0G9AOXBPTsL71ywyzIUBc95835Y8v7fBtTIT7Tx3Tkl2ZEbkLuCZiWWIhH-igsP24XWO-Gn8OK9AM5ozA60whNymLAregEdjljypqYDAkRkY1jFsKd71FZ93ZGJZNv9_YkaCgYKAQESARISFQHGX2MiFpyr8uf8SfSBqMCfosw-sQ0171';
+const accessToken = 'ADD_YOUR_ACCESS';
 const didManager = new DIDManager(accessToken);
 
 async function main() {
