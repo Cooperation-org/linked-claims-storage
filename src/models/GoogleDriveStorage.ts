@@ -86,6 +86,24 @@ export class GoogleDriveStorage implements StorageStrategy {
 		}
 	}
 
+	async getFolders(): Promise<any[]> {
+		const response = await fetch('https://www.googleapis.com/drive/v3/files', {
+			method: 'GET',
+			headers: new Headers({
+				Authorization: `Bearer ${this.accessToken}`,
+			}),
+		});
+
+		const result = await response.json();
+		if (!response.ok) {
+			throw new Error(result.error.message);
+		}
+
+		// Filter out only the folders
+		const folders = result.files.filter((file) => file.mimeType === 'application/vnd.google-apps.folder');
+		return folders;
+	}
+
 	async delete(id: string): Promise<void> {
 		throw new Error('Method not implemented.');
 	}

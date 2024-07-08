@@ -23,6 +23,10 @@ class StorageContext {
 	async retrieve(id: string) {
 		return this.strategy.retrieve(id);
 	}
+
+	async getFolders() {
+		return this.strategy.getFolders();
+	}
 }
 
 class StorageFactory {

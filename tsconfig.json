@@ -1,15 +1,14 @@
 {
 	"compilerOptions": {
-		"declaration": true,
-		"target": "ES2020",
-		"module": "ES2020",
+		"target": "ES6",
+		"module": "ES6",
 		"moduleResolution": "node",
-		"esModuleInterop": true,
 		"outDir": "./dist",
 		"rootDir": "./src",
-		"strict": true,
-		"forceConsistentCasingInFileNames": true,
-		"resolveJsonModule": true
+		// "strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true
 	},
-	"include": ["src/**/*"]
+	"include": ["src/**/*"],
+	"exclude": ["node_modules"]
 }
