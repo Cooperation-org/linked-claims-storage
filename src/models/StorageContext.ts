@@ -12,7 +12,7 @@ class StorageContext {
 		this.strategy = strategy;
 	}
 
-	async createFolder(folderName: string) {
+	async createFolder(folderName: string, parentFolderId?: string) {
 		return this.strategy.createFolder(folderName);
 	}
 
@@ -24,7 +24,7 @@ class StorageContext {
 		return this.strategy.retrieve(id);
 	}
 
-	async getFolders() {
+	async getFolders(id?: string) {
 		return this.strategy.getFolders();
 	}
 }

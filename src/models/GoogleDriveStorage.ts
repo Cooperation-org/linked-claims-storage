@@ -7,10 +7,11 @@ export class GoogleDriveStorage implements StorageStrategy {
 		this.accessToken = accessToken;
 	}
 
-	async createFolder(folderName: string): Promise<string> {
+	async createFolder(folderName: string, parentFolderId?: string): Promise<string> {
 		const metadata = {
 			name: folderName,
 			mimeType: 'application/vnd.google-apps.folder',
+			parents: parentFolderId ? [parentFolderId] : [],
 		};
 
 		const response = await fetch('https://www.googleapis.com/drive/v3/files', {
@@ -31,7 +32,7 @@ export class GoogleDriveStorage implements StorageStrategy {
 		return result.id; // Return the new folder ID
 	}
 
-	async save(data: DataToSaveI, folderId: string): Promise<string | null> {
+	async save(data: DataToSaveI, folderId: string): Promise<{ id: string } | null> {
 		try {
 			const fileMetadata = {
 				name: data.fileName,
@@ -86,13 +87,23 @@ export class GoogleDriveStorage implements StorageStrategy {
 		}
 	}
 
-	async getFolders(): Promise<any[]> {
-		const response = await fetch('https://www.googleapis.com/drive/v3/files', {
-			method: 'GET',
-			headers: new Headers({
-				Authorization: `Bearer ${this.accessToken}`,
-			}),
-		});
+	async getFolders(id?: string): Promise<any[]> {
+		let response: Response;
+		if (id) {
+			response = await fetch(`https://www.googleapis.com/drive/v3/files?q='${id}'+in+parents`, {
+				method: 'GET',
+				headers: new Headers({
+					Authorization: `Bearer ${this.accessToken}`,
+				}),
+			});
+		} else {
+			response = await fetch('https://www.googleapis.com/drive/v3/files', {
+				method: 'GET',
+				headers: new Headers({
+					Authorization: `Bearer ${this.accessToken}`,
+				}),
+			});
+		}
 
 		const result = await response.json();
 		if (!response.ok) {
@@ -100,7 +111,7 @@ export class GoogleDriveStorage implements StorageStrategy {
 		}
 
 		// Filter out only the folders
-		const folders = result.files.filter((file) => file.mimeType === 'application/vnd.google-apps.folder');
+		const folders = result.files.filter((file: any) => file.mimeType === 'application/vnd.google-apps.folder');
 		return folders;
 	}
 

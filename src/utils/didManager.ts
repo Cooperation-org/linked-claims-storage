@@ -2,7 +2,7 @@ import { driver } from 'did-method-key';
 import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
 import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
 import { issue, defaultDocumentLoader } from '@digitalbazaar/vc';
-import { StorageContext, StorageFactory } from '../../dist/models/StorageContext.js'; // Adjust the path as necessary
+import { StorageContext, StorageFactory } from '../models/StorageContext.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -31,7 +31,7 @@ const customDocumentLoader = async (url: string) => {
 
 class DIDManager {
 	private didKeyDriver: any;
-	private storage: any;
+	private storage: StorageContext;
 	private folderName: string;
 
 	constructor(accessToken: string) {
@@ -40,25 +40,47 @@ class DIDManager {
 		this.folderName = 'USER_CREDENTIALS'; // Folder to store user credentials
 	}
 
-	private async saveToGoogleDrive(data: any, type: string) {
+	private async saveToGoogleDrive(data: any, type: 'VC' | 'DID') {
 		const timestamp = Date.now();
 		const fileData = {
 			fileName: `${type}-${timestamp}.json`,
 			mimeType: 'application/json',
 			body: JSON.stringify(data),
 		};
-		// check if tyhe folder exists
+
+		// Get all root folders
 		const folders = await this.storage.getFolders();
-		const folder = folders.find((f: any) => f.name === this.folderName);
-		if (folder) {
-			const file = await this.storage.save(fileData, folder.id);
-			console.log(`File uploaded: ${file.id}`);
-			return;
+		// Find the "Credentials" folder
+		const credentialsFolder = folders.find((f: any) => f.name === 'Credentials');
+		console.log('🚀 ~ DIDManager ~ saveToGoogleDrive ~ credentialsFolder:', credentialsFolder);
+		let typeFolderId: string;
+		let credentialsFolderId: string;
+
+		if (!credentialsFolder) {
+			// Create "Credentials" folder if it does not exist
+			credentialsFolderId = await this.storage.createFolder('Credentials');
+			console.log('0 ~ :', credentialsFolderId);
 		} else {
-			const folderId = await this.storage.createFolder(this.folderName);
-			const file = await this.storage.save(fileData, folderId);
-			console.log(`File uploaded: ${file.id}`);
+			credentialsFolderId = credentialsFolder.id;
+			console.log('1 ~ :', credentialsFolderId);
 		}
+
+		// Ensure the specific subfolder (DIDs or VCs) exists
+		const subfolders = await this.storage.getFolders(credentialsFolderId);
+		const typeFolder = subfolders.find((f: any) => f.name === `${type}s`);
+
+		if (!typeFolder) {
+			// Create the subfolder (DIDs or VCs) within the "Credentials" folder
+			typeFolderId = await this.storage.createFolder(`${type}s`, credentialsFolderId);
+			console.log('2 ~ :', typeFolderId);
+		} else {
+			typeFolderId = typeFolder.id;
+			console.log('3 ~ :', typeFolderId);
+		}
+
+		// Save the file in the specific subfolder
+		const file = await this.storage.save(fileData, typeFolderId);
+		console.log(`File uploaded: ${file?.id} under ${type}s with id ${typeFolderId} folder in Credentials folder`);
 	}
 
 	private async createDIDDocument(keyPair: any): Promise<any> {
