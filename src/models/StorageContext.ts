@@ -24,8 +24,12 @@ class StorageContext {
 		return this.strategy.retrieve(id);
 	}
 
-	async getFolders(id?: string) {
-		return this.strategy.getFolders();
+	async getRootFolders() {
+		return this.strategy.getRootFolders();
+	}
+
+	async getSubFolders(id: string) {
+		return this.strategy.getSubFolders(id);
 	}
 }
 

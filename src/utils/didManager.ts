@@ -1,7 +1,7 @@
 import { driver } from 'did-method-key';
 import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
 import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
-import { issue, defaultDocumentLoader } from '@digitalbazaar/vc';
+import { issue } from '@digitalbazaar/vc';
 import { StorageContext, StorageFactory } from '../models/StorageContext.js';
 import fs from 'fs';
 import path from 'path';
@@ -26,7 +26,7 @@ const customDocumentLoader = async (url: string) => {
 			document: contextMap[url],
 		};
 	}
-	return defaultDocumentLoader(url);
+	return { contextUrl: null, documentUrl: url, document: {} }; // Handle unknown URLs
 };
 
 class DIDManager {
@@ -37,50 +37,52 @@ class DIDManager {
 	constructor(accessToken: string) {
 		this.didKeyDriver = driver();
 		this.storage = new StorageContext(StorageFactory.getStorageStrategy('googleDrive', { accessToken }));
-		this.folderName = 'USER_CREDENTIALS'; // Folder to store user credentials
+		this.folderName = 'Credentials'; // Folder to store user credentials
 	}
 
-	private async saveToGoogleDrive(data: any, type: 'VC' | 'DID') {
+	private async saveToGoogleDrive(data: any, type: 'VC' | 'DID', fileName: string = '') {
 		const timestamp = Date.now();
 		const fileData = {
-			fileName: `${type}-${timestamp}.json`,
+			fileName: `${fileName}-${type}-${timestamp}.json`,
 			mimeType: 'application/json',
 			body: JSON.stringify(data),
 		};
 
 		// Get all root folders
-		const folders = await this.storage.getFolders();
-		// Find the "Credentials" folder
-		const credentialsFolder = folders.find((f: any) => f.name === 'Credentials');
-		console.log('🚀 ~ DIDManager ~ saveToGoogleDrive ~ credentialsFolder:', credentialsFolder);
-		let typeFolderId: string;
+		const rootFolders = await this.storage.getRootFolders();
+		console.log('Root folders:', rootFolders);
+
+		// Find or create the "Credentials" folder
+		let credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
 		let credentialsFolderId: string;
 
 		if (!credentialsFolder) {
-			// Create "Credentials" folder if it does not exist
 			credentialsFolderId = await this.storage.createFolder('Credentials');
-			console.log('0 ~ :', credentialsFolderId);
+			console.log('Created Credentials folder with ID:', credentialsFolderId);
 		} else {
 			credentialsFolderId = credentialsFolder.id;
-			console.log('1 ~ :', credentialsFolderId);
+			console.log('Found Credentials folder with ID:', credentialsFolderId);
 		}
 
-		// Ensure the specific subfolder (DIDs or VCs) exists
-		const subfolders = await this.storage.getFolders(credentialsFolderId);
-		const typeFolder = subfolders.find((f: any) => f.name === `${type}s`);
+		// Get subfolders within the "Credentials" folder
+		const subfolders = await this.storage.getSubFolders(credentialsFolderId);
+		console.log(`Subfolders in Credentials (ID: ${credentialsFolderId}):`, subfolders);
+
+		// Find or create the specific subfolder (DIDs or VCs)
+		let typeFolder = subfolders.find((f: any) => f.name === `${type}s`);
+		let typeFolderId: string;
 
 		if (!typeFolder) {
-			// Create the subfolder (DIDs or VCs) within the "Credentials" folder
 			typeFolderId = await this.storage.createFolder(`${type}s`, credentialsFolderId);
-			console.log('2 ~ :', typeFolderId);
+			console.log(`Created ${type}s folder with ID:`, typeFolderId);
 		} else {
 			typeFolderId = typeFolder.id;
-			console.log('3 ~ :', typeFolderId);
+			console.log(`Found ${type}s folder with ID:`, typeFolderId);
 		}
 
 		// Save the file in the specific subfolder
 		const file = await this.storage.save(fileData, typeFolderId);
-		console.log(`File uploaded: ${file?.id} under ${type}s with id ${typeFolderId} folder in Credentials folder`);
+		console.log(`File uploaded: ${file?.id} under ${type}s with ID ${typeFolderId} folder in Credentials folder`);
 	}
 
 	private async createDIDDocument(keyPair: any): Promise<any> {
@@ -89,7 +91,7 @@ class DIDManager {
 		keyPair.id = `${did}#${keyPair.fingerprint()}`; // Manually set the id
 		keyPair.revoked = false; // Assuming the key is not revoked
 		const didDocument = {
-			'@context': ['https://w3id.org/did/v1'],
+			'@context': ['https://www.w3.org/ns/did/v1'],
 			id: did,
 			publicKey: [
 				{
@@ -122,13 +124,17 @@ class DIDManager {
 		keyPair.revoked = false; // Ensure revoked property is set if needed
 		console.log('🚀 ~ main ~ keyPair:', keyPair); // Log key pair
 		const didDocument = await this.createDIDDocument(keyPair);
-		await this.saveToGoogleDrive({ didDocument, keyPair }, 'DID');
+		// await this.saveToGoogleDrive({ didDocument, keyPair }, 'DID');
 		return { didDocument, keyPair };
 	}
 
 	public createUnsignedVC(formData: any, issuerDid: string): any {
 		const credential = {
-			'@context': ['https://www.w3.org/2018/credentials/v1', localOBContext, localED25519Context],
+			'@context': [
+				'https://www.w3.org/2018/credentials/v1',
+				'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
+				'https://w3id.org/security/suites/ed25519-2020/v1',
+			],
 			type: ['VerifiableCredential', 'OpenBadgeCredential'],
 			issuer: {
 				id: issuerDid,

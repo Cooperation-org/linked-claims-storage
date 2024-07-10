@@ -87,33 +87,45 @@ export class GoogleDriveStorage implements StorageStrategy {
 		}
 	}
 
-	async getFolders(id?: string): Promise<any[]> {
-		let response: Response;
-		if (id) {
-			response = await fetch(`https://www.googleapis.com/drive/v3/files?q='${id}'+in+parents`, {
+	async getRootFolders(): Promise<any[]> {
+		const response = await fetch(
+			'https://www.googleapis.com/drive/v3/files?q="root" in parents and mimeType="application/vnd.google-apps.folder"&trashed=false&fields=files(id,name,mimeType,parents)',
+			{
 				method: 'GET',
 				headers: new Headers({
 					Authorization: `Bearer ${this.accessToken}`,
 				}),
-			});
-		} else {
-			response = await fetch('https://www.googleapis.com/drive/v3/files', {
-				method: 'GET',
-				headers: new Headers({
-					Authorization: `Bearer ${this.accessToken}`,
-				}),
-			});
-		}
+			}
+		);
 
 		const result = await response.json();
 		if (!response.ok) {
 			throw new Error(result.error.message);
 		}
 
-		// Filter out only the folders
 		const folders = result.files.filter((file: any) => file.mimeType === 'application/vnd.google-apps.folder');
 		return folders;
 	}
+
+	getSubFolders = async (id: string): Promise<any[]> => {
+		const response = await fetch(
+			`https://www.googleapis.com/drive/v3/files?q='${id}' in parents and mimeType='application/vnd.google-apps.folder'&trashed=false&fields=files(id,name,mimeType,parents)`,
+			{
+				method: 'GET',
+				headers: new Headers({
+					Authorization: `Bearer ${this.accessToken}`,
+				}),
+			}
+		);
+
+		const result = await response.json();
+		if (!response.ok) {
+			throw new Error(result.error.message);
+		}
+
+		const folders = result.files.filter((file: any) => file.mimeType === 'application/vnd.google-apps.folder');
+		return folders;
+	};
 
 	async delete(id: string): Promise<void> {
 		throw new Error('Method not implemented.');
