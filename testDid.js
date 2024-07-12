@@ -1,8 +1,7 @@
 import DIDManager from './dist/utils/didManager.js';
 import { StorageContext, StorageFactory } from './dist/models/StorageContext.js';
 
-const accessToken =
-	'ya29.a0AXooCgu0Lm6t9o1dVJqyaX9a9pp92AcCGcGb670MkcjQRqX2TobE_fgaSYB6J50YeHA75BhsR-mwTiHQff1ZnXl_Wgev1fpFIl_F74ljQAanVh7FZaZ3ZwPsTZRRrWWmGgkH9WumMynzzOOLPop48JaP4ycvQY0_ukK5aCgYKAVcSARISFQHGX2MiJqOFEZji96wSOHIUto821w0171';
+const accessToken = 'ADD_YOUR_ACCESS_TOKEN';
 const didManager = new DIDManager(accessToken);
 const storage = new StorageContext(StorageFactory.getStorageStrategy('googleDrive', { accessToken }));
 
