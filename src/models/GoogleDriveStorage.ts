@@ -1,4 +1,4 @@
-import { DataToSaveI, StorageStrategy } from '../index.d';
+import { DataToSaveI, StorageStrategy } from '../types';
 
 export class GoogleDriveStorage implements StorageStrategy {
 	private accessToken: string;
@@ -7,6 +7,13 @@ export class GoogleDriveStorage implements StorageStrategy {
 		this.accessToken = accessToken;
 	}
 
+	/**
+	 * Creates a new folder in Google Drive.
+	 * @param folderName - The name of the folder to be created.
+	 * @param parentFolderId - (Optional) The ID of the parent folder. If not provided, the folder will be created in the root directory.
+	 * @returns A promise that resolves to the ID of the newly created folder.
+	 * @throws Will throw an error if the folder creation fails.
+	 */
 	async createFolder(folderName: string, parentFolderId?: string): Promise<string> {
 		const metadata = {
 			name: folderName,
@@ -32,6 +39,13 @@ export class GoogleDriveStorage implements StorageStrategy {
 		return result.id; // Return the new folder ID
 	}
 
+	/**
+	 * Saves the provided data to Google Drive in the specified folder.
+	 * @param data - The data to be saved, containing the file name, MIME type, and body.
+	 * @param folderId - The ID of the folder in which to save the data.
+	 * @returns A promise that resolves to an object containing the ID of the saved file, or `null` if the save operation fails.
+	 * @throws Will throw an error if the save operation fails.
+	 */
 	async save(data: DataToSaveI, folderId: string): Promise<{ id: string } | null> {
 		try {
 			const fileMetadata = {
@@ -63,7 +77,12 @@ export class GoogleDriveStorage implements StorageStrategy {
 		}
 	}
 
-	// TODO implemenmty read and delete methods
+	/**
+	 * Retrieves the file with the specified ID from Google Drive.
+	 * @param id - The ID of the file to retrieve.
+	 * @returns A promise that resolves to the file body, or `null` if the retrieval fails.
+	 * @throws Will throw an error if the retrieval fails.
+	 */
 	async retrieve(id: string): Promise<any> {
 		try {
 			// get the file body
@@ -87,36 +106,37 @@ export class GoogleDriveStorage implements StorageStrategy {
 		}
 	}
 
-	async getRootFolders(): Promise<any[]> {
-		const response = await fetch(
-			'https://www.googleapis.com/drive/v3/files?q="root" in parents and mimeType="application/vnd.google-apps.folder"&trashed=false&fields=files(id,name,mimeType,parents)',
-			{
-				method: 'GET',
-				headers: new Headers({
-					Authorization: `Bearer ${this.accessToken}`,
-				}),
-			}
-		);
+	/**
+	 * Retrieves folders from Google Drive based on the provided ID.
+	 * If no ID is provided, it retrieves folders from the root directory.
+	 * @param id - (Optional) The ID of the parent folder. If not provided, retrieves folders from the root directory.
+	 * @returns A promise that resolves to an array of folder objects. Each folder object contains the ID, name, MIME type, and parents.
+	 * @throws Will throw an error if the retrieval fails.
+	 */
+	findFolders = async (id?: string): Promise<any[]> => {
+		let response: any;
 
-		const result = await response.json();
-		if (!response.ok) {
-			throw new Error(result.error.message);
+		if (id) {
+			response = await fetch(
+				`https://www.googleapis.com/drive/v3/files?q='${id}' in parents and mimeType='application/vnd.google-apps.folder'&trashed=false&fields=files(id,name,mimeType,parents)`,
+				{
+					method: 'GET',
+					headers: new Headers({
+						Authorization: `Bearer ${this.accessToken}`,
+					}),
+				}
+			);
+		} else {
+			response = await fetch(
+				'https://www.googleapis.com/drive/v3/files?q=%27root%27+in+parents+and+mimeType+%3D+%27application/vnd.google-apps.folder%27&fields=files(id,name,mimeType,parents)',
+				{
+					method: 'GET',
+					headers: new Headers({
+						Authorization: `Bearer ${this.accessToken}`,
+					}),
+				}
+			);
 		}
-
-		const folders = result.files.filter((file: any) => file.mimeType === 'application/vnd.google-apps.folder');
-		return folders;
-	}
-
-	getSubFolders = async (id: string): Promise<any[]> => {
-		const response = await fetch(
-			`https://www.googleapis.com/drive/v3/files?q='${id}' in parents and mimeType='application/vnd.google-apps.folder'&trashed=false&fields=files(id,name,mimeType,parents)`,
-			{
-				method: 'GET',
-				headers: new Headers({
-					Authorization: `Bearer ${this.accessToken}`,
-				}),
-			}
-		);
 
 		const result = await response.json();
 		if (!response.ok) {
@@ -126,8 +146,4 @@ export class GoogleDriveStorage implements StorageStrategy {
 		const folders = result.files.filter((file: any) => file.mimeType === 'application/vnd.google-apps.folder');
 		return folders;
 	};
-
-	async delete(id: string): Promise<void> {
-		throw new Error('Method not implemented.');
-	}
 }

@@ -1,9 +1,8 @@
 export interface StorageStrategy {
 	save(data: any, folderId: string): Promise<{ id: string } | null>;
-	createFolder(folderName: string, parentFolderId?: string): Promise<string>;
+	createFolder(folderName: string, parentFolderId?: string | null): Promise<string>;
 	retrieve(id: string): Promise<any>;
-	getRootFolders(): Promise<any[]>;
-	getSubFolders(id: string): Promise<any[]>;
+	findFolders(id?: string): Promise<any[]>;
 }
 
 export interface GoogleAuthI {
