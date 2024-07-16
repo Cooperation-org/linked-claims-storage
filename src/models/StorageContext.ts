@@ -1,5 +1,5 @@
 import { GoogleDriveStorage } from './GoogleDriveStorage.js';
-import { StorageStrategy, StorageType } from '../types/index.js';
+import { StorageStrategy, StorageType } from '../../types/index.js';
 
 class StorageContext {
 	public strategy: StorageStrategy;

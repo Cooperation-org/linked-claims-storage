@@ -18,3 +18,5 @@ export interface DataToSaveI {
 }
 
 export type StorageType = 'googleDrive';
+
+export { credentialsTypes } from './Credentials';

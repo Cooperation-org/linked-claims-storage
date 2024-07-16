@@ -7,8 +7,10 @@
 		"rootDir": "./src",
 		"strict": false,
 		"esModuleInterop": true,
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"declaration": true,
+		"declarationDir": "./dist/types"
 	},
-	"include": ["src/**/*"],
+	"include": ["src/**/*", "types/**/*"],
 	"exclude": ["node_modules"]
 }

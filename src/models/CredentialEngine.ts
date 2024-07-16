@@ -4,10 +4,10 @@ import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
 import { defaultDocumentLoader, issue } from '@digitalbazaar/vc';
 import fs from 'fs';
 import path from 'path';
-import { StorageContext, StorageFactory } from '../models/StorageContext.js';
-import saveToGoogleDrive from './saveToGoogle.js';
+import { StorageContext, StorageFactory } from './StorageContext.js';
+import saveToGoogleDrive from '../utils/saveToGoogle.js';
 import { v4 as uuidv4 } from 'uuid';
-import { KeyPair, FormData, Credential, DidDocument } from '../types/Credential.js';
+import { KeyPair, FormData, Credential, DidDocument } from '../../types/Credential.js';
 
 // Load the local context files
 const localOBContextPath = path.resolve('contexts/ob-v3p0-context.json');
@@ -39,7 +39,7 @@ const customDocumentLoader = async (url: string) => {
 	return defaultDocumentLoader(url); // Fallback to default loader for unknown URLs
 };
 
-class CredentialEngine {
+export class CredentialEngine {
 	private didKeyDriver: any;
 	private folderName: string;
 	private storage: any;
@@ -188,5 +188,3 @@ class CredentialEngine {
 		}
 	}
 }
-
-export default CredentialEngine;

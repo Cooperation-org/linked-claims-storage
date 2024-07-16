@@ -1,4 +1,4 @@
-import CredentialEngine from './dist/utils/CredentialEngine.js';
+import CredentialEngine from './dist/models/CredentialEngine.js';
 import { StorageContext, StorageFactory } from './dist/models/StorageContext.js';
 
 const accessToken = 'ADD_YOUR_ACCESS_TOKEN';

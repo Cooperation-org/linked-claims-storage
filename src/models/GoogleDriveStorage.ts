@@ -1,4 +1,4 @@
-import { DataToSaveI, StorageStrategy } from '../types';
+import { DataToSaveI, StorageStrategy } from '../../types';
 
 export class GoogleDriveStorage implements StorageStrategy {
 	private accessToken: string;
