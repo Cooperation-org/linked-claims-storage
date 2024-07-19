@@ -1,5 +1,5 @@
 import { GoogleDriveStorage } from './GoogleDriveStorage.js';
-import { StorageStrategy, StorageType } from '../index.d';
+import { StorageStrategy, StorageType } from '../../types/index.js';
 
 class StorageContext {
 	public strategy: StorageStrategy;
@@ -12,8 +12,8 @@ class StorageContext {
 		this.strategy = strategy;
 	}
 
-	async createFolder(folderName: string) {
-		return this.strategy.createFolder(folderName);
+	async createFolder(folderName: string, parentFolderId?: string) {
+		return this.strategy.createFolder(folderName, parentFolderId);
 	}
 
 	async save(data: any, folderId: string) {
@@ -22,6 +22,10 @@ class StorageContext {
 
 	async retrieve(id: string) {
 		return this.strategy.retrieve(id);
+	}
+
+	async findFolders(id?: string) {
+		return this.strategy.findFolders(id);
 	}
 }
 

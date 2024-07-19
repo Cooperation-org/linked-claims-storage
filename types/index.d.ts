@@ -1,7 +1,8 @@
 export interface StorageStrategy {
-	save(data: any, folderId: string): Promise<string | null>;
-	createFolder(folderName: string): Promise<string>;
+	save(data: any, folderId: string): Promise<{ id: string } | null>;
+	createFolder(folderName: string, parentFolderId?: string | null): Promise<string>;
 	retrieve(id: string): Promise<any>;
+	findFolders(id?: string): Promise<any[]>;
 }
 
 export interface GoogleAuthI {
@@ -17,3 +18,5 @@ export interface DataToSaveI {
 }
 
 export type StorageType = 'googleDrive';
+
+export { credentialsTypes } from './Credentials';
