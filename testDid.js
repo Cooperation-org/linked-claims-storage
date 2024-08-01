@@ -12,12 +12,11 @@ async function main() {
 		criteriaNarrative: 'Team members are nominated for this badge by their peers and recognized upon review by Example Corp management.',
 		achievementDescription: 'This badge recognizes the development of the capacity to collaborate within a group environment.',
 		achievementName: 'Teamwork Achievement',
-		issuanceDate: '2024-07-31T17:42:19Z', // Use a valid ISO 8601 date string
-		expirationDate: '2025-01-01T00:00:00Z',
+		expirationDate: '2025-01-01T00:00:00Z', // Use a valid ISO 8601 date string
 	};
 
-	// sessions
-	await saveToGoogleDrive(storage, formData, 'SESSIONS');
+	// Sessions are used to store the user's data when hit save&exit
+	await saveToGoogleDrive(storage, formData, 'SESSION');
 
 	// Step 1: Create DID
 	const { didDocument, keyPair } = await credentialEngine.createDID();

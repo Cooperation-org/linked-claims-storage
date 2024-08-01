@@ -5,7 +5,7 @@
  * @throws Will throw an error if the save operation fails.
  */
 
-export async function saveToGoogleDrive(storage: any, data: any, type: 'VC' | 'DID' | 'UnsignedVC' | 'Sessions') {
+export async function saveToGoogleDrive(storage: any, data: any, type: 'VC' | 'DID' | 'UnsignedVC' | 'SESSION') {
 	try {
 		const timestamp = Date.now();
 		const fileData = {
