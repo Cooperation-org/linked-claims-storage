@@ -1,7 +1,6 @@
 import { saveToGoogleDrive, CredentialEngine, StorageContext, StorageFactory } from './dist/index.js';
 
-const accessToken =
-	'ya29.a0AXooCgtdfXwqIaRkcCT2i-G8N9pXkTfgQ9pwj7SKJS0XsmIYqgSbv4ENQn3OnJ3vhFW-VCgacVEkCuK9HJbMTBjCvC9qFN8js2OkawNhtXxoIiQz8vuV_IRq2tl8sHODj23NHgozdjCWGkTpcf25AkRwYg6GvBxP6z3JaCgYKAY4SARISFQHGX2Mi1n440yKsoTFTP9fkAW-6XA0171';
+const accessToken = 'ADD_YOUR_ACCESS_TOKEN';
 const credentialEngine = new CredentialEngine(accessToken);
 
 const storage = new StorageContext(StorageFactory.getStorageStrategy('googleDrive', { accessToken }));
