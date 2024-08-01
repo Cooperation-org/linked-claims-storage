@@ -28,8 +28,8 @@ export interface DidDocument {
 }
 
 export interface FormData {
-	issuanceDate?: string;
-	expirationDate?: string;
+	issuanceDate: string;
+	expirationDate: string;
 	credentialName: string;
 	fullName: string;
 	postalCode: string;

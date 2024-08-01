@@ -5,7 +5,7 @@ import { defaultDocumentLoader, issue } from '@digitalbazaar/vc';
 import fs from 'fs';
 import path from 'path';
 import { StorageContext, StorageFactory } from './StorageContext.js';
-import saveToGoogleDrive from '../utils/saveToGoogle.js';
+import { saveToGoogleDrive } from '../utils/saveToGoogle.js';
 import { v4 as uuidv4 } from 'uuid';
 import { KeyPair, FormData, Credential, DidDocument } from '../../types/Credential.js';
 
@@ -45,12 +45,12 @@ export class CredentialEngine {
 	private storage: any;
 
 	/**
-	 * Constructor to initialize the DIDManager with access token.
+	 * Constructor to initialize the DIDManager with access token.8
 	 * @param {string} accessToken - The access token for Google Drive API.
 	 */
 	constructor(accessToken: string) {
 		this.didKeyDriver = driver();
-		this.folderName = 'Credentials'; // Folder to store user credentials
+		this.folderName = 'Credentials';
 		this.storage = new StorageContext(StorageFactory.getStorageStrategy('googleDrive', { accessToken }));
 	}
 
@@ -59,7 +59,7 @@ export class CredentialEngine {
 	 * @param {object} keyPair - The key pair used to create the DID document.
 	 * @returns {Promise<object>} The created DID document.
 	 */
-	private async createDIDDocument(keyPair: KeyPair): Promise<DidDocument> {
+	private async generateDIDSchema(keyPair: KeyPair): Promise<DidDocument> {
 		try {
 			const did = `did:key:${keyPair.fingerprint()}`;
 			keyPair.controller = did;
@@ -107,9 +107,8 @@ export class CredentialEngine {
 			keyPair.controller = `did:key:${keyPair.fingerprint()}`;
 			keyPair.id = `${keyPair.controller}#${keyPair.fingerprint()}`;
 			keyPair.revoked = false;
-			const didDocument = await this.createDIDDocument(keyPair);
-			console.log('---Uploading DID document with following data---\n', didDocument);
-			await saveToGoogleDrive(this.storage, didDocument, 'DID');
+			const didDocument = await this.generateDIDSchema(keyPair);
+
 			return { didDocument, keyPair };
 		} catch (error) {
 			console.error('Error creating DID:', error);
@@ -118,7 +117,7 @@ export class CredentialEngine {
 	}
 
 	/**
-	 * Create an unsigned Verifiable Credential (VC) and save it to Google Drive.
+	 * Create an unsigned Verifiable Credential (VC)
 	 * @param {object} formData - The form data to include in the VC.
 	 * @param {string} issuerDid - The DID of the issuer.
 	 * @returns {Promise<object>} The created unsigned VC.
@@ -126,7 +125,8 @@ export class CredentialEngine {
 	 */
 	public async createUnsignedVC(formData: FormData, issuerDid: string): Promise<Credential> {
 		try {
-			const credential: Credential = {
+			if (formData.issuanceDate > formData.expirationDate) throw Error('issuanceDate cannot be after expirationDate');
+			const unsignedCredential: Credential = {
 				'@context': ['https://www.w3.org/2018/credentials/v1', 'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json'],
 				id: `urn:uuid:${uuidv4()}`, // Add the id property
 				type: ['VerifiableCredential', 'OpenBadgeCredential'],
@@ -134,8 +134,8 @@ export class CredentialEngine {
 					id: issuerDid,
 					type: ['Profile'],
 				},
-				issuanceDate: formData.issuanceDate || '2024-01-01T00:00:00Z',
-				expirationDate: formData.expirationDate || '2025-01-01T00:00:00Z',
+				issuanceDate: new Date().toISOString(),
+				expirationDate: formData.expirationDate,
 				credentialSubject: {
 					type: ['AchievementSubject'],
 					name: formData.fullName,
@@ -158,18 +158,17 @@ export class CredentialEngine {
 					],
 				},
 			};
-			console.log('---Uploading Unsigned VC document with following data---\n', credential);
-			await saveToGoogleDrive(this.storage, credential, 'UnsignedVC');
+			console.log('Successfully created Unsigned Credentials', unsignedCredential);
 
-			return credential;
+			return unsignedCredential;
 		} catch (error) {
-			console.error('Error creating unsigned VC:', error);
+			console.error('Error creating unsigned VC', error);
 			throw error;
 		}
 	}
 
 	/**
-	 * Sign a Verifiable Credential (VC) and save it to Google Drive.
+	 * Sign a Verifiable Credential (VC)
 	 * @param {object} credential - The credential to sign.
 	 * @param {object} keyPair - The key pair to use for signing.
 	 * @returns {Promise<object>} The signed VC.
@@ -179,8 +178,7 @@ export class CredentialEngine {
 		const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
 		try {
 			const signedVC = await issue({ credential, suite, documentLoader: customDocumentLoader });
-			console.log('---Uploading Signed VC with following Data---\n', signedVC);
-			await saveToGoogleDrive(this.storage, signedVC, 'VC');
+			console.log('Successfully created Signed VC', signedVC);
 			return signedVC;
 		} catch (error) {
 			console.error('Error signing VC:', error);
