@@ -1,7 +1,7 @@
 {
 	"name": "trust_storage",
 	"type": "module",
-	"version": "1.0.2",
+	"version": "1.0.4",
 	"description": "trust_storage is a simple library that allows you to store data in the browser's local storage. It is written in TypeScript and has type definitions.",
 	"main": "dist/index.js",
 	"types": "dist/types/index.d.ts",
@@ -20,6 +20,7 @@
 		"@digitalbazaar/ed25519-verification-key-2020": "^4.1.0",
 		"@digitalbazaar/vc": "^6.3.0",
 		"@types/express": "^4.17.21",
+		"@types/node": "^22.1.0",
 		"@types/uuid": "^10.0.0",
 		"did-method-key": "^0.7.0",
 		"express": "^4.19.2",

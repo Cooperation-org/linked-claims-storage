@@ -1,3 +1,29 @@
+interface PublicKey {
+	id: string;
+	type: string;
+	controller: string;
+	publicKeyMultibase: string;
+}
+
+interface PortfolioItem {
+	name: string;
+	url: string;
+}
+
+interface Achievement {
+	id: string;
+	type: string[];
+	criteria: {
+		narrative: string;
+	};
+	description: string;
+	name: string;
+	image?: {
+		id: string;
+		type: string;
+	};
+}
+
 export interface KeyPair {
 	id: string;
 	controller: string;
@@ -9,22 +35,12 @@ export interface KeyPair {
 export interface DidDocument {
 	'@context': string[];
 	id: string;
-	publicKey: {
-		id: string;
-		type: string;
-		controller: string;
-		publicKeyMultibase: string;
-	}[];
+	publicKey: PublicKey[];
 	authentication: string[];
 	assertionMethod: string[];
 	capabilityDelegation: string[];
 	capabilityInvocation: string[];
-	keyAgreement: {
-		id: string;
-		type: string;
-		controller: string;
-		publicKeyMultibase: string;
-	}[];
+	keyAgreement: PublicKey[];
 }
 
 export interface FormData {
@@ -52,18 +68,6 @@ export interface Credential {
 	credentialSubject: {
 		type: string[];
 		name: string;
-		achievement: {
-			id: string;
-			type: string[];
-			criteria: {
-				narrative: string;
-			};
-			description: string;
-			name: string;
-			image?: {
-				id: string;
-				type: string;
-			};
-		}[];
+		achievement: Achievement[];
 	};
 }

@@ -3,6 +3,7 @@ export interface StorageStrategy {
 	createFolder(folderName: string, parentFolderId?: string | null): Promise<string>;
 	retrieve(id: string): Promise<any>;
 	findFolders(id?: string): Promise<any[]>;
+	findLastFile(folderId: string): Promise<any[]>;
 }
 
 export interface GoogleAuthI {

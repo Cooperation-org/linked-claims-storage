@@ -146,4 +146,52 @@ export class GoogleDriveStorage implements StorageStrategy {
 		const folders = result.files.filter((file: any) => file.mimeType === 'application/vnd.google-apps.folder');
 		return folders;
 	};
+
+	findLastFile = async (folderId: string): Promise<any> => {
+		const response = await fetch(
+			`https://www.googleapis.com/drive/v3/files?q='${folderId}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
+			{
+				method: 'GET',
+				headers: new Headers({
+					Authorization: `Bearer ${this.accessToken}`,
+				}),
+			}
+		);
+
+		const result = await response.json();
+		console.log('🚀 ~ GoogleDriveStorage ~ getFiles= ~ result:', result);
+		if (!response.ok) {
+			throw new Error(result.error.message);
+		}
+
+		const files = result.files.filter((file: any) => file.mimeType !== 'application/vnd.google-apps.folder');
+		console.log('🚀 ~ GoogleDriveStorage ~ getFiles= ~ files:', files);
+
+		// Fetch content of each file
+		const fileContents = await Promise.all(
+			files.map(async (file: any) => {
+				const fileResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+					method: 'GET',
+					headers: new Headers({
+						Authorization: `Bearer ${this.accessToken}`,
+					}),
+				});
+				const content = await fileResponse.json();
+				return {
+					...file,
+					content,
+				};
+			})
+		);
+
+		// Find the latest file by timestamp
+		const latestFile = fileContents.reduce((latest: any | null, current: any) => {
+			const latestTimestamp = latest ? parseInt(latest.name.split('-')[1].split('.')[0], 10) : 0;
+			const currentTimestamp = parseInt(current.name.split('-')[1].split('.')[0], 10);
+			return currentTimestamp > latestTimestamp ? current : latest;
+		}, null);
+
+		console.log('🚀 ~ GoogleDriveStorage ~ getFiles= ~ latestFile:', latestFile);
+		return latestFile ? latestFile.content : null;
+	};
 }

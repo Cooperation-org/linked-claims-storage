@@ -8,19 +8,7 @@ import { StorageContext, StorageFactory } from './StorageContext.js';
 import { saveToGoogleDrive } from '../utils/saveToGoogle.js';
 import { v4 as uuidv4 } from 'uuid';
 import { KeyPair, FormData, Credential, DidDocument } from '../../types/Credential.js';
-
-// Load the local context files
-const localOBContextPath = path.resolve('contexts/ob-v3p0-context.json');
-const localED25519ContextPath = path.resolve('contexts/ed25519-2020-context.json');
-let localOBContext, localED25519Context;
-
-try {
-	localOBContext = JSON.parse(fs.readFileSync(localOBContextPath, 'utf8'));
-	localED25519Context = JSON.parse(fs.readFileSync(localED25519ContextPath, 'utf8'));
-} catch (error) {
-	console.error('Error loading context files:', error);
-	throw error;
-}
+import { localOBContext, localED25519Context } from '../utils/context.js';
 
 // Custom document loader
 const customDocumentLoader = async (url: string) => {
@@ -125,7 +113,8 @@ export class CredentialEngine {
 	 */
 	public async createUnsignedVC(formData: FormData, issuerDid: string): Promise<Credential> {
 		try {
-			if (formData.issuanceDate > formData.expirationDate) throw Error('issuanceDate cannot be after expirationDate');
+			const issuanceDate = new Date().toISOString();
+			if (issuanceDate > formData.expirationDate) throw Error('issuanceDate cannot be after expirationDate');
 			const unsignedCredential: Credential = {
 				'@context': ['https://www.w3.org/2018/credentials/v1', 'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json'],
 				id: `urn:uuid:${uuidv4()}`, // Add the id property
@@ -134,7 +123,7 @@ export class CredentialEngine {
 					id: issuerDid,
 					type: ['Profile'],
 				},
-				issuanceDate: new Date().toISOString(),
+				issuanceDate,
 				expirationDate: formData.expirationDate,
 				credentialSubject: {
 					type: ['AchievementSubject'],
@@ -186,3 +175,20 @@ export class CredentialEngine {
 		}
 	}
 }
+/*
+{
+    "storageOption": "Google Drive",
+    "fullName": "Omar Salah",
+    "persons": "Individual",
+    "credentialName": "dddd",
+    "credentialDuration": "dddd",
+    "credentialDescription": "<p>dddd</p>",
+    "portfolio": [
+        {
+            "name": "ddddd",
+            "url": "dddd"
+        }
+    ],
+    "evidenceLink": "",
+    "description": "ddddd"
+}*/

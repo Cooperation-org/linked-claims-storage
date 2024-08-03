@@ -43,6 +43,7 @@ export async function saveToGoogleDrive(storage: any, data: any, type: 'VC' | 'D
 			console.log(`Created ${type}s folder with ID:`, typeFolderId);
 		} else {
 			typeFolderId = typeFolder.id;
+			console.log(`Found ${type} files:`, await storage.findLastFile(typeFolderId));
 			console.log(`Found ${type}s folder with ID:`, typeFolderId);
 		}
 

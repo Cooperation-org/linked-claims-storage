@@ -27,6 +27,10 @@ class StorageContext {
 	async findFolders(id?: string) {
 		return this.strategy.findFolders(id);
 	}
+
+	async findLastFile(folderId: string) {
+		return this.strategy.findLastFile(folderId);
+	}
 }
 
 class StorageFactory {

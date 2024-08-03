@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
-		"target": "ES6",
-		"module": "ES6",
+		"target": "ESNext",
+		"module": "ESNext",
 		"moduleResolution": "node",
 		"outDir": "./dist",
 		"rootDir": "./src",
@@ -9,7 +9,8 @@
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"declaration": true,
-		"declarationDir": "./dist/types"
+		"declarationDir": "./dist/types",
+		"resolveJsonModule": true
 	},
 	"include": ["src/**/*", "types/**/*"],
 	"exclude": ["node_modules"]
