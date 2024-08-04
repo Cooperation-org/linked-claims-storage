@@ -4,6 +4,9 @@ export interface StorageStrategy {
 	retrieve(id: string): Promise<any>;
 	findFolders(id?: string): Promise<any[]>;
 	findLastFile(folderId: string): Promise<any[]>;
+	getAllClaims(): Promise<any[]>;
+	getFileContent(fileId: string): Promise<any>;
+	getAllSessions(): Promise<any[]>;
 }
 
 export interface GoogleAuthI {

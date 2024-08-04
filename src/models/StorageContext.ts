@@ -31,6 +31,18 @@ class StorageContext {
 	async findLastFile(folderId: string) {
 		return this.strategy.findLastFile(folderId);
 	}
+
+	async getAllClaims() {
+		return this.strategy.getAllClaims();
+	}
+
+	async getAllSessions() {
+		return this.strategy.getAllSessions();
+	}
+
+	async getFileContent(fileId: string) {
+		return this.strategy.getFileContent(fileId);
+	}
 }
 
 class StorageFactory {

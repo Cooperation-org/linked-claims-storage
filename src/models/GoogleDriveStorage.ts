@@ -194,4 +194,74 @@ export class GoogleDriveStorage implements StorageStrategy {
 		console.log('🚀 ~ GoogleDriveStorage ~ getFiles= ~ latestFile:', latestFile);
 		return latestFile ? latestFile.content : null;
 	};
+
+	// getAllClaims (SignedVC) => return all claims
+	public async getAllClaims() {
+		// 1. Get all root folders
+		const rootFolders = await this.findFolders();
+		// 2. find Credentials and get the folder ID
+		const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
+		if (!credentialsFolder) {
+			return [];
+		}
+
+		const credentialsFolderId = credentialsFolder.id;
+		// 3. Get subfolders within the "Credentials" folder
+		const subfolders = await this.findFolders(credentialsFolderId);
+		// 4. find SignedVC folder
+		const signedVCFolder = subfolders.find((f: any) => f.name === 'VCs');
+		const signedVCFolderId = signedVCFolder.id;
+		// 5. Get all files in the SignedVC folder
+		const signedVCs = await fetch(
+			`https://www.googleapis.com/drive/v3/files?q='${signedVCFolderId}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
+			{
+				method: 'GET',
+				headers: new Headers({
+					Authorization: `Bearer ${this.accessToken}`,
+				}),
+			}
+		);
+		return await signedVCs.json();
+	}
+
+	// getClaim (SignedVC) => return the claim
+	public async getFileContent(fileId: string) {
+		const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+			method: 'GET',
+			headers: new Headers({
+				Authorization: `Bearer ${this.accessToken}`,
+			}),
+		});
+		const result = await response.json();
+		return result;
+	}
+
+	// getlatestSeessions
+	public async getAllSessions() {
+		// 1. Get all root folders
+		const rootFolders = await this.findFolders();
+		// 2. find Credentials and get the folder ID
+		const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
+		if (!credentialsFolder) {
+			return [];
+		}
+
+		const credentialsFolderId = credentialsFolder.id;
+		// 3. Get subfolders within the "Credentials" folder
+		const subfolders = await this.findFolders(credentialsFolderId);
+		// 4. find Sessions folder
+		const sessionsFolder = subfolders.find((f: any) => f.name === 'Sessions');
+		const sessionsFolderId = sessionsFolder.id;
+		// 5. Get all files in the Sessions folder
+		const sessions = await fetch(
+			`https://www.googleapis.com/drive/v3/files?q='${sessionsFolderId}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
+			{
+				method: 'GET',
+				headers: new Headers({
+					Authorization: `Bearer ${this.accessToken}`,
+				}),
+			}
+		);
+		return await sessions.json();
+	}
 }
