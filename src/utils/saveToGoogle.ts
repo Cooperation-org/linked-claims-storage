@@ -50,6 +50,7 @@ export async function saveToGoogleDrive(storage: any, data: any, type: 'VC' | 'D
 		// Save the file in the specific subfolder
 		const file = await storage.save(fileData, typeFolderId);
 		console.log(`File uploaded: ${file?.id} under ${type}s with ID ${typeFolderId} folder in Credentials folder`);
+		return file;
 	} catch (error) {
 		console.error('Error saving to Google Drive:', error);
 		throw error;
