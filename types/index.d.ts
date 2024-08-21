@@ -21,6 +21,6 @@ export interface DataToSaveI {
 	body: any;
 }
 
-export type StorageType = 'googleDrive';
+export type StorageType = 'googleDrive' | 'digitalWallet';
 
 export { credentialsTypes } from './Credentials';

@@ -1,4 +1,4 @@
-import { StorageContext, StorageFactory } from './dist/index.js';
+import { StorageContext, StorageFactory } from '../dist/index.js';
 
 const accessToken = 'ADD_YOUR_ACCESS';
 let fileId = '';
