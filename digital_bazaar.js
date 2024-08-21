@@ -1,7 +1,7 @@
-import { saveToGoogleDrive, CredentialEngine, StorageContext, StorageFactory } from '../dist/index.js';
+import { saveToGoogleDrive, CredentialEngine, StorageContext, StorageFactory } from './dist/index.js';
 
 const accessToken =
-	'ya29.a0AcM612ygFczLbG6uFbOxrwNsR7mJYyoXUhdlugzUXRlSFch0m3l_UDAnhGjaGErslbOeDLmi6xUWJ3mx8jfdx-5wrLfwN_Xlqt2TlZ2RLqR-JBO_OGnwsUEZR6gXQwy-dsJGW6ZM59CQQ8fiWPNMtYl--g8Wx6sUL1wGaCgYKAXwSARISFQHGX2MiX0alRCDoFTx1Ho3TWEigMg0171';
+	'ya29.a0AcM612yNnnwssPokUb8DtIZwrjy4UUlQB0V981QBZpBeVhcmKZCo1nxL0FpibD__2uNCzfhZ2qJhaTV_V2PXPtoU5X3Wh4mflCP2wxi206yRmfe6OII9Wdo-zznMkOw0Y044IFfEuCHF5HJFdziJB0u2JBZvWKcGpZIX-o71aCgYKAdkSARESFQHGX2MiRx2chaqUgub-xgW8sMbu5Q0175';
 const credentialEngine = new CredentialEngine(accessToken);
 
 const storage = new StorageContext(StorageFactory.getStorageStrategy('googleDrive', { accessToken }));
@@ -15,7 +15,7 @@ async function main() {
 	};
 
 	// Sessions are used to store the user's data when hit save&exit
-	await saveToGoogleDrive(storage, formData, 'SESSION');
+	// await saveToGoogleDrive(storage, formData, 'SESSION');
 
 	// Step 1: Create DID
 	const { didDocument, keyPair } = await credentialEngine.createDID();

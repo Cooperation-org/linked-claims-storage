@@ -137,7 +137,17 @@ export class CredentialEngine {
 			const issuanceDate = new Date().toISOString();
 			if (issuanceDate > formData.expirationDate) throw Error('issuanceDate cannot be after expirationDate');
 			const unsignedCredential: Credential = {
-				'@context': ['https://www.w3.org/2018/credentials/v1', 'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json'],
+				'@context': [
+					'https://www.w3.org/2018/credentials/v1',
+					'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
+					{
+						duration: 'https://schema.org/duration',
+						name: 'https://schema.org/name',
+						portfolio: 'https://schema.org/portfolio',
+						evidenceLink: 'https://schema.org/evidenceLink',
+						evidenceDescription: 'https://schema.org/evidenceDescription',
+					},
+				],
 				id: `urn:uuid:${uuidv4()}`, // Add the id property
 				type: ['VerifiableCredential', 'OpenBadgeCredential'],
 				issuer: {
@@ -149,6 +159,11 @@ export class CredentialEngine {
 				credentialSubject: {
 					type: ['AchievementSubject'],
 					name: formData.fullName,
+					portfolio: formData.portfolio,
+					evidenceLink: formData.imageLink,
+					evidenceDescription: formData.achievementDescription,
+					duration: formData.duration,
+					credentialType: formData.credentialType,
 					achievement: [
 						{
 							id: `urn:uuid:${uuidv4()}`,
