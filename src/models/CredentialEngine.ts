@@ -11,7 +11,7 @@ import { KeyPair, FormData, Credential, DidDocument } from '../../types/Credenti
 import { localOBContext, localED25519Context } from '../utils/context.js';
 
 // Custom document loader
-const customDocumentLoader = async (url: string) => {
+export const customDocumentLoader = async (url: string) => {
 	const contextMap = {
 		'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json': localOBContext,
 		'https://w3id.org/security/suites/ed25519-2020/v1': localED25519Context,
@@ -85,7 +85,7 @@ export class CredentialEngine {
 	}
 
 	/**
-	 * Create a new DID and save its document to Google Drive.
+	 * Create a new DID with Digital Bazaar's Ed25519VerificationKey2020 key pair.
 	 * @returns {Promise<{didDocument: object, keyPair: object}>} The created DID document and key pair.
 	 * @throws Will throw an error if DID creation fails.
 	 */
@@ -93,6 +93,27 @@ export class CredentialEngine {
 		try {
 			const keyPair = await Ed25519VerificationKey2020.generate();
 			keyPair.controller = `did:key:${keyPair.fingerprint()}`;
+			keyPair.id = `${keyPair.controller}#${keyPair.fingerprint()}`;
+			keyPair.revoked = false;
+			const didDocument = await this.generateDIDSchema(keyPair);
+
+			return { didDocument, keyPair };
+		} catch (error) {
+			console.error('Error creating DID:', error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Create a new DID with user metamask address as controller
+	 * @param walletrAddress
+	 * @returns {Promise<{didDocument: object, keyPair: object}>} The created DID document and key pair.
+	 * @throws Will throw an error if DID creation fails.
+	 */
+	public async createWalletDID(walletrAddress: string): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
+		try {
+			const keyPair = await Ed25519VerificationKey2020.generate();
+			keyPair.controler = walletrAddress; // Using the MetaMask address as controller
 			keyPair.id = `${keyPair.controller}#${keyPair.fingerprint()}`;
 			keyPair.revoked = false;
 			const didDocument = await this.generateDIDSchema(keyPair);
@@ -116,7 +137,17 @@ export class CredentialEngine {
 			const issuanceDate = new Date().toISOString();
 			if (issuanceDate > formData.expirationDate) throw Error('issuanceDate cannot be after expirationDate');
 			const unsignedCredential: Credential = {
-				'@context': ['https://www.w3.org/2018/credentials/v1', 'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json'],
+				'@context': [
+					'https://www.w3.org/2018/credentials/v1',
+					'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
+					{
+						duration: 'https://schema.org/duration',
+						name: 'https://schema.org/name',
+						portfolio: 'https://schema.org/portfolio',
+						evidenceLink: 'https://schema.org/evidenceLink',
+						evidenceDescription: 'https://schema.org/evidenceDescription',
+					},
+				],
 				id: `urn:uuid:${uuidv4()}`, // Add the id property
 				type: ['VerifiableCredential', 'OpenBadgeCredential'],
 				issuer: {
@@ -128,6 +159,11 @@ export class CredentialEngine {
 				credentialSubject: {
 					type: ['AchievementSubject'],
 					name: formData.fullName,
+					portfolio: formData.portfolio,
+					evidenceLink: formData.imageLink,
+					evidenceDescription: formData.achievementDescription,
+					duration: formData.duration,
+					credentialType: formData.credentialType,
 					achievement: [
 						{
 							id: `urn:uuid:${uuidv4()}`,
@@ -175,20 +211,3 @@ export class CredentialEngine {
 		}
 	}
 }
-/*
-{
-    "storageOption": "Google Drive",
-    "fullName": "Omar Salah",
-    "persons": "Individual",
-    "credentialName": "dddd",
-    "credentialDuration": "dddd",
-    "credentialDescription": "<p>dddd</p>",
-    "portfolio": [
-        {
-            "name": "ddddd",
-            "url": "dddd"
-        }
-    ],
-    "evidenceLink": "",
-    "description": "ddddd"
-}*/

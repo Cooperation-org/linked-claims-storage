@@ -1,7 +1,7 @@
 import { saveToGoogleDrive, CredentialEngine, StorageContext, StorageFactory } from './dist/index.js';
 
 const accessToken =
-	'ya29.a0AcM612ygFczLbG6uFbOxrwNsR7mJYyoXUhdlugzUXRlSFch0m3l_UDAnhGjaGErslbOeDLmi6xUWJ3mx8jfdx-5wrLfwN_Xlqt2TlZ2RLqR-JBO_OGnwsUEZR6gXQwy-dsJGW6ZM59CQQ8fiWPNMtYl--g8Wx6sUL1wGaCgYKAXwSARISFQHGX2MiX0alRCDoFTx1Ho3TWEigMg0171';
+	'ya29.a0AcM612yNnnwssPokUb8DtIZwrjy4UUlQB0V981QBZpBeVhcmKZCo1nxL0FpibD__2uNCzfhZ2qJhaTV_V2PXPtoU5X3Wh4mflCP2wxi206yRmfe6OII9Wdo-zznMkOw0Y044IFfEuCHF5HJFdziJB0u2JBZvWKcGpZIX-o71aCgYKAdkSARESFQHGX2MiRx2chaqUgub-xgW8sMbu5Q0175';
 const credentialEngine = new CredentialEngine(accessToken);
 
 const storage = new StorageContext(StorageFactory.getStorageStrategy('googleDrive', { accessToken }));
@@ -18,31 +18,31 @@ async function main() {
 	// await saveToGoogleDrive(storage, formData, 'SESSION');
 
 	// Step 1: Create DID
-	// const { didDocument, keyPair } = await credentialEngine.createDID();
-	// await saveToGoogleDrive(
-	// 	storage,
-	// 	{
-	// 		...didDocument,
-	// 		keyPair: { ...keyPair },
-	// 	},
-	// 	'DID'
-	// );
+	const { didDocument, keyPair } = await credentialEngine.createDID();
+	await saveToGoogleDrive(
+		storage,
+		{
+			...didDocument,
+			keyPair: { ...keyPair },
+		},
+		'DID'
+	);
 
-	// const issuerDid = didDocument.id;
+	const issuerDid = didDocument.id;
 
-	// // Step 2: Create Unsigned VC
-	// const unsignedVC = await credentialEngine.createUnsignedVC(formData, issuerDid);
-	// await saveToGoogleDrive(storage, unsignedVC, 'UnsignedVC');
-	// console.log('Unsigned VC:', unsignedVC);
+	// Step 2: Create Unsigned VC
+	const unsignedVC = await credentialEngine.createUnsignedVC(formData, issuerDid);
+	await saveToGoogleDrive(storage, unsignedVC, 'UnsignedVC');
+	console.log('Unsigned VC:', unsignedVC);
 
-	// // Step 3: Sign VC
-	// try {
-	// 	const signedVC = await credentialEngine.signVC(unsignedVC, keyPair);
-	// 	await saveToGoogleDrive(storage, signedVC, 'VC');
-	// 	console.log('Signed VC:', signedVC);
-	// } catch (error) {
-	// 	console.error('Error during VC signing:', error);
-	// }
+	// Step 3: Sign VC
+	try {
+		const signedVC = await credentialEngine.signVC(unsignedVC, keyPair);
+		await saveToGoogleDrive(storage, signedVC, 'VC');
+		console.log('Signed VC:', signedVC);
+	} catch (error) {
+		console.error('Error during VC signing:', error);
+	}
 	const claims = await storage.getAllClaims();
 	// const sessions = await storage.getAllSessions();
 	console.log('🚀 ~ claims:', claims);

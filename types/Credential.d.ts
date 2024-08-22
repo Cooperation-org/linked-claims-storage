@@ -53,10 +53,15 @@ export interface FormData {
 	achievementDescription: string;
 	achievementName: string;
 	imageLink?: string;
+	duration: string;
+	portfolio: PortfolioItem[];
+	evidenceLink: string;
+	evidenceDescription: string;
+	credentialType: string;
 }
 
 export interface Credential {
-	'@context': string[];
+	'@context': any[];
 	id: string; // Add the id property
 	type: string[];
 	issuer: {
@@ -66,7 +71,12 @@ export interface Credential {
 	issuanceDate: string;
 	expirationDate: string;
 	credentialSubject: {
+		evidenceLink: string;
+		evidenceDescription: string;
+		portfolio: PortfolioItem[];
+		credentialType: string;
 		type: string[];
+		duration: string;
 		name: string;
 		achievement: Achievement[];
 	};
