@@ -106,14 +106,14 @@ export class CredentialEngine {
 
 	/**
 	 * Create a new DID with user metamask address as controller
-	 * @param controller
+	 * @param walletrAddress
 	 * @returns {Promise<{didDocument: object, keyPair: object}>} The created DID document and key pair.
 	 * @throws Will throw an error if DID creation fails.
 	 */
-	public async createWalletDID(controller: string): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
+	public async createWalletDID(walletrAddress: string): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
 			const keyPair = await Ed25519VerificationKey2020.generate();
-			keyPair.controller = controller; // Using the MetaMask address as controller
+			keyPair.controler = walletrAddress; // Using the MetaMask address as controller
 			keyPair.id = `${keyPair.controller}#${keyPair.fingerprint()}`;
 			keyPair.revoked = false;
 			const didDocument = await this.generateDIDSchema(keyPair);
