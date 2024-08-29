@@ -1,11 +1,6 @@
-import { driver } from 'did-method-key';
 import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
 import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
 import { defaultDocumentLoader, issue } from '@digitalbazaar/vc';
-import fs from 'fs';
-import path from 'path';
-import { StorageContext, StorageFactory } from './StorageContext.js';
-import { saveToGoogleDrive } from '../utils/saveToGoogle.js';
 import { v4 as uuidv4 } from 'uuid';
 import { KeyPair, FormData, Credential, DidDocument } from '../../types/Credential.js';
 import { localOBContext, localED25519Context } from '../utils/context.js';
@@ -28,20 +23,6 @@ export const customDocumentLoader = async (url: string) => {
 };
 
 export class CredentialEngine {
-	private didKeyDriver: any;
-	private folderName: string;
-	private storage: any;
-
-	/**
-	 * Constructor to initialize the DIDManager with access token.8
-	 * @param {string} accessToken - The access token for Google Drive API.
-	 */
-	constructor(accessToken: string) {
-		this.didKeyDriver = driver();
-		this.folderName = 'Credentials';
-		this.storage = new StorageContext(StorageFactory.getStorageStrategy('googleDrive', { accessToken }));
-	}
-
 	/**
 	 * Create a DID document using the provided key pair.
 	 * @param {object} keyPair - The key pair used to create the DID document.
