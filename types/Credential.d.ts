@@ -43,18 +43,14 @@ export interface DidDocument {
 	keyAgreement: PublicKey[];
 }
 
-export interface FormData {
-	issuanceDate: string;
+export interface FormDataI {
 	expirationDate: string;
-	credentialName: string;
 	fullName: string;
-	postalCode: string;
+	duration: string;
 	criteriaNarrative: string;
 	achievementDescription: string;
 	achievementName: string;
-	imageLink?: string;
-	duration: string;
-	portfolio: PortfolioItem[];
+	portfolio: { name: string; url: string }[];
 	evidenceLink: string;
 	evidenceDescription: string;
 	credentialType: string;

@@ -1,19 +1,51 @@
-import { DataToSaveI, StorageStrategy } from '../../types';
+import { DataToSaveI } from '../../types';
 
-export class GoogleDriveStorage implements StorageStrategy {
+interface FetcherI {
+	method: string;
+	headers: HeadersInit;
+	body?: BodyInit | null;
+	url: string;
+}
+
+export class GoogleDriveStorage {
 	private accessToken: string;
 
 	constructor(accessToken: string) {
 		this.accessToken = accessToken;
 	}
 
-	/**
-	 * Creates a new folder in Google Drive.
-	 * @param folderName - The name of the folder to be created.
-	 * @param parentFolderId - (Optional) The ID of the parent folder. If not provided, the folder will be created in the root directory.
-	 * @returns A promise that resolves to the ID of the newly created folder.
-	 * @throws Will throw an error if the folder creation fails.
-	 */
+	private async fetcher({ method, headers, body, url }: FetcherI) {
+		try {
+			const res = await fetch(url, {
+				method,
+				headers: new Headers({
+					Authorization: `Bearer ${this.accessToken}`,
+					...headers,
+				}),
+				body,
+			});
+			const data = await res.json();
+			if (!res.ok) {
+				throw new Error(data.error.message);
+			}
+
+			return data;
+		} catch (error) {
+			console.error('Error fetching data:', error);
+			throw error;
+		}
+	}
+
+	// New method to encapsulate search logic
+	private async searchFiles(query: string): Promise<any[]> {
+		const result = await this.fetcher({
+			method: 'GET',
+			headers: {},
+			url: `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&trashed=false&fields=files(id,name,mimeType,parents)`,
+		});
+		return result.files;
+	}
+
 	async createFolder(folderName: string, parentFolderId?: string): Promise<string> {
 		const metadata = {
 			name: folderName,
@@ -21,247 +53,151 @@ export class GoogleDriveStorage implements StorageStrategy {
 			parents: parentFolderId ? [parentFolderId] : [],
 		};
 
-		const response = await fetch('https://www.googleapis.com/drive/v3/files', {
+		const folder = await this.fetcher({
 			method: 'POST',
-			headers: new Headers({
-				Authorization: `Bearer ${this.accessToken}`,
-				'Content-Type': 'application/json',
-			}),
+			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(metadata),
+			url: 'https://www.googleapis.com/drive/v3/files',
 		});
 
-		const result = await response.json();
-		if (!response.ok) {
-			throw new Error(result.error.message);
-		}
-
-		console.log('Folder ID:', result.id); // Logging the new folder ID
-		return result.id; // Return the new folder ID
+		console.log('Folder ID:', folder.id);
+		return folder.id;
 	}
 
-	/**
-	 * Saves the provided data to Google Drive in the specified folder.
-	 * @param data - The data to be saved, containing the file name, MIME type, and body.
-	 * @param folderId - The ID of the folder in which to save the data.
-	 * @returns A promise that resolves to an object containing the ID of the saved file, or `null` if the save operation fails.
-	 * @throws Will throw an error if the save operation fails.
-	 */
 	async save(data: DataToSaveI, folderId: string): Promise<{ id: string } | null> {
 		try {
 			const fileMetadata = {
 				name: data.fileName,
 				mimeType: data.mimeType,
-				parents: [folderId], // Set the parent folder ID
+				parents: [folderId],
 			};
 
 			const formData = new FormData();
 			formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
 			formData.append('file', data.body);
 
-			const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+			const file = await this.fetcher({
 				method: 'POST',
-				headers: new Headers({ Authorization: `Bearer ${this.accessToken}` }),
+				headers: {},
 				body: formData,
+				url: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
 			});
 
-			const result = await response.json();
-			if (!response.ok) {
-				throw new Error(result.error.message);
-			}
-
-			console.log('File uploaded:', result.id);
-			return result;
+			console.log('File uploaded:', file.id);
+			return file;
 		} catch (error) {
 			console.error('Error uploading file:', error);
 			return null;
 		}
 	}
 
-	/**
-	 * Retrieves the file with the specified ID from Google Drive.
-	 * @param id - The ID of the file to retrieve.
-	 * @returns A promise that resolves to the file body, or `null` if the retrieval fails.
-	 * @throws Will throw an error if the retrieval fails.
-	 */
 	async retrieve(id: string): Promise<any> {
 		try {
-			// get the file body
-			const response = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
+			const file = await this.fetcher({
 				method: 'GET',
-				headers: new Headers({
-					Authorization: `Bearer ${this.accessToken}`,
-				}),
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
 			});
 
-			const result = await response.json();
-			if (!response.ok) {
-				throw new Error(result.error.message);
-			}
-
-			console.log('File retrieved:', result); // Logging the file ID
-			return result;
+			console.log('File retrieved:', file);
+			return file;
 		} catch (error) {
 			console.error('Error retrieving file:', error);
-			return;
+			return null;
 		}
 	}
 
-	/**
-	 * Retrieves folders from Google Drive based on the provided ID.
-	 * If no ID is provided, it retrieves folders from the root directory.
-	 * @param id - (Optional) The ID of the parent folder. If not provided, retrieves folders from the root directory.
-	 * @returns A promise that resolves to an array of folder objects. Each folder object contains the ID, name, MIME type, and parents.
-	 * @throws Will throw an error if the retrieval fails.
-	 */
 	findFolders = async (id?: string): Promise<any[]> => {
-		let response: any;
+		const query = id
+			? `'${id}' in parents and mimeType='application/vnd.google-apps.folder'`
+			: `'root' in parents and mimeType='application/vnd.google-apps.folder'`;
+		const folders = await this.searchFiles(query);
 
-		if (id) {
-			response = await fetch(
-				`https://www.googleapis.com/drive/v3/files?q='${id}' in parents and mimeType='application/vnd.google-apps.folder'&trashed=false&fields=files(id,name,mimeType,parents)`,
-				{
-					method: 'GET',
-					headers: new Headers({
-						Authorization: `Bearer ${this.accessToken}`,
-					}),
-				}
-			);
-		} else {
-			response = await fetch(
-				'https://www.googleapis.com/drive/v3/files?q=%27root%27+in+parents+and+mimeType+%3D+%27application/vnd.google-apps.folder%27&fields=files(id,name,mimeType,parents)',
-				{
-					method: 'GET',
-					headers: new Headers({
-						Authorization: `Bearer ${this.accessToken}`,
-					}),
-				}
-			);
-		}
-
-		const result = await response.json();
-		if (!response.ok) {
-			throw new Error(result.error.message);
-		}
-
-		const folders = result.files.filter((file: any) => file.mimeType === 'application/vnd.google-apps.folder');
-		return folders;
+		return folders.filter((file: any) => file.mimeType === 'application/vnd.google-apps.folder');
 	};
 
 	findLastFile = async (folderId: string): Promise<any> => {
-		const response = await fetch(
-			`https://www.googleapis.com/drive/v3/files?q='${folderId}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
-			{
-				method: 'GET',
-				headers: new Headers({
-					Authorization: `Bearer ${this.accessToken}`,
-				}),
-			}
-		);
+		try {
+			const files = await this.searchFiles(`'${folderId}' in parents`);
 
-		const result = await response.json();
-		console.log('🚀 ~ GoogleDriveStorage ~ getFiles= ~ result:', result);
-		if (!response.ok) {
-			throw new Error(result.error.message);
+			const fileContents = await Promise.all(
+				files
+					.filter((file: any) => file.mimeType !== 'application/vnd.google-apps.folder')
+					.map(async (file: any) => {
+						const content = await this.fetcher({
+							method: 'GET',
+							headers: {},
+							url: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
+						});
+						return {
+							...file,
+							content,
+						};
+					})
+			);
+
+			const latestFile = fileContents.reduce((latest: any | null, current: any) => {
+				const latestTimestamp = latest ? parseInt(latest.name.split('-')[1].split('.')[0], 10) : 0;
+				const currentTimestamp = parseInt(current.name.split('-')[1].split('.')[0], 10);
+				return currentTimestamp > latestTimestamp ? current : latest;
+			}, null);
+
+			return latestFile ? latestFile.content : null;
+		} catch (error) {
+			console.error('Error finding last file:', error);
+			return null;
 		}
-
-		const files = result.files.filter((file: any) => file.mimeType !== 'application/vnd.google-apps.folder');
-		console.log('🚀 ~ GoogleDriveStorage ~ getFiles= ~ files:', files);
-
-		// Fetch content of each file
-		const fileContents = await Promise.all(
-			files.map(async (file: any) => {
-				const fileResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
-					method: 'GET',
-					headers: new Headers({
-						Authorization: `Bearer ${this.accessToken}`,
-					}),
-				});
-				const content = await fileResponse.json();
-				return {
-					...file,
-					content,
-				};
-			})
-		);
-
-		// Find the latest file by timestamp
-		const latestFile = fileContents.reduce((latest: any | null, current: any) => {
-			const latestTimestamp = latest ? parseInt(latest.name.split('-')[1].split('.')[0], 10) : 0;
-			const currentTimestamp = parseInt(current.name.split('-')[1].split('.')[0], 10);
-			return currentTimestamp > latestTimestamp ? current : latest;
-		}, null);
-
-		console.log('🚀 ~ GoogleDriveStorage ~ getFiles= ~ latestFile:', latestFile);
-		return latestFile ? latestFile.content : null;
 	};
 
-	// getAllClaims (SignedVC) => return all claims
 	public async getAllClaims() {
-		// 1. Get all root folders
 		const rootFolders = await this.findFolders();
-		// 2. find Credentials and get the folder ID
 		const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
-		if (!credentialsFolder) {
-			return [];
-		}
+		if (!credentialsFolder) return [];
 
 		const credentialsFolderId = credentialsFolder.id;
-		// 3. Get subfolders within the "Credentials" folder
 		const subfolders = await this.findFolders(credentialsFolderId);
-		// 4. find SignedVC folder
 		const signedVCFolder = subfolders.find((f: any) => f.name === 'VCs');
-		const signedVCFolderId = signedVCFolder.id;
-		// 5. Get all files in the SignedVC folder
-		const signedVCs = await fetch(
-			`https://www.googleapis.com/drive/v3/files?q='${signedVCFolderId}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
-			{
-				method: 'GET',
-				headers: new Headers({
-					Authorization: `Bearer ${this.accessToken}`,
-				}),
-			}
-		);
-		return await signedVCs.json();
-	}
+		if (!signedVCFolder) return [];
 
-	// getClaim (SignedVC) => return the claim
-	public async getFileContent(fileId: string) {
-		const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+		const claims = await this.fetcher({
 			method: 'GET',
-			headers: new Headers({
-				Authorization: `Bearer ${this.accessToken}`,
-			}),
+			headers: {},
+			url: `https://www.googleapis.com/drive/v3/files?q='${signedVCFolder.id}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
 		});
-		const result = await response.json();
-		return result;
+		return claims;
 	}
 
-	// getlatestSeessions
 	public async getAllSessions() {
-		// 1. Get all root folders
 		const rootFolders = await this.findFolders();
-		// 2. find Credentials and get the folder ID
 		const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
-		if (!credentialsFolder) {
-			return [];
-		}
+		if (!credentialsFolder) return [];
 
 		const credentialsFolderId = credentialsFolder.id;
-		// 3. Get subfolders within the "Credentials" folder
 		const subfolders = await this.findFolders(credentialsFolderId);
-		// 4. find Sessions folder
 		const sessionsFolder = subfolders.find((f: any) => f.name === 'Sessions');
-		const sessionsFolderId = sessionsFolder.id;
-		// 5. Get all files in the Sessions folder
-		const sessions = await fetch(
-			`https://www.googleapis.com/drive/v3/files?q='${sessionsFolderId}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
-			{
-				method: 'GET',
-				headers: new Headers({
-					Authorization: `Bearer ${this.accessToken}`,
-				}),
-			}
-		);
-		return await sessions.json();
+		if (!sessionsFolder) return [];
+
+		const sessions = await this.fetcher({
+			method: 'GET',
+			headers: {},
+			url: `https://www.googleapis.com/drive/v3/files?q='${sessionsFolder.id}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
+		});
+
+		return sessions;
+	}
+
+	async delete(id: string): Promise<any> {
+		try {
+			const response = await this.fetcher({
+				method: 'DELETE',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files/${id}`,
+			});
+			console.log('File deleted:', response);
+			return response;
+		} catch (error) {
+			console.error('Error deleting file:', error);
+			return null;
+		}
 	}
 }
