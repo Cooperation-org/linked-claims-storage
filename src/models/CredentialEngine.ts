@@ -31,18 +31,15 @@ export class CredentialEngine {
 	 */
 	private async generateDIDSchema(keyPair: KeyPair): Promise<DidDocument> {
 		try {
-			const did = `did:key:${keyPair.fingerprint()}`;
-			keyPair.controller = did;
-			keyPair.id = `${did}#${keyPair.fingerprint()}`;
-			keyPair.revoked = false;
+			const DID = keyPair.controller;
 			const didDocument = {
 				'@context': ['https://www.w3.org/ns/did/v1'],
-				id: did,
+				id: DID,
 				publicKey: [
 					{
 						id: keyPair.id,
 						type: 'Ed25519VerificationKey2020',
-						controller: did,
+						controller: DID,
 						publicKeyMultibase: keyPair.publicKeyMultibase,
 					},
 				],
@@ -52,13 +49,14 @@ export class CredentialEngine {
 				capabilityInvocation: [keyPair.id],
 				keyAgreement: [
 					{
-						id: `${did}#${keyPair.fingerprint()}-keyAgreement`,
+						id: `${keyPair.id}-keyAgreement`,
 						type: 'X25519KeyAgreementKey2020',
-						controller: did,
+						controller: DID,
 						publicKeyMultibase: keyPair.publicKeyMultibase,
 					},
 				],
 			};
+
 			return didDocument;
 		} catch (error) {
 			console.error('Error creating DID document:', error);
@@ -74,9 +72,10 @@ export class CredentialEngine {
 	public async createDID(): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
 			const keyPair = await Ed25519VerificationKey2020.generate();
-			keyPair.controller = `did:key:${keyPair.fingerprint()}`;
-			keyPair.id = `${keyPair.controller}#${keyPair.fingerprint()}`;
+			keyPair.controller = `did:key:${keyPair.publicKeyMultibase}`;
+			keyPair.id = `${keyPair.controller}#${keyPair.publicKeyMultibase}`;
 			keyPair.revoked = false;
+
 			const didDocument = await this.generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
