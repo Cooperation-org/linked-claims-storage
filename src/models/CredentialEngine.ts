@@ -2,8 +2,9 @@ import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-
 import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
 import { defaultDocumentLoader, issue } from '@digitalbazaar/vc';
 import { v4 as uuidv4 } from 'uuid';
-import { KeyPair, FormData, Credential, DidDocument } from '../../types/Credential.js';
+import { KeyPair, FormDataI, Credential, DidDocument } from '../../types/Credential.js';
 import { localOBContext, localED25519Context } from '../utils/context.js';
+import { credentialsTypes } from '../../types/index.js';
 
 // Custom document loader
 export const customDocumentLoader = async (url: string) => {
@@ -30,18 +31,15 @@ export class CredentialEngine {
 	 */
 	private async generateDIDSchema(keyPair: KeyPair): Promise<DidDocument> {
 		try {
-			const did = `did:key:${keyPair.fingerprint()}`;
-			keyPair.controller = did;
-			keyPair.id = `${did}#${keyPair.fingerprint()}`;
-			keyPair.revoked = false;
+			const DID = keyPair.controller;
 			const didDocument = {
 				'@context': ['https://www.w3.org/ns/did/v1'],
-				id: did,
+				id: DID,
 				publicKey: [
 					{
 						id: keyPair.id,
 						type: 'Ed25519VerificationKey2020',
-						controller: did,
+						controller: DID,
 						publicKeyMultibase: keyPair.publicKeyMultibase,
 					},
 				],
@@ -51,13 +49,14 @@ export class CredentialEngine {
 				capabilityInvocation: [keyPair.id],
 				keyAgreement: [
 					{
-						id: `${did}#${keyPair.fingerprint()}-keyAgreement`,
+						id: `${keyPair.id}-keyAgreement`,
 						type: 'X25519KeyAgreementKey2020',
-						controller: did,
+						controller: DID,
 						publicKeyMultibase: keyPair.publicKeyMultibase,
 					},
 				],
 			};
+
 			return didDocument;
 		} catch (error) {
 			console.error('Error creating DID document:', error);
@@ -73,9 +72,10 @@ export class CredentialEngine {
 	public async createDID(): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
 			const keyPair = await Ed25519VerificationKey2020.generate();
-			keyPair.controller = `did:key:${keyPair.fingerprint()}`;
-			keyPair.id = `${keyPair.controller}#${keyPair.fingerprint()}`;
+			keyPair.controller = `did:key:${keyPair.publicKeyMultibase}`;
+			keyPair.id = `${keyPair.controller}#${keyPair.publicKeyMultibase}`;
 			keyPair.revoked = false;
+
 			const didDocument = await this.generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
@@ -113,7 +113,7 @@ export class CredentialEngine {
 	 * @returns {Promise<object>} The created unsigned VC.
 	 * @throws Will throw an error if unsigned VC creation fails.
 	 */
-	public async createUnsignedVC(formData: FormData, issuerDid: string): Promise<Credential> {
+	public async createUnsignedVC(formData: FormDataI, issuerDid: string): Promise<Credential> {
 		try {
 			const issuanceDate = new Date().toISOString();
 			if (issuanceDate > formData.expirationDate) throw Error('issuanceDate cannot be after expirationDate');
@@ -123,10 +123,11 @@ export class CredentialEngine {
 					'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
 					{
 						duration: 'https://schema.org/duration',
-						name: 'https://schema.org/name',
+						fullName: 'https://schema.org/name',
 						portfolio: 'https://schema.org/portfolio',
 						evidenceLink: 'https://schema.org/evidenceLink',
 						evidenceDescription: 'https://schema.org/evidenceDescription',
+						credentialType: 'https://schema.org/credentialType',
 					},
 				],
 				id: `urn:uuid:${uuidv4()}`, // Add the id property
@@ -141,7 +142,7 @@ export class CredentialEngine {
 					type: ['AchievementSubject'],
 					name: formData.fullName,
 					portfolio: formData.portfolio,
-					evidenceLink: formData.imageLink,
+					evidenceLink: formData.evidenceLink,
 					evidenceDescription: formData.achievementDescription,
 					duration: formData.duration,
 					credentialType: formData.credentialType,
@@ -154,9 +155,9 @@ export class CredentialEngine {
 							},
 							description: formData.achievementDescription,
 							name: formData.achievementName,
-							image: formData.imageLink
+							image: formData.evidenceLink
 								? {
-										id: formData.imageLink,
+										id: formData.evidenceLink,
 										type: 'Image',
 								  }
 								: undefined,

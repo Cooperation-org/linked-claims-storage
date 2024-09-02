@@ -1,17 +1,31 @@
-import { saveToGoogleDrive, CredentialEngine, StorageContext, StorageFactory } from './dist/index.js';
+import { saveToGoogleDrive, CredentialEngine, GoogleDriveStorage } from './dist/index.js';
 
 const accessToken =
-	'ya29.a0AcM612yNnnwssPokUb8DtIZwrjy4UUlQB0V981QBZpBeVhcmKZCo1nxL0FpibD__2uNCzfhZ2qJhaTV_V2PXPtoU5X3Wh4mflCP2wxi206yRmfe6OII9Wdo-zznMkOw0Y044IFfEuCHF5HJFdziJB0u2JBZvWKcGpZIX-o71aCgYKAdkSARESFQHGX2MiRx2chaqUgub-xgW8sMbu5Q0175';
+	'ya29.a0AcM612wwPSBWqcqvKZJvaQxTYFp1oVWrBt1f0wD1qslHMKncIZB2c6Y_z5qPsx01Zcr-QqmID5Z-awYHpuJ4R36iim8SX6KkdVaCCdSuXbF1Jz49r7pafKNb7M0xI_bHVP7FJ_YpwuSr66ixxZ5BBCaT6sihpfLvd9EZ4icbaCgYKAT8SARISFQHGX2MinewtsLzWVw-FqvHVAwmP7Q0175';
 const credentialEngine = new CredentialEngine(accessToken);
 
-const storage = new StorageContext(StorageFactory.getStorageStrategy('googleDrive', { accessToken }));
+const storage = new GoogleDriveStorage(accessToken);
 async function main() {
 	const formData = {
-		fullName: 'Alice Smith',
-		criteriaNarrative: 'Team members are nominated for this badge by their peers and recognized upon review by Example Corp management.',
-		achievementDescription: 'This badge recognizes the development of the capacity to collaborate within a group environment.',
-		achievementName: 'Teamwork Achievement',
-		expirationDate: '2025-01-01T00:00:00Z', // Use a valid ISO 8601 date string
+		expirationDate: '2025-12-31T23:59:59Z',
+		fullName: 'John Doe',
+		duration: '1 year',
+		criteriaNarrative: 'This is a narrative',
+		achievementDescription: 'This is an achievement',
+		achievementName: 'Achievement Name',
+		portfolio: [
+			{
+				name: 'Portfolio 1',
+				url: 'https://example.com/portfolio1',
+			},
+			{
+				name: 'Portfolio 2',
+				url: 'https://example.com/portfolio2',
+			},
+		],
+		evidenceLink: 'https://example.com/evidence',
+		evidenceDescription: 'This is an evidence description',
+		credentialType: 'Credential Type',
 	};
 
 	// Sessions are used to store the user's data when hit save&exit
@@ -45,9 +59,9 @@ async function main() {
 	}
 	const claims = await storage.getAllClaims();
 	// const sessions = await storage.getAllSessions();
-	console.log('🚀 ~ claims:', claims);
-	const claim = await storage.getFileContent('16Nl0dmo2E20Ika1ft_bfzY0tBE6gwrk2');
-	console.log('claim', claim);
+	// console.log('🚀 ~ claims:', claims);
+	// const claim = await storage.retrieve(crede)
+	// console.log('claim', claim);
 }
 
 main().catch(console.error);
