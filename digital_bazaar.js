@@ -1,8 +1,7 @@
 import { saveToGoogleDrive, CredentialEngine, GoogleDriveStorage } from './dist/index.js';
 
-const accessToken =
-	'ya29.a0AcM612wwPSBWqcqvKZJvaQxTYFp1oVWrBt1f0wD1qslHMKncIZB2c6Y_z5qPsx01Zcr-QqmID5Z-awYHpuJ4R36iim8SX6KkdVaCCdSuXbF1Jz49r7pafKNb7M0xI_bHVP7FJ_YpwuSr66ixxZ5BBCaT6sihpfLvd9EZ4icbaCgYKAT8SARISFQHGX2MinewtsLzWVw-FqvHVAwmP7Q0175';
-const credentialEngine = new CredentialEngine(accessToken);
+const accessToken = '';
+const credentialEngine = new CredentialEngine();
 
 const storage = new GoogleDriveStorage(accessToken);
 async function main() {
