@@ -1,8 +1,8 @@
 {
-	"name": "trust_storage",
+	"name": "@cooperation/vc-storage",
 	"type": "module",
-	"version": "1.0.9",
-	"description": "trust_storage is a simple library that allows you to store data in the browser's local storage. It is written in TypeScript and has type definitions.",
+	"version": "1.0.0",
+	"description": "Sign and store your verifiable credentials.",
 	"main": "dist/index.js",
 	"types": "dist/types/index.d.ts",
 	"files": [
@@ -13,7 +13,7 @@
 		"test": "jest",
 		"version": "npm version patch"
 	},
-	"author": "",
+	"author": "cooperation",
 	"license": "ISC",
 	"dependencies": {
 		"@digitalbazaar/ed25519-signature-2020": "^5.3.0",
