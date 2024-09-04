@@ -1,136 +1,109 @@
-# Trust Storage Library
+# @cooperation/vc-storage
 
-Store your files using up to three strategies. Currently, we offer the GoogleDriveStorage class, which is designed for storing files in Google Drive. Stay tuned for additional methods coming soon 😊
+**Version**: 1.0.0
+
+## Overview
+
+`@cooperation/vc-storage` is a TypeScript library that allows you to sign and store Verifiable Credentials (VCs) in various storage strategies. This library provides flexibility and security by allowing you to choose where your VCs are stored, whether on cloud services like Google Drive, on your local device, or in your digital wallet. Support for Dropbox and wallet storage is currently under development.
+
+## Features
+
+- **Sign and Store VCs**: Securely sign your Verifiable Credentials and store them in your preferred storage medium.
+- **Google Drive Integration**: Seamlessly store your VCs on Google Drive.
+- **Local Device Storage**: Store your VCs directly on your device.
+- **Future Integrations**:
+  - **Wallet Storage**: Integration for storing VCs directly in your digital wallet (under development).
+  - **Dropbox Storage**: Integration for storing VCs in Dropbox (under development).
 
 ## Installation
 
-To install the Trust Storage library, you can use either npm or yarn. Run one of the following commands in your project directory:
+You can install this package via npm:
 
 ```bash
-npm install trust_storage
-```
-
-or
-
-```bash
-yarn add trust_storage
+npm install @cooperation/vc-storage
 ```
 
 ## Usage
 
-To use the `GoogleDriveStorage` class in your application, you need to pass an access token that has appropriate permissions for Google Drive operations. You can generate an access token by following these steps:
+### Basic Example
 
-1. Visit the [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/).
-2. Enter the scope: `https://www.googleapis.com/auth/drive`.
-3. Copy the accessToken and pass it to the `GoogleDriveStorage` class.
+Here’s how you can use the `@cooperation/vc-storage` library to sign and store your VCs:
 
-The `GoogleDriveStorage` class includes two methods:
+```typescript
+import { saveToGoogleDrive, CredentialEngine, GoogleDriveStorage } from '@cooperation/vc-storage';
 
-- `createFolder()`: It is designed to create a new folder in Google Drive.
-- `uploadFile()`: Ensure that the necessary folder has been created or identified where the file will be stored.
+const accessToken = 'your-google-drive-access-token';
+const credentialEngine = new CredentialEngine();
+const storage = new GoogleDriveStorage(accessToken);
 
-## Notes
+async function main(useWallet = false, walletAddress = '') {
+	const formData = {
+		expirationDate: '2025-12-31T23:59:59Z',
+		fullName: 'John Doe',
+		duration: '1 year',
+		criteriaNarrative: 'This is a narrative',
+		achievementDescription: 'This is an achievement',
+		achievementName: 'Achievement Name',
+		portfolio: [
+			{ name: 'Portfolio 1', url: 'https://example.com/portfolio1' },
+			{ name: 'Portfolio 2', url: 'https://example.com/portfolio2' },
+		],
+		evidenceLink: 'https://example.com/evidence',
+		evidenceDescription: 'This is an evidence description',
+		credentialType: 'Credential Type',
+	};
 
-- This library is a demonstration tool for uploading files to Google Drive.
+	let didDocument, keyPair;
 
-### Your First Code Contribution
+	// Step 1: Create DID based on the selected method
+	if (useWallet && walletAddress) {
+		({ didDocument, keyPair } = await credentialEngine.createWalletDID(walletAddress));
+	} else {
+		({ didDocument, keyPair } = await credentialEngine.createDID());
+	}
 
-1. Clone the repository.
-2. Run yarn or npm install to install dependencies.
-3. Create a new branch for your feature or bugfix.
-4. Make your changes.
-5. Commit your changes and push your branch to your fork.
-6. Open a pull request.
+	await saveToGoogleDrive(storage, { ...didDocument, keyPair }, 'DID');
 
-### Pull Requests
+	const issuerDid = didDocument.id;
 
-When you're ready to submit your pull request:
+	// Step 2: Create an Unsigned VC
+	const unsignedVC = await credentialEngine.createUnsignedVC(formData, issuerDid);
+	await saveToGoogleDrive(storage, unsignedVC, 'UnsignedVC');
+	console.log('Unsigned VC:', unsignedVC);
 
-1. Ensure your work is aligned with the project's coding standards.
-2. Fill out the pull request template.
-3. Include a clear and detailed description of the changes.
-4. Link any related issues.
-5. Wait for review and address any feedback.
+	// Step 3: Sign the VC
+	try {
+		const signedVC = await credentialEngine.signVC(unsignedVC, keyPair);
+		await saveToGoogleDrive(storage, signedVC, 'VC');
+		console.log('Signed VC:', signedVC);
+	} catch (error) {
+		console.error('Error during VC signing:', error);
+	}
 
-## Development Workflow
+	// Retrieve all stored claims
+	const claims = await storage.getAllClaims();
+	console.log('Stored Claims:', claims);
+}
 
-### Setup
+// Example usage:
+// 1. For Google Drive storage with standard DID creation
+main().catch(console.error);
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/your-repo-name.git
-   ```
-2. Navigate to the project directory:
-   ```bash
-   cd your-repo-name
-   ```
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-Certainly! Here is the provided text rewritten in `.md` format:
-
-````markdown
-## Publishing Flow
-
-If you want to publish a new version of the package, please follow these steps:
-
-### Request Access
-
-Ask for access to publish the package in the Slack. Mention the version and any significant changes.
-
-### Update Version
-
-Ensure you update the version in `package.json` according to [Semantic Versioning](https://semver.org/). You can do this manually or using the npm command:
-
-```bash
-npm version [patch|minor|major]
-```
-````
-
-### Ensure Tests Pass
-
-Run all tests to make sure they are passing:
-
-```bash
-npm test
+// 2. For Google Drive storage with wallet-based DID creation
+// main(true, 'your-wallet-address').catch(console.error);
 ```
 
-### Build the Project
+### Available Storage Strategies
 
-Build the project to ensure all changes are compiled:
+1. **Google Drive**: Store your VCs on Google Drive.
+2. **Local Device**: Store your VCs on your local device.
+3. **Wallet Storage**: (Under Development) Store your VCs directly in your digital wallet.
+4. **Dropbox**: (Under Development) Store your VCs in Dropbox.
 
-```bash
-npm run build
-```
+## Contributing
 
-### Commit and Push
+Contributions are welcome! Please feel free to submit a Pull Request or open an Issue for any bugs or feature requests.
 
-Commit and push your changes to the main branch:
+## License
 
-```bash
-git add .
-git commit -m "Prepare for release vX.Y.Z"
-git push origin main
-```
-
-### Login to npm
-
-If you are not already logged in, log in to npm using your credentials:
-
-```bash
-npm login
-```
-
-### Publish the Package
-
-Once you have access and everything is set, publish the package:
-
-```bash
-npm publish
-```
-
-### Notify Team
-
-Inform the team in the Slack channel that the new version has been published.
+This project is licensed under the ISC License.
