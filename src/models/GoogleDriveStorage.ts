@@ -168,22 +168,66 @@ export class GoogleDriveStorage {
 	}
 
 	public async getAllSessions() {
-		const rootFolders = await this.findFolders();
-		const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
-		if (!credentialsFolder) return [];
+		try {
+			// Find all root folders
+			const rootFolders = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files?q='root' in parents and mimeType='application/vnd.google-apps.folder'&trashed=false&fields=files(id,name)`,
+			});
+			console.log('🚀 ~ GoogleDriveStorage ~ getAllSessions ~ rootFolders:', rootFolders);
 
-		const credentialsFolderId = credentialsFolder.id;
-		const subfolders = await this.findFolders(credentialsFolderId);
-		const sessionsFolder = subfolders.find((f: any) => f.name === 'Sessions');
-		if (!sessionsFolder) return [];
+			// Find the "Credentials" folder
+			const credentialsFolder = rootFolders.files.find((f: any) => f.name === 'Credentials');
+			if (!credentialsFolder) {
+				return []; // Return an empty array if "Credentials" folder is not found
+			}
 
-		const sessions = await this.fetcher({
-			method: 'GET',
-			headers: {},
-			url: `https://www.googleapis.com/drive/v3/files?q='${sessionsFolder.id}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
-		});
+			const credentialsFolderId = credentialsFolder.id;
 
-		return sessions;
+			// Find subfolders within the "Credentials" folder
+			const subfolders = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files?q='${credentialsFolderId}' in parents and mimeType='application/vnd.google-apps.folder'&trashed=false&fields=files(id,name)`,
+			});
+
+			const sessionsFolder = subfolders.files.find((f: any) => f.name === 'SESSIONs');
+			if (!sessionsFolder) {
+				return []; // Return an empty array if "SESSIONs" folder is not found
+			}
+
+			// Fetch all session files inside the "SESSIONs" folder
+			const sessions = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files?q='${sessionsFolder.id}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
+			});
+
+			const sessionFiles = sessions.files;
+
+			// Fetch the content of each session file
+			const sessionContents = await Promise.all(
+				sessionFiles.map(async (file: any) => {
+					// Fetch file content
+					const content = await this.fetcher({
+						method: 'GET',
+						headers: {},
+						url: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
+					});
+					return {
+						content,
+					};
+				})
+			);
+
+			console.log('🚀 ~ GoogleDriveStorage ~ getAllSessions ~ sessionContents:', sessionContents);
+
+			return sessionContents; // Return the list of files with their content
+		} catch (error) {
+			console.error('Error getting session contents:', error);
+			return []; // Return an empty array on error
+		}
 	}
 
 	async delete(id: string): Promise<any> {
