@@ -91,6 +91,93 @@ export class GoogleDriveStorage {
 		}
 	}
 
+	public async addCommentToFile(fileId: string, commentText: string) {
+		if (!fileId || !commentText || !this.accessToken) {
+			throw new Error('Missing required parameters: fileId, commentText, or accessToken');
+		}
+
+		const url = `https://www.googleapis.com/drive/v3/files/${fileId}/comments?fields=id,content,createdTime`;
+		const body = {
+			content: commentText,
+		};
+
+		try {
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(body),
+			});
+
+			if (!response.ok) {
+				const errorDetails = await response.json();
+				throw new Error(`Failed to add comment: ${response.statusText}`);
+			}
+
+			const result = await response.json();
+			console.log('Comment added successfully:', result);
+			return result;
+		} catch (error) {
+			console.error('Error adding comment to file:', error);
+			throw error;
+		}
+	}
+
+	public async saveRecommendation(fileId: string, commentText: string): Promise<object | void> {
+		console.log('Adding comment to file with ID:', fileId);
+
+		// Input validation
+		if (!fileId) {
+			console.error('Error: Missing required parameter "fileId"');
+			throw new Error('Missing required parameter: fileId');
+		}
+
+		if (!commentText || commentText.trim().length === 0) {
+			console.error('Error: Missing or empty commentText');
+			throw new Error('Comment text cannot be empty');
+		}
+
+		if (!this.accessToken) {
+			console.error('Error: Missing access token');
+			throw new Error('Access token is required to make Google Drive API requests');
+		}
+
+		const url = `https://www.googleapis.com/drive/v3/files/${fileId}/comments?fields=id,content,createdTime`;
+		const body = {
+			content: commentText.trim(), // Ensuring trimmed commentText is used
+		};
+
+		try {
+			// Send POST request to Google Drive API to add comment
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(body), // Convert body object to JSON string
+			});
+
+			// Handle response errors
+			if (!response.ok) {
+				const errorDetails = await response.json();
+				console.error('Error adding comment:', errorDetails);
+				throw new Error(`Failed to add comment: ${response.statusText} (HTTP ${response.status})`);
+			}
+
+			// Success: parse and log the result
+			const result = await response.json();
+			console.log('Comment added successfully:', result);
+			return result;
+		} catch (error) {
+			// Log the error and rethrow it
+			console.error('Error adding comment to file:', error);
+			throw error;
+		}
+	}
+
 	async retrieve(id: string): Promise<any> {
 		try {
 			const file = await this.fetcher({

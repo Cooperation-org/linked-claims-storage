@@ -7,7 +7,11 @@
 
 import { GoogleDriveStorage } from '../models/GoogleDriveStorage';
 
-export async function saveToGoogleDrive(storage: GoogleDriveStorage, data: any, type: 'VC' | 'DID' | 'UnsignedVC' | 'SESSION') {
+export async function saveToGoogleDrive(
+	storage: GoogleDriveStorage,
+	data: any,
+	type: 'VC' | 'DID' | 'UnsignedVC' | 'SESSION' | 'RECOMMENDATION'
+) {
 	try {
 		const timestamp = Date.now();
 		const fileData = {

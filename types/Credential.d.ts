@@ -77,3 +77,33 @@ export interface Credential {
 		achievement: Achievement[];
 	};
 }
+
+export interface RecommendationI {
+	recommendationText: string;
+	qualifications: string;
+	expirationDate: string;
+	fullName: string;
+	howKnow: string;
+	explainAnswer: string;
+	portfolio: { name: string; url: string }[];
+}
+
+export interface RecommendationCredential {
+	'@context': any[];
+	id: string;
+	type: string[];
+	issuer: {
+		id: string;
+		type: string[];
+	};
+	issuanceDate: string;
+	expirationDate: string;
+	credentialSubject: {
+		name: string;
+		howKnow: string;
+		recommendationText: string;
+		qualifications: string;
+		explainAnswer: string;
+		portfolio: PortfolioItem[];
+	};
+}
