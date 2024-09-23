@@ -1,7 +1,7 @@
 import { saveToGoogleDrive, CredentialEngine, GoogleDriveStorage } from './dist/index.js';
 
 const accessToken =
-	'ya29.a0AcM612yERZ_pM_v9AiXLcgVdHw52RQfZoMJd2eYfnaDRB3Xbv-jzXaYxMjReVFLxg9Yy-i2OpMJCW2pHaqlFJGaoShgE3nr7tAuEQPlRYxgBCw6gHu4d2Ju8a4pLmxvPHvG4colkggdtj9QTW0nxrbqB24B20StBTYyNNhNjaCgYKAVQSARMSFQHGX2MiCo0g4Rsm0MvYpZMbn67c7g0175';
+	'ya29.a0AcM612zp8TTQOTk6Zzivw4jIQEodUDbKIfbpKoJjNZbhpwSx0jcOTaGneaFE-V71zHF_6K13QU2Eblna5OWvMESJ1ppFaUWfjVQVxAP7Ji2Eum3ShUfAqVbHQaNTm-S2IGX6QXOu3lg3pki1GRMYl1lPnhwX0m9mhqKq-0ZEaCgYKARASARESFQHGX2MicCdsGmrKPi4ryuHEPst8uQ0175';
 
 const credentialEngine = new CredentialEngine();
 
@@ -80,8 +80,9 @@ async function main() {
 		const signedRecommendationVC = await credentialEngine.signVC(unsignedRecommendationVC, keyPair);
 		console.log('🚀 ~ main ~ signedRecommendationVC:', signedRecommendationVC);
 		const file = await saveToGoogleDrive(storage, signedVC, 'VC');
+		console.log('🚀 ~ main ~ file:', file);
 		const storage1 = new GoogleDriveStorage(
-			'ya29.a0AcM612wC8rAO7UfKNHf25hhEDejGXfTdmeEcHquA5a1QI9o2S3FCc8XTMWCUFizAdWzXxvNhQlL1vFansMaBoQsWch-FIhrPx5AkqZLn2-j1q27IJ1BCVFqwrcezjEel5RTfV54yKJ9saFvpfpvz3xrFzU3a3zVKHin11zvPaCgYKAakSARESFQHGX2MiFEUmz7_zPOysvb7ToezMwA0175'
+			'ya29.a0AcM612x1m1-Oto44HIN5fOCiBHOipCS7NBuXsGvEj-EVHygZpccmmd307OjQl_-O6jbLgbebyraXkrYmF4MU9JlgmxUCgLL9BgsAgGCke1O5lFdcgqQQCWuAC8m9YOOhqhycHIPBbYNcqHn686SFDiONAHdk2r25yXsTJ8NlaCgYKAbESARISFQHGX2Mi93l2piQhJPARp2L8BjGx2w0175'
 		);
 		const savedRecommendation = await saveToGoogleDrive(storage1, signedRecommendationVC, 'RECOMMENDATION');
 		console.log('🚀 ~ main ~ savedRecommendation:', savedRecommendation);

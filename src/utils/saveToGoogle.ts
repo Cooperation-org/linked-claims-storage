@@ -67,3 +67,12 @@ export async function saveToGoogleDrive(
 		throw error;
 	}
 }
+
+export function generateViewLink(fileId: string): string {
+	if (!fileId) {
+		throw new Error('File ID is required to generate a view link.');
+	}
+
+	// Construct the view URL based on the file ID
+	return `https://drive.google.com/file/d/${fileId}/view`;
+}

@@ -1,4 +1,5 @@
 import { DataToSaveI } from '../../types';
+import { generateViewLink } from '../utils/saveToGoogle';
 
 interface FetcherI {
 	method: string;
@@ -28,7 +29,7 @@ export class GoogleDriveStorage {
 			// Check for errors in the response
 			const data = await res.json();
 			if (!res.ok) {
-				console.error('Error Response:', data);
+				console.error('Error Response:', JSON.stringify(data));
 				throw new Error(data.error.message || 'Unknown error');
 			}
 
@@ -73,7 +74,7 @@ export class GoogleDriveStorage {
 			const fileMetadata = {
 				name: data.fileName,
 				parents: [folderId], // Specify the folder ID
-				mimeType: 'application/vnd.google-apps.document', // Use provided MIME type or default to JSON
+				mimeType: 'application/json', // Use provided MIME type or default to JSON
 			};
 
 			let uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
@@ -97,14 +98,14 @@ export class GoogleDriveStorage {
 		}
 	}
 
-	public async addCommentToFile(fileId: string, commentText: string) {
-		if (!fileId || !commentText || !this.accessToken) {
+	public async addCommentToFile(fileId: string) {
+		if (!fileId || !this.accessToken) {
 			throw new Error('Missing required parameters: fileId, commentText, or accessToken');
 		}
 
 		const url = `https://www.googleapis.com/drive/v3/files/${fileId}/comments?fields=id,content,createdTime`;
 		const body = {
-			content: commentText,
+			content: generateViewLink(fileId),
 		};
 
 		try {
