@@ -7,7 +7,13 @@
 
 import { GoogleDriveStorage } from '../models/GoogleDriveStorage';
 
-export async function saveToGoogleDrive(storage: GoogleDriveStorage, data: any, type: 'VC' | 'DID' | 'UnsignedVC' | 'SESSION') {
+export async function saveToGoogleDrive(
+	storage: GoogleDriveStorage,
+	data: any,
+	type: 'VC' | 'DID' | 'UnsignedVC' | 'SESSION' | 'IMAGES',
+	imageFileInput, // Rename the parameter to avoid conflict
+	fileName: string
+) {
 	try {
 		const timestamp = Date.now();
 		const fileData = {
@@ -49,10 +55,41 @@ export async function saveToGoogleDrive(storage: GoogleDriveStorage, data: any, 
 			console.log(`Found ${type}s folder with ID:`, typeFolderId);
 		}
 
-		// Save the file in the specific subfolder
-		const file = await storage.save(fileData, typeFolderId);
-		console.log(`File uploaded: ${file?.id} under ${type}s with ID ${typeFolderId} folder in Credentials folder`);
-		return file;
+		// Save the data file in the specific subfolder
+		const dataFile = await storage.save(fileData, typeFolderId);
+		console.log(`File uploaded: ${dataFile?.id} under ${type}s with ID ${typeFolderId} folder in Credentials folder`);
+
+		// Handling image file upload
+		let imageFileId = null;
+		if (imageFileInput) {
+			let imagesFolder = subfolders.find((f: any) => f.name === 'Images');
+			let imagesFolderId;
+
+			if (!imagesFolder) {
+				imagesFolderId = await storage.createFolder('Images', credentialsFolderId);
+				console.log('Created Images folder with ID:', imagesFolderId);
+			} else {
+				imagesFolderId = imagesFolder.id;
+				console.log('Found Images folder with ID:', imagesFolderId);
+			}
+
+			// Prepare the image file data
+			const imageFileData = {
+				fileName: fileName || `Image-${Date.now()}`,
+				mimeType: imageFileInput.type,
+				body: imageFileInput,
+			};
+
+			// Save the image file in the Images folder
+			const imageFile = await storage.save(imageFileData, imagesFolderId);
+			imageFileId = imageFile.id;
+			console.log(`Image file uploaded: ${imageFileId} under Images folder`);
+		}
+
+		return {
+			dataFileId: dataFile.id,
+			imageFileId: imageFileId,
+		};
 	} catch (error) {
 		console.error('Error saving to Google Drive:', error);
 		throw error;
