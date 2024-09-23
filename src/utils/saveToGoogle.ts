@@ -1,12 +1,11 @@
+import { GoogleDriveStorage } from '../models/GoogleDriveStorage';
+
 /**
  * Save data to Google Drive in the specified folder type.
  * @param {object} data - The data to save.
  * @param {'VC' | 'DID' | 'UnsignedVC'} type - The type of data being saved.
  * @throws Will throw an error if the save operation fails.
  */
-
-import { GoogleDriveStorage } from '../models/GoogleDriveStorage';
-
 export async function saveToGoogleDrive(
 	storage: GoogleDriveStorage,
 	data: any,
@@ -56,6 +55,12 @@ export async function saveToGoogleDrive(
 		// Save the file in the specific subfolder
 		const file = await storage.save(fileData, typeFolderId);
 		console.log(`File uploaded: ${file?.id} under ${type}s with ID ${typeFolderId} folder in Credentials folder`);
+
+		if (file && file.id) {
+			console.log('Sharing file with second user...');
+			await storage.addCommenterRoleToFile(file.id);
+		}
+
 		return file;
 	} catch (error) {
 		console.error('Error saving to Google Drive:', error);

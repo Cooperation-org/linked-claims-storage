@@ -1,7 +1,8 @@
 import { saveToGoogleDrive, CredentialEngine, GoogleDriveStorage } from './dist/index.js';
 
 const accessToken =
-	'ya29.a0AcM612y0TVtdfllutLZWh2vUg3J7fzn-ZyPznfTCR7UoZ6ntsWC0Qhi64fFB90N6fnaq-LMsqoYYmejamzdBBQmP4ocDj43FDTY86SblQqeTHGpuhd9pOCatkMd_o4Xu2_5dwibJ_Zs9epTxg7-z5kOOEsR4zw10hc_7MN4VaCgYKAWoSARESFQHGX2Mi47-A-au_8486rukOcGBydA0175';
+	'ya29.a0AcM612yERZ_pM_v9AiXLcgVdHw52RQfZoMJd2eYfnaDRB3Xbv-jzXaYxMjReVFLxg9Yy-i2OpMJCW2pHaqlFJGaoShgE3nr7tAuEQPlRYxgBCw6gHu4d2Ju8a4pLmxvPHvG4colkggdtj9QTW0nxrbqB24B20StBTYyNNhNjaCgYKAVQSARMSFQHGX2MiCo0g4Rsm0MvYpZMbn67c7g0175';
+
 const credentialEngine = new CredentialEngine();
 
 const storage = new GoogleDriveStorage(accessToken);
@@ -47,7 +48,13 @@ const RecommendtaionformData = {
 
 async function main() {
 	// Sessions are used to store the user's data when hit save&exit
-	await saveToGoogleDrive(storage, formData, 'SESSION');
+	await saveToGoogleDrive(
+		storage,
+		{
+			body: JSON.stringify({ name: 'John Doe' }),
+		},
+		'SESSION'
+	);
 
 	// Step 1: Create DID
 	const { didDocument, keyPair } = await credentialEngine.createDID();
@@ -65,15 +72,20 @@ async function main() {
 	// Step 2: Create Unsigned VC
 	const unsignedVC = await credentialEngine.createUnsignedVC(formData, issuerDid);
 	const unsignedRecommendationVC = credentialEngine.createUnsignedRecommendation(RecommendtaionformData, issuerDid);
-	// await saveToGoogleDrive(storage, unsignedVC, 'UnsignedVC');
 	console.log('Unsigned VC:', unsignedVC);
 
 	// Step 3: Sign VC
 	try {
 		const signedVC = await credentialEngine.signVC(unsignedVC, keyPair);
 		const signedRecommendationVC = await credentialEngine.signVC(unsignedRecommendationVC, keyPair);
+		console.log('🚀 ~ main ~ signedRecommendationVC:', signedRecommendationVC);
 		const file = await saveToGoogleDrive(storage, signedVC, 'VC');
-		const recommendation = await storage.saveRecommendtaion(file.id, signedRecommendationVC);
+		const storage1 = new GoogleDriveStorage(
+			'ya29.a0AcM612wC8rAO7UfKNHf25hhEDejGXfTdmeEcHquA5a1QI9o2S3FCc8XTMWCUFizAdWzXxvNhQlL1vFansMaBoQsWch-FIhrPx5AkqZLn2-j1q27IJ1BCVFqwrcezjEel5RTfV54yKJ9saFvpfpvz3xrFzU3a3zVKHin11zvPaCgYKAakSARESFQHGX2MiFEUmz7_zPOysvb7ToezMwA0175'
+		);
+		const savedRecommendation = await saveToGoogleDrive(storage1, signedRecommendationVC, 'RECOMMENDATION');
+		console.log('🚀 ~ main ~ savedRecommendation:', savedRecommendation);
+		const recommendation = await storage1.addCommentToFile(file.id, 'Test Comment');
 		console.log('Recommendation:', recommendation);
 		console.log('Signed VC:', signedVC);
 	} catch (error) {

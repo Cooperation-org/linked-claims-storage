@@ -24,14 +24,17 @@ export class GoogleDriveStorage {
 				}),
 				body,
 			});
+
+			// Check for errors in the response
 			const data = await res.json();
 			if (!res.ok) {
-				throw new Error(data.error.message);
+				console.error('Error Response:', data);
+				throw new Error(data.error.message || 'Unknown error');
 			}
 
 			return data;
 		} catch (error) {
-			console.error('Error fetching data:', error);
+			console.error('Error fetching data:', error.message);
 			throw error;
 		}
 	}
@@ -66,27 +69,30 @@ export class GoogleDriveStorage {
 
 	async save(data: DataToSaveI, folderId: string): Promise<{ id: string } | null> {
 		try {
+			// Define file metadata, ensure correct folder is assigned
 			const fileMetadata = {
 				name: data.fileName,
-				mimeType: data.mimeType,
-				parents: [folderId],
+				parents: [folderId], // Specify the folder ID
+				mimeType: 'application/vnd.google-apps.document', // Use provided MIME type or default to JSON
 			};
+
+			let uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
 			const formData = new FormData();
 			formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-			formData.append('file', data.body);
+			formData.append('file', new Blob([data.body], { type: fileMetadata.mimeType })); // Set file data and MIME type
 
 			const file = await this.fetcher({
 				method: 'POST',
 				headers: {},
 				body: formData,
-				url: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+				url: uploadUrl,
 			});
 
-			console.log('File uploaded:', file.id);
+			console.log('File uploaded successfully:', file.id);
 			return file;
 		} catch (error) {
-			console.error('Error uploading file:', error);
+			console.error('Error uploading file:', error.message);
 			return null;
 		}
 	}
@@ -113,7 +119,7 @@ export class GoogleDriveStorage {
 
 			if (!response.ok) {
 				const errorDetails = await response.json();
-				throw new Error(`Failed to add comment: ${response.statusText}`);
+				throw new Error(`Failed to add comment: ${JSON.stringify(errorDetails)}`);
 			}
 
 			const result = await response.json();
@@ -125,55 +131,38 @@ export class GoogleDriveStorage {
 		}
 	}
 
-	public async saveRecommendation(fileId: string, commentText: string): Promise<object | void> {
-		console.log('Adding comment to file with ID:', fileId);
-
-		// Input validation
-		if (!fileId) {
-			console.error('Error: Missing required parameter "fileId"');
-			throw new Error('Missing required parameter: fileId');
-		}
-
-		if (!commentText || commentText.trim().length === 0) {
-			console.error('Error: Missing or empty commentText');
-			throw new Error('Comment text cannot be empty');
-		}
-
-		if (!this.accessToken) {
-			console.error('Error: Missing access token');
-			throw new Error('Access token is required to make Google Drive API requests');
-		}
-
-		const url = `https://www.googleapis.com/drive/v3/files/${fileId}/comments?fields=id,content,createdTime`;
+	/**
+	 * Add commenter role to a file
+	 * @param fileId
+	 * @returns
+	 */
+	async addCommenterRoleToFile(fileId: string) {
+		const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
 		const body = {
-			content: commentText.trim(), // Ensuring trimmed commentText is used
+			role: 'commenter',
+			type: 'anyone',
 		};
 
 		try {
-			// Send POST request to Google Drive API to add comment
 			const response = await fetch(url, {
 				method: 'POST',
 				headers: {
 					Authorization: `Bearer ${this.accessToken}`,
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify(body), // Convert body object to JSON string
+				body: JSON.stringify(body),
 			});
 
-			// Handle response errors
 			if (!response.ok) {
 				const errorDetails = await response.json();
-				console.error('Error adding comment:', errorDetails);
-				throw new Error(`Failed to add comment: ${response.statusText} (HTTP ${response.status})`);
+				throw new Error(`Failed to add permission: ${JSON.stringify(errorDetails)}`);
 			}
 
-			// Success: parse and log the result
 			const result = await response.json();
-			console.log('Comment added successfully:', result);
+			console.log('Permission added successfully:', result);
 			return result;
 		} catch (error) {
-			// Log the error and rethrow it
-			console.error('Error adding comment to file:', error);
+			console.error('Error adding permission:', error.message);
 			throw error;
 		}
 	}
