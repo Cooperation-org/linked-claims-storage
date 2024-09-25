@@ -1,4 +1,5 @@
 import { DataToSaveI } from '../../types';
+import { generateViewLink } from '../utils/saveToGoogle';
 
 interface FetcherI {
 	method: string;
@@ -24,14 +25,17 @@ export class GoogleDriveStorage {
 				}),
 				body,
 			});
+
+			// Check for errors in the response
 			const data = await res.json();
 			if (!res.ok) {
-				throw new Error(data.error.message);
+				console.error('Error Response:', JSON.stringify(data));
+				throw new Error(data.error.message || 'Unknown error');
 			}
 
 			return data;
 		} catch (error) {
-			console.error('Error fetching data:', error);
+			console.error('Error fetching data:', error.message);
 			throw error;
 		}
 	}
@@ -66,28 +70,101 @@ export class GoogleDriveStorage {
 
 	async save(data: DataToSaveI, folderId: string): Promise<{ id: string } | null> {
 		try {
+			// Define file metadata, ensure correct folder is assigned
 			const fileMetadata = {
 				name: data.fileName,
-				mimeType: data.mimeType,
-				parents: [folderId],
+				parents: [folderId], // Specify the folder ID
+				mimeType: 'application/json', // Use provided MIME type or default to JSON
 			};
+
+			let uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
 			const formData = new FormData();
 			formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-			formData.append('file', data.body);
+			formData.append('file', new Blob([data.body], { type: fileMetadata.mimeType })); // Set file data and MIME type
 
 			const file = await this.fetcher({
 				method: 'POST',
 				headers: {},
 				body: formData,
-				url: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+				url: uploadUrl,
 			});
 
-			console.log('File uploaded:', file.id);
+			console.log('File uploaded successfully:', file.id);
 			return file;
 		} catch (error) {
-			console.error('Error uploading file:', error);
+			console.error('Error uploading file:', error.message);
 			return null;
+		}
+	}
+
+	public async addCommentToFile(fileId: string) {
+		if (!fileId || !this.accessToken) {
+			throw new Error('Missing required parameters: fileId, commentText, or accessToken');
+		}
+
+		const url = `https://www.googleapis.com/drive/v3/files/${fileId}/comments?fields=id,content,createdTime`;
+		const body = {
+			content: generateViewLink(fileId),
+		};
+
+		try {
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(body),
+			});
+
+			if (!response.ok) {
+				const errorDetails = await response.json();
+				throw new Error(`Failed to add comment: ${JSON.stringify(errorDetails)}`);
+			}
+
+			const result = await response.json();
+			console.log('Comment added successfully:', result);
+			return result;
+		} catch (error) {
+			console.error('Error adding comment to file:', error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Add commenter role to a file
+	 * @param fileId
+	 * @returns
+	 */
+	async addCommenterRoleToFile(fileId: string) {
+		const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
+		const body = {
+			role: 'commenter',
+			type: 'anyone',
+		};
+
+		try {
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(body),
+			});
+
+			if (!response.ok) {
+				const errorDetails = await response.json();
+				throw new Error(`Failed to add permission: ${JSON.stringify(errorDetails)}`);
+			}
+
+			const result = await response.json();
+			console.log('Permission added successfully:', result);
+			return result;
+		} catch (error) {
+			console.error('Error adding permission:', error.message);
+			throw error;
 		}
 	}
 

@@ -2,9 +2,9 @@ import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-
 import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
 import { defaultDocumentLoader, issue } from '@digitalbazaar/vc';
 import { v4 as uuidv4 } from 'uuid';
-import { KeyPair, FormDataI, Credential, DidDocument } from '../../types/Credential.js';
+import { KeyPair, FormDataI, Credential, DidDocument, RecommendationI, RecommendationCredential } from '../../types/Credential.js';
 import { localOBContext, localED25519Context } from '../utils/context.js';
-import { credentialsTypes } from '../../types/index.js';
+import { generateDIDSchema } from '../utils/did.js';
 
 // Custom document loader
 export const customDocumentLoader = async (url: string) => {
@@ -25,46 +25,6 @@ export const customDocumentLoader = async (url: string) => {
 
 export class CredentialEngine {
 	/**
-	 * Create a DID document using the provided key pair.
-	 * @param {object} keyPair - The key pair used to create the DID document.
-	 * @returns {Promise<object>} The created DID document.
-	 */
-	private async generateDIDSchema(keyPair: KeyPair): Promise<DidDocument> {
-		try {
-			const DID = keyPair.controller;
-			const didDocument = {
-				'@context': ['https://www.w3.org/ns/did/v1'],
-				id: DID,
-				publicKey: [
-					{
-						id: keyPair.id,
-						type: 'Ed25519VerificationKey2020',
-						controller: DID,
-						publicKeyMultibase: keyPair.publicKeyMultibase,
-					},
-				],
-				authentication: [keyPair.id],
-				assertionMethod: [keyPair.id],
-				capabilityDelegation: [keyPair.id],
-				capabilityInvocation: [keyPair.id],
-				keyAgreement: [
-					{
-						id: `${keyPair.id}-keyAgreement`,
-						type: 'X25519KeyAgreementKey2020',
-						controller: DID,
-						publicKeyMultibase: keyPair.publicKeyMultibase,
-					},
-				],
-			};
-
-			return didDocument;
-		} catch (error) {
-			console.error('Error creating DID document:', error);
-			throw error;
-		}
-	}
-
-	/**
 	 * Create a new DID with Digital Bazaar's Ed25519VerificationKey2020 key pair.
 	 * @returns {Promise<{didDocument: object, keyPair: object}>} The created DID document and key pair.
 	 * @throws Will throw an error if DID creation fails.
@@ -76,7 +36,7 @@ export class CredentialEngine {
 			keyPair.id = `${keyPair.controller}#${keyPair.publicKeyMultibase}`;
 			keyPair.revoked = false;
 
-			const didDocument = await this.generateDIDSchema(keyPair);
+			const didDocument = await generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
 		} catch (error) {
@@ -97,7 +57,7 @@ export class CredentialEngine {
 			keyPair.controler = walletrAddress; // Using the MetaMask address as controller
 			keyPair.id = `${keyPair.controller}#${keyPair.fingerprint()}`;
 			keyPair.revoked = false;
-			const didDocument = await this.generateDIDSchema(keyPair);
+			const didDocument = await generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
 		} catch (error) {
@@ -113,7 +73,7 @@ export class CredentialEngine {
 	 * @returns {Promise<object>} The created unsigned VC.
 	 * @throws Will throw an error if unsigned VC creation fails.
 	 */
-	public async createUnsignedVC(formData: FormDataI, issuerDid: string): Promise<Credential> {
+	public createUnsignedVC(formData: FormDataI, issuerDid: string): Credential {
 		try {
 			const issuanceDate = new Date().toISOString();
 			if (issuanceDate > formData.expirationDate) throw Error('issuanceDate cannot be after expirationDate');
@@ -174,6 +134,52 @@ export class CredentialEngine {
 		}
 	}
 
+	public createUnsignedRecommendation(recommendation: RecommendationI, issuerDid: string): RecommendationCredential {
+		try {
+			const issuanceDate = new Date().toISOString();
+			if (issuanceDate > recommendation.expirationDate) throw Error('issuanceDate cannot be after expirationDate');
+
+			const unsignedRecommendation: RecommendationCredential = {
+				'@context': [
+					'https://www.w3.org/2018/credentials/v1',
+					'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
+					{
+						howKnow: 'https://schema.org/howKnow',
+						recommendationText: 'https://schema.org/recommendationText',
+						qualifications: 'https://schema.org/qualifications',
+						explainAnswer: 'https://schema.org/explainAnswer',
+						portfolio: 'https://schema.org/portfolio',
+					},
+				],
+				id: `urn:uuid:${uuidv4()}`, // Unique identifier for the recommendation
+				type: ['VerifiableCredential', 'https://schema.org/RecommendationCredential'], // Use a fully qualified URI for 'RecommendationCredential'
+				issuer: {
+					id: issuerDid,
+					type: ['Profile'],
+				},
+				issuanceDate,
+				expirationDate: recommendation.expirationDate,
+				credentialSubject: {
+					name: recommendation.fullName,
+					howKnow: recommendation.howKnow,
+					recommendationText: recommendation.recommendationText,
+					qualifications: recommendation.qualifications,
+					explainAnswer: recommendation.explainAnswer,
+					portfolio: recommendation.portfolio.map((item) => ({
+						name: item.name,
+						url: item.url,
+					})),
+				},
+			};
+
+			console.log('Successfully created Unsigned Recommendation', unsignedRecommendation);
+			return unsignedRecommendation;
+		} catch (error) {
+			console.error('Error creating unsigned recommendation', error);
+			throw error;
+		}
+	}
+
 	/**
 	 * Sign a Verifiable Credential (VC)
 	 * @param {object} credential - The credential to sign.
@@ -181,7 +187,7 @@ export class CredentialEngine {
 	 * @returns {Promise<object>} The signed VC.
 	 * @throws Will throw an error if VC signing fails.
 	 */
-	public async signVC(credential: Credential, keyPair: KeyPair): Promise<Credential> {
+	public async signVC(credential: Credential | RecommendationCredential, keyPair: KeyPair): Promise<Credential> {
 		const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
 		try {
 			const signedVC = await issue({ credential, suite, documentLoader: customDocumentLoader });
