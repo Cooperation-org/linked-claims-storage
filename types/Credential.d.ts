@@ -58,7 +58,7 @@ export interface FormDataI {
 
 export interface Credential {
 	'@context': any[];
-	id: string; // Add the id property
+	id: string;
 	type: string[];
 	issuer: {
 		id: string;
@@ -78,7 +78,7 @@ export interface Credential {
 	};
 }
 
-export interface RecommendationI {
+export interface RecommendationFormDataI {
 	recommendationText: string;
 	qualifications: string;
 	expirationDate: string;
