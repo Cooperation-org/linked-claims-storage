@@ -1,5 +1,5 @@
 import { DataToSaveI } from '../../types';
-import { generateViewLink } from '../utils/saveToGoogle';
+import { generateViewLink } from '../utils/saveToGoogle.js';
 
 interface FetcherI {
 	method: string;
@@ -8,6 +8,21 @@ interface FetcherI {
 	url: string;
 }
 
+/**
+ * @class GoogleDriveStorage
+ * @description Class to interact with Google Drive API
+ * @param accessToken - Access token to authenticate with Google Drive API
+ * @method createFolder - Create a new folder in Google Drive
+ * @method save - Save data to Google Drive
+ * @method addCommentToFile - Add a comment to a file in Google Drive
+ * @method addCommenterRoleToFile - Add commenter role to a file in Google Drive
+ * @method retrieve - Retrieve a file from Google Drive
+ * @method findFolders - Find folders in Google Drive
+ * @method findLastFile - Find the last file in a folder
+ * @method getAllVCs - Get all verifiable credentials from Google Drive
+ * @method getAllSessions - Get all sessions from Google Drive
+ * @method delete - Delete a file from Google Drive
+ */
 export class GoogleDriveStorage {
 	private accessToken: string;
 
@@ -15,6 +30,7 @@ export class GoogleDriveStorage {
 		this.accessToken = accessToken;
 	}
 
+	// Method to fetch data from Google Drive API
 	private async fetcher({ method, headers, body, url }: FetcherI) {
 		try {
 			const res = await fetch(url, {
@@ -40,7 +56,7 @@ export class GoogleDriveStorage {
 		}
 	}
 
-	// New method to encapsulate search logic
+	// Method to search for files in Google Drive by query
 	private async searchFiles(query: string): Promise<any[]> {
 		const result = await this.fetcher({
 			method: 'GET',
@@ -168,6 +184,11 @@ export class GoogleDriveStorage {
 		}
 	}
 
+	/**
+	 * Get file from google drive by id
+	 * @param id
+	 * @returns file content
+	 */
 	async retrieve(id: string): Promise<any> {
 		try {
 			const file = await this.fetcher({
@@ -184,15 +205,25 @@ export class GoogleDriveStorage {
 		}
 	}
 
-	findFolders = async (id?: string): Promise<any[]> => {
-		const query = id
-			? `'${id}' in parents and mimeType='application/vnd.google-apps.folder'`
+	/**
+	 * Get folder by folderId, if folderId == null you will have them all
+	 * @param id [Optional]
+	 * @returns
+	 */
+	findFolders = async (folderId?: string): Promise<any[]> => {
+		const query = folderId
+			? `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder'`
 			: `'root' in parents and mimeType='application/vnd.google-apps.folder'`;
 		const folders = await this.searchFiles(query);
 
 		return folders.filter((file: any) => file.mimeType === 'application/vnd.google-apps.folder');
 	};
 
+	/**
+	 * Get the last file from folder by folderId
+	 * @param folderId
+	 * @returns
+	 */
 	findLastFile = async (folderId: string): Promise<any> => {
 		try {
 			const files = await this.searchFiles(`'${folderId}' in parents`);
@@ -226,7 +257,11 @@ export class GoogleDriveStorage {
 		}
 	};
 
-	public async getAllClaims() {
+	/**
+	 * Get all verefiable credentials
+	 * @returns
+	 */
+	public async getAllVCs() {
 		const rootFolders = await this.findFolders();
 		const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
 		if (!credentialsFolder) return [];
@@ -244,6 +279,10 @@ export class GoogleDriveStorage {
 		return claims;
 	}
 
+	/**
+	 * Get all Sessions
+	 * @returns
+	 */
 	public async getAllSessions() {
 		try {
 			// Find all root folders
@@ -307,6 +346,11 @@ export class GoogleDriveStorage {
 		}
 	}
 
+	/**
+	 * Delete file by id
+	 * @param id
+	 * @returns
+	 */
 	async delete(id: string): Promise<any> {
 		try {
 			const response = await this.fetcher({

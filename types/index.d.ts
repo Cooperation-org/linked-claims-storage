@@ -4,4 +4,4 @@ export interface DataToSaveI {
 	body: any;
 }
 
-export { credentialsTypes } from './Credentials';
+export * from './credential';
