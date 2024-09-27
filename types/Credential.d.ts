@@ -107,3 +107,23 @@ export interface RecommendationCredential {
 		portfolio: PortfolioItem[];
 	};
 }
+
+export interface Proof {
+	type: string;
+	created: string;
+	verificationMethod: string;
+	proofPurpose: string;
+	proofValue: string;
+}
+
+// Define the structure of the Verifiable Credential (partial based on what was provided)
+export interface VerifiableCredential {
+	'@context': string[];
+	id: string;
+	type: string[];
+	issuer: { id: string; type: string[] };
+	issuanceDate: string;
+	expirationDate: string;
+	credentialSubject: { [key: string]: any };
+	proof: Proof;
+}

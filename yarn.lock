@@ -30,6 +30,22 @@
     js-tokens "^4.0.0"
     picocolors "^1.0.0"
 
+"@digitalbazaar/did-io@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@digitalbazaar/did-io/-/did-io-2.0.0.tgz#a6945be43ccb2e46218d811ba5e630e5df7dd86a"
+  integrity sha512-6dG0nOytVN1ntCbf9ffB/BLSQszfDEEBbemMu8l1/yn8fOLMKABNu13/yfp8tPtqSowz3P0SWt6YNcYLf49sAw==
+  dependencies:
+    "@digitalbazaar/lru-memoize" "^3.0.0"
+
+"@digitalbazaar/did-method-key@^5.2.0":
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/@digitalbazaar/did-method-key/-/did-method-key-5.2.0.tgz#2a22a9403e0a73e84d5a3d955a7707772933905d"
+  integrity sha512-67JerSdJWAVI1wrZftLFIvjifRk5R3uX5r91GgVHiMbDlkj01Nt7HuqzMSKHG9bXcvJbMhgprlS9BWzPeaiFRw==
+  dependencies:
+    "@digitalbazaar/did-io" "^2.0.0"
+    "@digitalbazaar/x25519-key-agreement-key-2019" "^6.0.0"
+    "@digitalbazaar/x25519-key-agreement-key-2020" "^3.0.0"
+
 "@digitalbazaar/ed25519-multikey@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@digitalbazaar/ed25519-multikey/-/ed25519-multikey-1.1.0.tgz#d166ef2a9fc5728558cce41b5c637639e5ac0100"
@@ -69,6 +85,13 @@
     ky-universal "^0.11.0"
     undici "^5.21.2"
 
+"@digitalbazaar/lru-memoize@^3.0.0":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@digitalbazaar/lru-memoize/-/lru-memoize-3.0.2.tgz#7db5a8416e62c3788a7834c827af39df9055c23e"
+  integrity sha512-O7fv5GnFY/XZggJ3bQuce1E4LcFxrexSJmubto8v3YABaIuP5McQFAxn3m9oV6BHRQXa/wURItpvY/g5X3kwVw==
+  dependencies:
+    lru-cache "^6.0.0"
+
 "@digitalbazaar/security-context@^1.0.0":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@digitalbazaar/security-context/-/security-context-1.0.1.tgz#badc4b8da03411a32d4e7321ce7c4b355776b410"
@@ -82,6 +105,27 @@
     credentials-context "^2.0.0"
     jsonld "^8.3.1"
     jsonld-signatures "^11.2.1"
+
+"@digitalbazaar/x25519-key-agreement-key-2019@^6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/@digitalbazaar/x25519-key-agreement-key-2019/-/x25519-key-agreement-key-2019-6.0.0.tgz#f9f021c7e518633c6e79fa13777d98bbfe1fc5b4"
+  integrity sha512-3EV/x7/Sa5mOAuPf0Z0Fi+BsIQKR5Qi2u/KNUgMc1fHx9jQZWjF3//1hvSDDrKV+FKfhAg10S7EcgU04f5tjog==
+  dependencies:
+    "@noble/ed25519" "^1.6.0"
+    base58-universal "^2.0.0"
+    crypto-ld "^7.0.0"
+    ed2curve "^0.3.0"
+    tweetnacl "^1.0.3"
+
+"@digitalbazaar/x25519-key-agreement-key-2020@^3.0.0":
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/@digitalbazaar/x25519-key-agreement-key-2020/-/x25519-key-agreement-key-2020-3.0.1.tgz#fff3be5d2a35cf0b1ebeb918c061a8b58c231ef4"
+  integrity sha512-GmpPEc3ZD/7fz3St38ELa8qgJzjfTxCJi7cwAYPAcZ8Iynldj8sSf2hIblYjjlB82pIENhyXLQHcIALluGcrqA==
+  dependencies:
+    "@noble/ed25519" "^1.6.0"
+    base58-universal "^2.0.0"
+    crypto-ld "^7.0.0"
+    tweetnacl "^1.0.3"
 
 "@fastify/busboy@^2.0.0":
   version "2.1.1"
@@ -342,6 +386,13 @@ ed25519-signature-2020-context@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/ed25519-signature-2020-context/-/ed25519-signature-2020-context-1.1.0.tgz#b2f724f07db154ddf0fd6605410d88736e56fd07"
   integrity sha512-dBGSmoUIK6h2vadDctrDnhhTO01PR2hJk0mRNEfrRDPCjaIwrfy4J+eziEQ9Q1m8By4f/CSRgKM1h53ydKfdNg==
+
+ed2curve@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/ed2curve/-/ed2curve-0.3.0.tgz#322b575152a45305429d546b071823a93129a05d"
+  integrity sha512-8w2fmmq3hv9rCrcI7g9hms2pMunQr1JINfcjwR9tAyZqhtyaMN991lF/ZfHfr5tzZQ8c7y7aBgZbjfbd0fjFwQ==
+  dependencies:
+    tweetnacl "1.x.x"
 
 escape-string-regexp@^1.0.5:
   version "1.0.5"
@@ -635,6 +686,11 @@ tslib@2.4.0:
   version "2.4.0"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.4.0.tgz#7cecaa7f073ce680a05847aa77be941098f36dc3"
   integrity sha512-d6xOpEDfsi2CZVlPQzGeux8XMwLT9hssAsaPYExaQMuYskwb+x1x7J371tWlbBdWHroy99KnVB6qIkUbs5X3UQ==
+
+tweetnacl@1.x.x, tweetnacl@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/tweetnacl/-/tweetnacl-1.0.3.tgz#ac0af71680458d8a6378d0d0d050ab1407d35596"
+  integrity sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==
 
 type-fest@^0.20.2:
   version "0.20.2"

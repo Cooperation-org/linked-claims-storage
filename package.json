@@ -16,6 +16,7 @@
 	"author": "cooperation",
 	"license": "ISC",
 	"dependencies": {
+		"@digitalbazaar/did-method-key": "^5.2.0",
 		"@digitalbazaar/ed25519-signature-2020": "^5.3.0",
 		"@digitalbazaar/ed25519-verification-key-2020": "^4.1.0",
 		"@digitalbazaar/vc": "^6.3.0",
@@ -24,9 +25,9 @@
 		"uuid": "^10.0.0"
 	},
 	"devDependencies": {
-		"@types/uuid": "^10.0.0",
 		"@types/fs-extra": "^11.0.4",
 		"@types/jest": "^29.5.12",
+		"@types/uuid": "^10.0.0",
 		"typescript": "^5.6.2"
 	},
 	"jest": {
