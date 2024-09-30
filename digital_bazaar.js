@@ -1,7 +1,9 @@
 import { CredentialEngine, GoogleDriveStorage } from './dist/index.js';
+import { generateViewLink, saveToGoogleDrive } from './dist/utils/google.js';
+import { getVP } from './dist/utils/presentation.js';
 
 const accessToken =
-	'ya29.a0AcM612xk6nktzw5NFtHxjwgP8IgA1dnYKYyfW8iaeDLQSkePNxqCOtaeJmSH2UT_MEN924lpuR7VChkmyeFg19WbxQb5xclRkB9aTVRlkZAbYAsK2afZHhKtr4URqB1UhAf6T9Ufo8ULv8M8kXp_Osc6a_NbT1yps1GzWFakaCgYKAQUSARESFQHGX2Miy2GJ3RXRAt_HdbMzgOwaCA0175';
+	'ya29.a0AcM612xrVRB3FJz_K4ia514XaBt-IbC-p76UZTEc8r9JQezfG4jb1XXZWzdTrfR2TvlIgvS9AW0K5C8ikt0cKTixhja_iiH_Q_aWj8pGKV2gFIDd3mCQkOdTrSQg142FtwggriS9qbVXw9LkFWPezSIqVGoHs4nwE5bZ_OAgaCgYKATESARMSFQHGX2MizjjUSuB4AapRX1ybN8G7Kg0175'; // 1597
 
 const credentialEngine = new CredentialEngine();
 
@@ -57,10 +59,10 @@ async function main() {
 	// );
 
 	// Step 1: Create DID
-	const { didDocument, keyPair } = await credentialEngine.createDID();
-	console.log('🚀 ~ main ~ didDocument:', didDocument);
-	console.log('--------------------------------');
-	console.log('KeyPair:', keyPair);
+	// const { didDocument, keyPair } = await credentialEngine.createDID();
+	// console.log('🚀 ~ main ~ didDocument:', didDocument);
+	// console.log('--------------------------------');
+	// console.log('KeyPair:', keyPair);
 	// await saveToGoogleDrive(
 	// 	storage,
 	// 	{
@@ -72,23 +74,64 @@ async function main() {
 
 	// Step 3: Sign VC
 	try {
-		const signedVC = await credentialEngine.signVC(formData, 'VC', keyPair, didDocument.id);
+		// const signedVC = await credentialEngine.signVC(formData, 'VC', keyPair, didDocument.id);
 		// const signedRecommendationVC = await credentialEngine.signVC(RecommendtaionformData, 'RECOMMENDATION', keyPair, didDocument.id);
-		console.log('🚀 ~ main ~ signedVC:', signedVC);
+		// // console.log('🚀 ~ main ~ signedVC:', signedVC);
 		// const file = await saveToGoogleDrive(storage, signedVC, 'VC');
 		// console.log('🚀 ~ main ~ file:', file);
 		// const storage1 = new GoogleDriveStorage(
-		// 	'ya29.a0AcM612x1m1-Oto44HIN5fOCiBHOipCS7NBuXsGvEj-EVHygZpccmmd307OjQl_-O6jbLgbebyraXkrYmF4MU9JlgmxUCgLL9BgsAgGCke1O5lFdcgqQQCWuAC8m9YOOhqhycHIPBbYNcqHn686SFDiONAHdk2r25yXsTJ8NlaCgYKAbESARISFQHGX2Mi93l2piQhJPARp2L8BjGx2w0175'
+		// 	'ya29.a0AcM612zjI-ggoE-cFyDcplD-kBLS5zKh2Te21P0ch7T0Ls2mw7mCHffxMzCkHm3tsPeQHcKrPJOX8McSIxq9UL5tPqEWk8dUx0fMgte9zQ9nBsoG-j78VFQgI4QXs4DHDLlQ-livD9M1EfYIZi3sTq0EeXQ-tE6mOKQjz41JaCgYKAakSARESFQHGX2MiApRnXaObiLlKMS7eZt8H1g0175'
 		// );
 		// const savedRecommendation = await saveToGoogleDrive(storage1, signedRecommendationVC, 'RECOMMENDATION');
 		// console.log('🚀 ~ main ~ savedRecommendation:', savedRecommendation);
-		// const recommendation = await storage1.addCommentToFile(file.id, 'Test Comment');
+		// const recommendation = await storage1.addCommentToFile(file.id, savedRecommendation.id);
 		// console.log('Recommendation:', recommendation);
 		// console.log('Signed VC:', signedVC);
-		await credentialEngine.verifyCredential(signedVC);
+		// await credentialEngine.verifyCredential(signedVC);
+		// const vcs = await storage.getAllVCs();
+		const presentation = await getVP(accessToken, '1RGgak9pbgrmMpqDBvDZRho3y2_NkUssD');
+		console.log('��� ~ main ~ presentation:', presentation);
+		// console.log('🚀 ~ main ~ vcs:', vcs);
 	} catch (error) {
 		console.error('Error during VC signing:', error);
 	}
 }
 
 main().catch(console.error);
+const nn = {
+	'@context': [
+		'https://www.w3.org/2018/credentials/v1',
+		'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
+		{
+			howKnow: 'https://schema.org/howKnow',
+			recommendationText: 'https://schema.org/recommendationText',
+			qualifications: 'https://schema.org/qualifications',
+			explainAnswer: 'https://schema.org/explainAnswer',
+			portfolio: 'https://schema.org/portfolio',
+		},
+		'https://w3id.org/security/suites/ed25519-2020/v1',
+	],
+	id: 'urn:uuid:f10892ac-287d-43b8-aeba-f45984faf810',
+	type: ['VerifiableCredential', 'https://schema.org/RecommendationCredential'],
+	issuer: { id: 'did:key:z6Mksca3iFio7C1qNyD9auSFpe6sWXqqnJbkzyK2EGMVZavt', type: ['Profile'] },
+	issuanceDate: '2024-09-30T18:22:52.929Z',
+	expirationDate: '2025-09-18T00:00:00Z',
+	credentialSubject: {
+		name: 'John Doe',
+		howKnow: 'Worked together at XYZ Company',
+		recommendationText: 'John consistently delivered high-quality work on time.',
+		qualifications: "Master's in Computer Science",
+		explainAnswer: 'John has strong analytical and problem-solving skills, which he demonstrated in complex projects.',
+		portfolio: [
+			{ name: 'Project A', url: 'https://example.com/project-a' },
+			{ name: 'Project B', url: 'https://example.com/project-b' },
+		],
+	},
+	proof: {
+		type: 'Ed25519Signature2020',
+		created: '2024-09-30T18:22:52Z',
+		verificationMethod: 'did:key:z6Mksca3iFio7C1qNyD9auSFpe6sWXqqnJbkzyK2EGMVZavt#z6Mksca3iFio7C1qNyD9auSFpe6sWXqqnJbkzyK2EGMVZavt',
+		proofPurpose: 'assertionMethod',
+		proofValue: 'z4stXgzprWhhqikxyEq7QFYA4wM1T6zxDnEL6Kw7iiAdPuhuFcWPnKfGyactpJoWw6mYpmnjCyi7v1xperpWBWdLe',
+	},
+};

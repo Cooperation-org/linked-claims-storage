@@ -1,6 +1,7 @@
 import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
 import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
 import * as vc from '@digitalbazaar/vc';
+import { v4 as uuidv4 } from 'uuid';
 
 import {
 	extractKeyPairFromCredential,
@@ -10,6 +11,7 @@ import {
 } from '../utils/credential.js';
 import { customDocumentLoader } from '../utils/digitalbazaar.js';
 import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI, VerifiableCredential } from '../../types/credential.js';
+import { uuidV4 } from 'ethers';
 
 /**
  * Class representing the Credential Engine.
@@ -20,6 +22,14 @@ import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI, VerifiableCre
  * @method signVC - Sign a Verifiable Credential (VC).
  */
 export class CredentialEngine {
+	private generateKeyPair = async (address?: string) => {
+		const keyPair = await Ed25519VerificationKey2020.generate();
+		const add = address || keyPair.publicKeyMultibase;
+		keyPair.controller = `did:key:${add}`;
+		keyPair.id = `${keyPair.controller}#${add}`;
+		keyPair.revoked = false;
+		return keyPair;
+	};
 	/**
 	 * Create a new DID with Digital Bazaar's Ed25519VerificationKey2020 key pair.
 	 * @returns {Promise<{didDocument: object, keyPair: object}>} The created DID document and key pair.
@@ -27,11 +37,7 @@ export class CredentialEngine {
 	 */
 	public async createDID(): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
-			const keyPair = await Ed25519VerificationKey2020.generate();
-			keyPair.controller = `did:key:${keyPair.publicKeyMultibase}`;
-			keyPair.id = `${keyPair.controller}#${keyPair.publicKeyMultibase}`;
-			keyPair.revoked = false;
-
+			const keyPair = await this.generateKeyPair();
 			const didDocument = await generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
@@ -49,10 +55,7 @@ export class CredentialEngine {
 	 */
 	public async createWalletDID(walletrAddress: string): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
-			const keyPair = await Ed25519VerificationKey2020.generate();
-			keyPair.controler = walletrAddress; // Using the MetaMask address as controller
-			keyPair.id = `${keyPair.controller}#${keyPair.fingerprint()}`;
-			keyPair.revoked = false;
+			const keyPair = await this.generateKeyPair(walletrAddress);
 			const didDocument = await generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
@@ -106,6 +109,41 @@ export class CredentialEngine {
 			return result;
 		} catch (error) {
 			console.error('Verification failed:', error);
+			throw error;
+		}
+	}
+
+	private async verifyCreds(creds: VerifiableCredential[]): Promise<boolean> {
+		await Promise.all(
+			creds.map((cred) => {
+				const res = this.verifyCredential(cred);
+				if (!res) return false;
+			})
+		);
+		return true;
+	}
+
+	public async createPresentation(verifiableCredential: VerifiableCredential[]) {
+		try {
+			const res = await this.verifyCreds(verifiableCredential);
+			if (!res) throw new Error('Some credentials failed verification');
+			const id = `urn:uuid:${uuidv4()}`;
+			const keyPair = await this.generateKeyPair();
+			const VP = await vc.createPresentation({ verifiableCredential, id, holder: keyPair.controller });
+			return VP;
+		} catch (error) {
+			console.error('Error creating presentation:', error);
+			throw error;
+		}
+	}
+
+	public async signPresentation(presentation: any, keyPair: KeyPair) {
+		try {
+			const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
+			const signedVP = await vc.signPresentation({ presentation, suite, documentLoader: customDocumentLoader });
+			return signedVP;
+		} catch (error) {
+			console.error('Error signing presentation:', error);
 			throw error;
 		}
 	}

@@ -77,3 +77,9 @@ export function generateViewLink(fileId: string): string {
 	// Construct the view URL based on the file ID
 	return `https://drive.google.com/file/d/${fileId}/view`;
 }
+
+export const extractFileIdFromDriveLink = (link: string) => {
+	// https://drive.google.com/file/d/1cwTq_mi21Kr_fi7dIZJ7tJmIFOobesdU/view
+	const id = link.split('/').pop().split('/')[0];
+	return id;
+};

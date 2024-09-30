@@ -1,5 +1,5 @@
 import { DataToSaveI } from '../../types';
-import { generateViewLink } from '../utils/saveToGoogle.js';
+import { generateViewLink } from '../utils/google.js';
 
 interface FetcherI {
 	method: string;
@@ -114,14 +114,19 @@ export class GoogleDriveStorage {
 		}
 	}
 
-	public async addCommentToFile(fileId: string) {
-		if (!fileId || !this.accessToken) {
+	/**
+	 * Add comment to VC
+	 * @param fileId - th id of VC file
+	 * @returns
+	 */
+	public async addCommentToFile(vcFileId: string, recommendationFileId: string) {
+		if (!recommendationFileId || !vcFileId || !this.accessToken) {
 			throw new Error('Missing required parameters: fileId, commentText, or accessToken');
 		}
 
-		const url = `https://www.googleapis.com/drive/v3/files/${fileId}/comments?fields=id,content,createdTime`;
+		const url = `https://www.googleapis.com/drive/v3/files/${vcFileId}/comments?fields=id,content,createdTime`;
 		const body = {
-			content: generateViewLink(fileId),
+			content: generateViewLink(recommendationFileId),
 		};
 
 		try {
@@ -197,7 +202,6 @@ export class GoogleDriveStorage {
 				url: `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
 			});
 
-			console.log('File retrieved:', file);
 			return file;
 		} catch (error) {
 			console.error('Error retrieving file:', error);
@@ -257,8 +261,25 @@ export class GoogleDriveStorage {
 		}
 	};
 
+	public async getFileComments(fileId: string) {
+		try {
+			// Fetch comments on the file using Google Drive API
+			const commentsResponse = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files/${fileId}/comments?fields=comments(content,author/displayName,createdTime)`,
+			});
+
+			// Return the comments data if available
+			return commentsResponse.comments || []; // Return an empty array if no comments
+		} catch (error) {
+			console.error(`Failed to fetch comments for file ID: ${fileId}`, error);
+			return []; // Handle errors by returning an empty array or some error indication
+		}
+	}
+
 	/**
-	 * Get all verefiable credentials
+	 * Get all verefiable credentials files content
 	 * @returns
 	 */
 	public async getAllVCs() {
@@ -276,7 +297,23 @@ export class GoogleDriveStorage {
 			headers: {},
 			url: `https://www.googleapis.com/drive/v3/files?q='${signedVCFolder.id}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
 		});
-		return claims;
+		const fclaimsContent = await Promise.all(
+			claims.files.map(async (file: any) => {
+				const content = await this.fetcher({
+					method: 'GET',
+					headers: {},
+					url: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
+				});
+				const comments = await this.getFileComments(file.id);
+				return {
+					name: file.name,
+					content,
+					comments: comments.map((comment: any) => comment.content),
+				};
+			})
+		);
+
+		return fclaimsContent;
 	}
 
 	/**

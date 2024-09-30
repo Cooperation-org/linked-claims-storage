@@ -168,7 +168,7 @@ export function generateUnsignedRecommendation(recommendation: RecommendationFor
  * @param {Object} credential - The signed Verifiable Credential
  * @returns {Ed25519VerificationKey2020} keyPair - The generated keypair object
  */
-export async function extractKeyPairFromCredential(credential: VerifiableCredential): Promise<any> {
+export async function extractKeyPairFromCredential(credential: VerifiableCredential): Promise<KeyPair> {
 	const verificationMethod: string = credential.proof.verificationMethod;
 	const issuer: string = credential.issuer.id;
 
