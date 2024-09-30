@@ -1,7 +1,7 @@
 import { CredentialEngine, GoogleDriveStorage } from './dist/index.js';
 
 const accessToken =
-	'ya29.a0AcM612yGDsdd6FYeDbpSWZNl1sP_T1Lv7YaGr7o79eVnnTJAybJ11bCiPAl5hU_DdKqtnn9InQ8avVbWY4a7jtMuzjhn5eEZALt1IPamh9xJ36NhNCRGIipGW7i8D_Pn28FQ7jlRfUZchMC4IpAubE4S-V_qOUqVfEACfw_caCgYKAYESARESFQHGX2Midpm3NU4VONre_4oktl3tbA0175';
+	'ya29.a0AcM612xk6nktzw5NFtHxjwgP8IgA1dnYKYyfW8iaeDLQSkePNxqCOtaeJmSH2UT_MEN924lpuR7VChkmyeFg19WbxQb5xclRkB9aTVRlkZAbYAsK2afZHhKtr4URqB1UhAf6T9Ufo8ULv8M8kXp_Osc6a_NbT1yps1GzWFakaCgYKAQUSARESFQHGX2Miy2GJ3RXRAt_HdbMzgOwaCA0175';
 
 const credentialEngine = new CredentialEngine();
 
@@ -58,6 +58,9 @@ async function main() {
 
 	// Step 1: Create DID
 	const { didDocument, keyPair } = await credentialEngine.createDID();
+	console.log('🚀 ~ main ~ didDocument:', didDocument);
+	console.log('--------------------------------');
+	console.log('KeyPair:', keyPair);
 	// await saveToGoogleDrive(
 	// 	storage,
 	// 	{
@@ -82,6 +85,7 @@ async function main() {
 		// const recommendation = await storage1.addCommentToFile(file.id, 'Test Comment');
 		// console.log('Recommendation:', recommendation);
 		// console.log('Signed VC:', signedVC);
+		await credentialEngine.verifyCredential(signedVC);
 	} catch (error) {
 		console.error('Error during VC signing:', error);
 	}

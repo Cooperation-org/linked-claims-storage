@@ -19,4 +19,12 @@ declare module '@digitalbazaar/ed25519-signature-2020' {
 declare module '@digitalbazaar/vc' {
 	export function issue(options: any): Promise<any>;
 	export function defaultDocumentLoader(url: string): Promise<any>;
+	export function verifyCredential(options: any): Promise<any>;
+	export function createPresentation(options: any): Promise<any>;
+	export function signPresentation(options: any): Promise<any>;
+}
+
+declare module '@digitalbazaar/did-method-key' {
+	export function get(options: any): Promise<any>;
+	export function driver(): any;
 }

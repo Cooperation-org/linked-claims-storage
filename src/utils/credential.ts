@@ -1,4 +1,13 @@
-import { KeyPair, DidDocument, FormDataI, RecommendationCredential, Credential, RecommendationFormDataI } from '../../types/credential';
+import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
+import {
+	KeyPair,
+	DidDocument,
+	FormDataI,
+	RecommendationCredential,
+	Credential,
+	RecommendationFormDataI,
+	VerifiableCredential,
+} from '../../types/credential';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -152,4 +161,26 @@ export function generateUnsignedRecommendation(recommendation: RecommendationFor
 		console.error('Error creating unsigned recommendation', error);
 		throw error;
 	}
+}
+
+/**
+ * Extracts the keypair from a Verifiable Credential
+ * @param {Object} credential - The signed Verifiable Credential
+ * @returns {Ed25519VerificationKey2020} keyPair - The generated keypair object
+ */
+export async function extractKeyPairFromCredential(credential: VerifiableCredential): Promise<any> {
+	const verificationMethod: string = credential.proof.verificationMethod;
+	const issuer: string = credential.issuer.id;
+
+	// Example of extracting the public key from the DID fragment (verification method)
+	const publicKeyMultibase: string = verificationMethod.split('#')[1];
+
+	// Generate the keypair using Ed25519VerificationKey2020
+	const keyPair = await Ed25519VerificationKey2020.from({
+		id: verificationMethod,
+		controller: issuer,
+		publicKeyMultibase: publicKeyMultibase,
+	});
+
+	return keyPair;
 }

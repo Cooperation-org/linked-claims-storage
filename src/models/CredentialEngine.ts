@@ -1,10 +1,15 @@
 import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
 import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
-import { issue } from '@digitalbazaar/vc';
+import * as vc from '@digitalbazaar/vc';
 
-import { generateDIDSchema, generateUnsignedRecommendation, generateUnsignedVC } from '../utils/credential.js';
+import {
+	extractKeyPairFromCredential,
+	generateDIDSchema,
+	generateUnsignedRecommendation,
+	generateUnsignedVC,
+} from '../utils/credential.js';
 import { customDocumentLoader } from '../utils/digitalbazaar.js';
-import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI } from '../../types/credential.js';
+import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI, VerifiableCredential } from '../../types/credential.js';
 
 /**
  * Class representing the Credential Engine.
@@ -65,8 +70,8 @@ export class CredentialEngine {
 	 * @returns {Promise<Credential>} The signed VC.
 	 * @throws Will throw an error if VC signing fails.
 	 */
-	public async signVC(formData: any, type: 'VC' | 'RECOMMENDATION', keyPair: KeyPair, issuerId: string): Promise<Credential> {
-		let credential;
+	public async signVC(formData: any, type: 'VC' | 'RECOMMENDATION', keyPair: KeyPair, issuerId: string): Promise<any> {
+		let credential: any;
 		if (type == 'VC') {
 			credential = generateUnsignedVC(formData as FormDataI, issuerId);
 		} else if (type == 'RECOMMENDATION') {
@@ -74,11 +79,36 @@ export class CredentialEngine {
 		}
 		const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
 		try {
-			const signedVC = await issue({ credential, suite, documentLoader: customDocumentLoader });
+			const signedVC = await vc.issue({ credential, suite, documentLoader: customDocumentLoader });
 			return signedVC;
 		} catch (error) {
 			console.error('Error signing VC:', error);
 			throw error;
 		}
 	}
+
+	public async verifyCredential(credential: VerifiableCredential): Promise<boolean> {
+		try {
+			const keyPair = await extractKeyPairFromCredential(credential);
+
+			const suite = new Ed25519Signature2020({
+				key: keyPair,
+				verificationMethod: keyPair.id,
+			});
+
+			const result = await vc.verifyCredential({
+				credential,
+				suite,
+				documentLoader: customDocumentLoader,
+			});
+			console.log(JSON.stringify(result));
+
+			return result;
+		} catch (error) {
+			console.error('Verification failed:', error);
+			throw error;
+		}
+	}
 }
+
+const cred = {};
