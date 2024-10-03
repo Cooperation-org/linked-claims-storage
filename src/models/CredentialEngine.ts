@@ -153,8 +153,29 @@ export class CredentialEngine {
 
 	public async signPresentation(presentation: any, keyPair: KeyPair) {
 		try {
-			const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
-			const signedVP = await vc.signPresentation({ presentation, suite, documentLoader: customDocumentLoader, challenge: '' });
+			// Wrap the keyPair into an Ed25519KeyPair that includes the signer method
+			const signingKey = new Ed25519VerificationKey2020({
+				id: keyPair.id,
+				controller: keyPair.controller,
+				type: keyPair.type,
+				publicKeyMultibase: keyPair.publicKeyMultibase,
+				privateKeyMultibase: keyPair.privateKeyMultibase, // Required for signing
+			});
+
+			// Create the Ed25519Signature2020 suite with the wrapped key that includes the signer
+			const suite = new Ed25519Signature2020({
+				key: signingKey,
+				verificationMethod: keyPair.id,
+			});
+
+			// Sign the presentation
+			const signedVP = await vc.signPresentation({
+				presentation,
+				suite,
+				documentLoader: customDocumentLoader,
+				challenge: '', // Provide the challenge if required
+			});
+
 			return signedVP;
 		} catch (error) {
 			console.error('Error signing presentation:', error);
@@ -162,5 +183,3 @@ export class CredentialEngine {
 		}
 	}
 }
-
-const cred = {};
