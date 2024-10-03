@@ -11,7 +11,8 @@ import {
 } from '../utils/credential.js';
 import { customDocumentLoader } from '../utils/digitalbazaar.js';
 import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI, VerifiableCredential } from '../../types/credential.js';
-import { uuidV4 } from 'ethers';
+import { saveToGoogleDrive } from '../utils/google.js';
+import { GoogleDriveStorage } from './GoogleDriveStorage.js';
 
 /**
  * Class representing the Credential Engine.
@@ -22,6 +23,14 @@ import { uuidV4 } from 'ethers';
  * @method signVC - Sign a Verifiable Credential (VC).
  */
 export class CredentialEngine {
+	private uuid: string;
+	private storage: GoogleDriveStorage;
+
+	constructor(accessToken: string) {
+		this.uuid = uuidv4();
+		this.storage = new GoogleDriveStorage(accessToken);
+	}
+
 	private generateKeyPair = async (address?: string) => {
 		const keyPair = await Ed25519VerificationKey2020.generate();
 		const a = address || keyPair.publicKeyMultibase;
@@ -38,6 +47,8 @@ export class CredentialEngine {
 	public async createDID(): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
 			const keyPair = await this.generateKeyPair();
+			const keyFile = await saveToGoogleDrive(this.storage, keyPair, 'KEYPAIR', this.uuid);
+			console.log('🚀 ~ CredentialEngine ~ createDID ~ keyFile:', keyFile);
 			const didDocument = await generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
@@ -56,6 +67,8 @@ export class CredentialEngine {
 	public async createWalletDID(walletrAddress: string): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
 			const keyPair = await this.generateKeyPair(walletrAddress);
+			const keyFile = await saveToGoogleDrive(this.storage, keyPair, 'KEYPAIR', this.uuid);
+			console.log('🚀 ~ CredentialEngine ~ createWalletDID ~ keyFile:', keyFile);
 			const didDocument = await generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
@@ -76,7 +89,7 @@ export class CredentialEngine {
 	public async signVC(formData: any, type: 'VC' | 'RECOMMENDATION', keyPair: KeyPair, issuerId: string): Promise<any> {
 		let credential: any;
 		if (type == 'VC') {
-			credential = generateUnsignedVC(formData as FormDataI, issuerId);
+			credential = generateUnsignedVC(formData as FormDataI, issuerId, this.uuid);
 		} else if (type == 'RECOMMENDATION') {
 			credential = generateUnsignedRecommendation(formData as RecommendationFormDataI, issuerId);
 		}
@@ -128,7 +141,7 @@ export class CredentialEngine {
 			const res = await this.verifyCreds(verifiableCredential);
 			if (!res) throw new Error('Some credentials failed verification');
 			const id = `urn:uuid:${uuidv4()}`;
-			const keyPair = await this.generateKeyPair();
+			const keyPair = await this.generateKeyPair(); //! delete that and get the one with VC
 			console.log('🚀 ~ CredentialEngine ~ createPresentation ~ keyPair:', keyPair);
 			const VP = await vc.createPresentation({ verifiableCredential, id, holder: keyPair.controller });
 			return VP;

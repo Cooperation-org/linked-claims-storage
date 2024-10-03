@@ -1,22 +1,20 @@
 import { KeyPair } from '../../types';
 import { CredentialEngine } from '../models/CredentialEngine.js';
 import { GoogleDriveStorage } from '../models/GoogleDriveStorage.js';
-import { extractKeyPairFromCredential } from './credential.js';
-import { extractFileIdFromDriveLink } from './google.js';
 
 /**
  * get user's VCs with the comments on it
- * make presentation for th vc and the recommendations from the comments
+ * make presentation for the vc and the recommendations from the comments
  */
 export const getVP = async (accessTokens: string, fileId: string) => {
 	try {
 		const storage = new GoogleDriveStorage(accessTokens);
-		const engine = new CredentialEngine();
+		const engine = new CredentialEngine(accessTokens);
 
-		// fetch VC
-		const VC = await storage.retrieve(fileId);
-		console.log('🚀 ~ getVP ~ VC:', VC);
-		if (!VC) {
+		// Fetch VC
+		const vc = await storage.retrieve(fileId);
+		console.log('🚀 ~ getVP ~ vc:', vc);
+		if (!vc) {
 			throw new Error('VC not found');
 		}
 
@@ -29,24 +27,50 @@ export const getVP = async (accessTokens: string, fileId: string) => {
 		if (vcComments.length > 0) {
 			for (const comment of vcComments) {
 				console.log('🚀 ~ getVP ~ comment:', comment);
-				const recommendationFileId = '1cwTq_mi21Kr_fi7dIZJ7tJmIFOobesdU';
-				// console.log('🚀 ~ getVP ~ recommendationFileId:', recommendationFileId);
-				// Fetch the file containing the recommendations
-				recommendations = await storage.retrieve(recommendationFileId);
+				// Process the comments for any recommendations if needed
 			}
 		}
 		console.log('🚀 ~ getVP ~ recommendations:', recommendations);
 
-		// Step 4: Sign the VC and recommendations
-		const presentation = await engine.createPresentation([VC, recommendations]);
+		// Create presentation
+		const presentation = await engine.createPresentation([vc]);
 		console.log('🚀 ~ getVP ~ presentation:', presentation);
-		// reuseoriginal vc KeyPair
-		const keyPair = await extractKeyPairFromCredential(VC);
-		console.log('🚀 ~ getVP ~ keyPair:', keyPair);
-		const signedPresentation = await engine.signPresentation(presentation, keyPair);
-		console.log('🚀 ~ getVP ~ signedPresentation:', signedPresentation);
 
-		return { presentation };
+		// Fetch all keypair files
+		const keys = await storage.getAllFilesByType('KEYPAIRs');
+		console.log('🚀 ~ getVP ~ KEYPAIRs:', keys);
+
+		// Extract UUID, type, and timestamp from vc.id and match with key pair file name
+		const vcIdParts = vc.id.split(':');
+		if (vcIdParts.length >= 3) {
+			const uuidFromVC = vcIdParts[2]; // Extract UUID part
+			const keyPairFile = keys.find((key) => {
+				// Match file name pattern like `${uuid ? uuid + '_' : ''}${type}_${timestamp}.json`
+				const keyParts = key.name.split('_');
+				const uuidPart = keyParts[0];
+				const typePart = keyParts[1]; // assuming key type part is after the underscore
+
+				// Check if UUID in key file matches UUID in vc.id
+				return uuidPart === uuidFromVC;
+			});
+
+			if (!keyPairFile) {
+				throw new Error('KeyPair not found matching vc.id');
+			}
+
+			console.log('🚀 ~ getVP ~ keyPairFile:', keyPairFile);
+
+			// Continue with processing the key pair and signing the presentation
+			const keyPair = keyPairFile.content as KeyPair;
+			console.log('🚀 ~ getVP ~ keyPair:', keyPair);
+
+			const signedPresentation = await engine.signPresentation(presentation, keyPair);
+			console.log('🚀 ~ getVP ~ signedPresentation:', signedPresentation);
+
+			return { signedPresentation };
+		} else {
+			console.error('Invalid vc.id format:', vc.id);
+		}
 	} catch (error) {
 		console.error('Error fetching user VCs', error);
 		return;
