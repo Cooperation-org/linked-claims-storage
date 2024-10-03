@@ -24,9 +24,9 @@ import { uuidV4 } from 'ethers';
 export class CredentialEngine {
 	private generateKeyPair = async (address?: string) => {
 		const keyPair = await Ed25519VerificationKey2020.generate();
-		const add = address || keyPair.publicKeyMultibase;
-		keyPair.controller = `did:key:${add}`;
-		keyPair.id = `${keyPair.controller}#${add}`;
+		const a = address || keyPair.publicKeyMultibase;
+		keyPair.controller = `did:key:${a}`;
+		keyPair.id = `${keyPair.controller}#${a}`;
 		keyPair.revoked = false;
 		return keyPair;
 	};
@@ -129,6 +129,7 @@ export class CredentialEngine {
 			if (!res) throw new Error('Some credentials failed verification');
 			const id = `urn:uuid:${uuidv4()}`;
 			const keyPair = await this.generateKeyPair();
+			console.log('🚀 ~ CredentialEngine ~ createPresentation ~ keyPair:', keyPair);
 			const VP = await vc.createPresentation({ verifiableCredential, id, holder: keyPair.controller });
 			return VP;
 		} catch (error) {
@@ -140,7 +141,7 @@ export class CredentialEngine {
 	public async signPresentation(presentation: any, keyPair: KeyPair) {
 		try {
 			const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
-			const signedVP = await vc.signPresentation({ presentation, suite, documentLoader: customDocumentLoader });
+			const signedVP = await vc.signPresentation({ presentation, suite, documentLoader: customDocumentLoader, challenge: '' });
 			return signedVP;
 		} catch (error) {
 			console.error('Error signing presentation:', error);

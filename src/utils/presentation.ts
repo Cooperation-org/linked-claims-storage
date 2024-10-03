@@ -19,6 +19,7 @@ export const getVP = async (accessTokens: string, fileId: string) => {
 		if (!VC) {
 			throw new Error('VC not found');
 		}
+
 		const vcComments = await storage.getFileComments(fileId);
 		console.log('🚀 ~ getVP ~ vcComments:', vcComments);
 
@@ -27,7 +28,9 @@ export const getVP = async (accessTokens: string, fileId: string) => {
 		// Step 3: Check if any comments contain a Google Drive link for recommendations
 		if (vcComments.length > 0) {
 			for (const comment of vcComments) {
-				const recommendationFileId = extractFileIdFromDriveLink(comment.content);
+				console.log('🚀 ~ getVP ~ comment:', comment);
+				const recommendationFileId = '1cwTq_mi21Kr_fi7dIZJ7tJmIFOobesdU';
+				// console.log('🚀 ~ getVP ~ recommendationFileId:', recommendationFileId);
 				// Fetch the file containing the recommendations
 				recommendations = await storage.retrieve(recommendationFileId);
 			}
@@ -35,14 +38,15 @@ export const getVP = async (accessTokens: string, fileId: string) => {
 		console.log('🚀 ~ getVP ~ recommendations:', recommendations);
 
 		// Step 4: Sign the VC and recommendations
-		const presentation = await engine.createPresentation([vcComments, recommendations]);
+		const presentation = await engine.createPresentation([VC, recommendations]);
 		console.log('🚀 ~ getVP ~ presentation:', presentation);
 		// reuseoriginal vc KeyPair
 		const keyPair = await extractKeyPairFromCredential(VC);
+		console.log('🚀 ~ getVP ~ keyPair:', keyPair);
 		const signedPresentation = await engine.signPresentation(presentation, keyPair);
 		console.log('🚀 ~ getVP ~ signedPresentation:', signedPresentation);
 
-		return { signedPresentation, presentation };
+		return { presentation };
 	} catch (error) {
 		console.error('Error fetching user VCs', error);
 		return;
