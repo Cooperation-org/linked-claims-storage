@@ -1,21 +1,25 @@
 import { GoogleDriveStorage } from '../models/GoogleDriveStorage.js';
 
 /**
+ * keyFile name  = {uuid}-type-timestamp // we need that
+ * vc.id = urn-uuid-{uuid} // we got that
  * Save data to Google Drive in the specified folder type.
  * @param {object} data - The data to save.
- * @param {'VC' | 'DID' | 'UnsignedVC'} type - The type of data being saved.
+ * @param {'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR'} type - The type of data being saved.
  * @returns {Promise<object>} - The file object saved to Google Drive.
+ * @param {string} uuid - Optional unique identifier for the VC.
  * @throws Will throw an error if the save operation fails.
  */
 export async function saveToGoogleDrive(
 	storage: GoogleDriveStorage,
 	data: any,
-	type: 'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION'
+	type: 'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR',
+	uuid?: string
 ): Promise<object> {
 	try {
 		const timestamp = Date.now();
 		const fileData = {
-			fileName: `${type}-${timestamp}.json`,
+			fileName: `${uuid ? uuid + '_' : ''}${type}_${timestamp}.json`,
 			mimeType: 'application/json',
 			body: JSON.stringify(data),
 		};

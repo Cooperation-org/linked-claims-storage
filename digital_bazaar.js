@@ -3,9 +3,9 @@ import { generateViewLink, saveToGoogleDrive } from './dist/utils/google.js';
 import { getVP } from './dist/utils/presentation.js';
 
 const accessToken =
-	'ya29.a0AcM612x-ANAiuIgc30VJDtoH8tww2oEm0aAWYZY-Mr5w741AYj7VDgOJlSAAZmzXSEIisgeiiJieKCqbNejZLqjrngetQAFTmI4AoL0ym5tnsthhN9skCgg5zLVu2hyqh3UBSdBKluX7YRFgAsQSHfOU4KXGRqxmmLwXQj-daCgYKAQASARESFQHGX2Mi273sKEE-Nuj6Mmy8WA54Ag0175'; // e7na
+	'ya29.a0AcM612y9dQZxjSk-6hHRJHM6Z4sZbX-sxIOiRHTcGFaPS3oaKxv8cCffTNUhnibfu3gUOzcKFg_fUfbUg2Oe4GxoLMnfMyc2ffI_ftuAXlGLC2D26G6GSkTtx7bNPSrTo7cs628deTkzVbsnYe6VDLTEFaGZUKJKjn1iCtlCaCgYKAUYSARESFQHGX2Mieh6ilNkA3FtCywPURrcasw0175';
 
-const credentialEngine = new CredentialEngine();
+const credentialEngine = new CredentialEngine(accessToken);
 
 const storage = new GoogleDriveStorage(accessToken);
 const formData = {
@@ -49,49 +49,38 @@ const RecommendtaionformData = {
 };
 
 async function main() {
-	// Sessions are used to store the user's data when hit save&exit
-	// await saveToGoogleDrive(
-	// 	storage,
-	// 	{
-	// 		body: JSON.stringify({ name: 'John Doe' }),
-	// 	},
-	// 	'SESSION'
-	// );
-
 	// Step 1: Create DID
-	// const { didDocument, keyPair } = await credentialEngine.createDID();
-	// console.log('🚀 ~ main ~ didDocument:', didDocument);
-	// console.log('--------------------------------');
-	// console.log('KeyPair:', keyPair);
-	// await saveToGoogleDrive(
-	// 	storage,
-	// 	{
-	// 		...didDocument,
-	// 		keyPair: { ...keyPair },
-	// 	},
-	// 	'DID'
-	// );
+	const { didDocument, keyPair } = await credentialEngine.createDID();
+	console.log('🚀 ~ main ~ didDocument:', didDocument);
+	console.log('--------------------------------');
+	console.log('KeyPair:', keyPair);
+	await saveToGoogleDrive(
+		storage,
+		{
+			...didDocument,
+			keyPair: { ...keyPair },
+		},
+		'DID'
+	);
 
 	// Step 3: Sign VC
 	try {
-		// const signedVC = await credentialEngine.signVC(formData, 'VC', keyPair, didDocument.id);
-		// const signedRecommendationVC = await credentialEngine.signVC(RecommendtaionformData, 'RECOMMENDATION', keyPair, didDocument.id);
+		const signedVC = await credentialEngine.signVC(formData, 'VC', keyPair, didDocument.id);
+		const signedRecommendationVC = await credentialEngine.signVC(RecommendtaionformData, 'RECOMMENDATION', keyPair, didDocument.id);
 		// // console.log('🚀 ~ main ~ signedVC:', signedVC);
-		// const file = await saveToGoogleDrive(storage, signedVC, 'VC');
-		// console.log('🚀 ~ main ~ file:', file);
-		// const storage1 = new GoogleDriveStorage(
-		// 	'ya29.a0AcM612zjI-ggoE-cFyDcplD-kBLS5zKh2Te21P0ch7T0Ls2mw7mCHffxMzCkHm3tsPeQHcKrPJOX8McSIxq9UL5tPqEWk8dUx0fMgte9zQ9nBsoG-j78VFQgI4QXs4DHDLlQ-livD9M1EfYIZi3sTq0EeXQ-tE6mOKQjz41JaCgYKAakSARESFQHGX2MiApRnXaObiLlKMS7eZt8H1g0175'
-		// );
-		// const savedRecommendation = await saveToGoogleDrive(storage1, signedRecommendationVC, 'RECOMMENDATION');
-		// console.log('🚀 ~ main ~ savedRecommendation:', savedRecommendation);
-		// const recommendation = await storage1.addCommentToFile(file.id, savedRecommendation.id);
-		// console.log('Recommendation:', recommendation);
-		// console.log('Signed VC:', signedVC);
-		// await credentialEngine.verifyCredential(signedVC);
-		// const vcs = await storage.getAllVCs();
-		const presentation = await getVP(accessToken, '1RGgak9pbgrmMpqDBvDZRho3y2_NkUssD');
+		const file = await saveToGoogleDrive(storage, signedVC, 'VC');
+		console.log('🚀 ~ main ~ file:', file);
+		const storage1 = new GoogleDriveStorage(
+			'ya29.a0AcM612xP1PWfKvJTLjjHIFD_39OvZaw9LDXWgfq5gJsvuSnG6q7T-A11n17Nxt_e8SnodKIDaj1KR3eKS3WvRvhqJzb787b5zVBhsRgpYKjLaE2u5Fl-zIV2v8UrjqLAC2Rcbc7mXtx_UjhKjoimUeKGqsEDQYZIisis1hc0aCgYKAaQSARMSFQHGX2Mic8Nk0Z_pR09AR_joD3O6dA0175'
+		);
+		const savedRecommendation = await saveToGoogleDrive(storage1, signedRecommendationVC, 'RECOMMENDATION');
+		console.log('🚀 ~ main ~ savedRecommendation:', savedRecommendation);
+		const recommendation = await storage1.addCommentToFile(file.id, savedRecommendation.id);
+		console.log('Recommendation:', recommendation);
+		console.log('Signed VC:', signedVC);
+		await credentialEngine.verifyCredential(signedVC);
+		const presentation = await getVP(accessToken, file.id);
 		console.log('��� ~ main ~ presentation:', presentation);
-		// console.log('🚀 ~ main ~ vcs:', vcs);
 	} catch (error) {
 		console.error('Error during VC signing:', error);
 	}
