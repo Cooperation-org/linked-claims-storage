@@ -2,8 +2,7 @@ import { CredentialEngine, GoogleDriveStorage } from './dist/index.js';
 import { generateViewLink, saveToGoogleDrive } from './dist/utils/google.js';
 import { createAndSignVerifiablePresentation } from './dist/utils/presentation.js';
 
-const accessToken =
-	'ya29.a0AcM612zKGMLv_B0vNV_J_TfgYgWe5wTC8oaGbdwbEYa0PYaV6xhWCosVR28AZ4fgYJcQsmC6PmmH2UIM5yr2wbSZtxjLDseA61thBTgsWlhZPL95lEz5NGBYQzxrat3QZhhit4mb6hNJmHRho9XYHjT2jHwGYoYS7zsjo6nfaCgYKAcQSARESFQHGX2MiUBqBEYcAHt_TFZlXPtxJlg0175';
+const accessToken = '';
 
 const credentialEngine = new CredentialEngine(accessToken);
 
@@ -71,7 +70,7 @@ async function main() {
 		// const file = await saveToGoogleDrive(storage, signedVC, 'VC');
 		// console.log('🚀 ~ main ~ file:', file);
 		// const storage1 = new GoogleDriveStorage(
-		// 	'ya29.a0AcM612xpi10TAc8xc_NPS6VLDu40KbZetotZZivHAskKWuhLjdBp8j6McWojB7AmREK--JtuWuSassqQC8verihbB5FiYpkLO3OclcJ6_YGUgIhSZbkZ5u4okxBnZXQSJACj_ycHHAonFqB1qsFu8IPVpBBalpoj5PXZ-Zx3aCgYKAUwSARESFQHGX2Mip2_n6t3hKcr-xak18JtOIw0175'
+		// 	''
 		// );
 		// const savedRecommendation = await saveToGoogleDrive(storage1, signedRecommendationVC, 'RECOMMENDATION');
 		// console.log('🚀 ~ main ~ savedRecommendation:', savedRecommendation);
