@@ -1,78 +1,59 @@
 import { KeyPair } from '../../types';
 import { CredentialEngine } from '../models/CredentialEngine.js';
 import { GoogleDriveStorage } from '../models/GoogleDriveStorage.js';
+import { extractGoogleDriveFileId } from './google.js';
 
 /**
- * get user's VCs with the comments on it
- * make presentation for the vc and the recommendations from the comments
+ * Create and sign a Verifiable Presentation (VP) from a given Verifiable Credential (VC) file and any associated recommendations.
+ * @param {string} accessTokens - The access tokens for the user.
+ * @param {string} vcFileId - The ID of the Verifiable Credential (VC) file in Google Drive.
+ * @returns {Promise<{ signedPresentation: object } | null>} - The signed Verifiable Presentation (VP) or null if an error occurs.
+ * @throws Will throw an error if the VC is not found, a matching key pair cannot be located, or any part of the signing process fails.
  */
-export const getVP = async (accessTokens: string, fileId: string) => {
+export const createAndSignVerifiablePresentation = async (
+	accessTokens: string,
+	vcFileId: string
+): Promise<{ signedPresentation: object } | null> => {
+	if (!accessTokens || !vcFileId) {
+		console.error('Invalid input: Access tokens and VC file ID are required.');
+		return null;
+	}
+
 	try {
 		const storage = new GoogleDriveStorage(accessTokens);
 		const engine = new CredentialEngine(accessTokens);
 
-		// Fetch VC
-		const vc = await storage.retrieve(fileId);
-		console.log('🚀 ~ getVP ~ vc:', vc);
-		if (!vc) {
-			throw new Error('VC not found');
+		// Fetch Verifiable Credential (VC)
+		const verifiableCredential = await storage.retrieve(vcFileId);
+		if (!verifiableCredential) {
+			throw new Error('Verifiable Credential not found.');
 		}
 
-		const vcComments = await storage.getFileComments(fileId);
-		console.log('🚀 ~ getVP ~ vcComments:', vcComments);
+		// Fetch VC comments (potential recommendations)
+		const verifiableCredentialComments = await storage.getFileComments(vcFileId);
+		let recommendations: object[] = [];
 
-		let recommendations = null;
-
-		// Step 3: Check if any comments contain a Google Drive link for recommendations
-		if (vcComments.length > 0) {
-			for (const comment of vcComments) {
-				console.log('🚀 ~ getVP ~ comment:', comment);
-				// Process the comments for any recommendations if needed
+		// Extract recommendations from comments if present
+		if (verifiableCredentialComments.length > 0) {
+			for (const comment of verifiableCredentialComments) {
+				console.log('🚀 ~ createAndSignVerifiablePresentation ~ comment', comment);
+				const recommendationFile = await storage.retrieve(extractGoogleDriveFileId(comment.content));
+				console.log('🚀 ~ createAndSignVerifiablePresentation ~ recommendationFile', recommendationFile);
+				if (recommendationFile) {
+					recommendations.push(recommendationFile);
+				}
 			}
 		}
-		console.log('🚀 ~ getVP ~ recommendations:', recommendations);
 
-		// Create presentation
-		const presentation = await engine.createPresentation([vc]);
-		console.log('🚀 ~ getVP ~ presentation:', presentation);
+		// Create Verifiable Presentation (VP) with the retrieved VC
+		const presentation = await engine.createPresentation([verifiableCredential, ...recommendations]); //! do not edit the array order!!
 
-		// Fetch all keypair files
-		const keys = await storage.getAllFilesByType('KEYPAIRs');
-		console.log('🚀 ~ getVP ~ KEYPAIRs:', keys);
+		// Use the key pair to sign the presentation
+		const signedPresentation = await engine.signPresentation(presentation);
 
-		// Extract UUID, type, and timestamp from vc.id and match with key pair file name
-		const vcIdParts = vc.id.split(':');
-		if (vcIdParts.length >= 3) {
-			const uuidFromVC = vcIdParts[2]; // Extract UUID part
-			const keyPairFile = keys.find((key) => {
-				// Match file name pattern like `${uuid ? uuid + '_' : ''}${type}_${timestamp}.json`
-				const keyParts = key.name.split('_');
-				const uuidPart = keyParts[0];
-				const typePart = keyParts[1]; // assuming key type part is after the underscore
-
-				// Check if UUID in key file matches UUID in vc.id
-				return uuidPart === uuidFromVC;
-			});
-
-			if (!keyPairFile) {
-				throw new Error('KeyPair not found matching vc.id');
-			}
-
-			console.log('🚀 ~ getVP ~ keyPairFile:', keyPairFile);
-
-			// Continue with processing the key pair and signing the presentation
-			const keyPair = keyPairFile.content as KeyPair;
-			console.log('🚀 ~ getVP ~ keyPair:', keyPair);
-
-			const signedPresentation = await engine.signPresentation(presentation, keyPair);
-			console.log('🚀 ~ getVP ~ signedPresentation:', signedPresentation);
-
-			return { signedPresentation };
-		} else {
-			console.error('Invalid vc.id format:', vc.id);
-		}
+		return { signedPresentation };
 	} catch (error) {
-		console.error('Error fetching user VCs', error);
-		return;
+		console.error('Error during Verifiable Presentation creation and signing:', error);
+		return null;
 	}
 };

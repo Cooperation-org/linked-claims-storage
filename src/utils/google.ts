@@ -82,8 +82,14 @@ export function generateViewLink(fileId: string): string {
 	return `https://drive.google.com/file/d/${fileId}/view`;
 }
 
-export const extractFileIdFromDriveLink = (link: string) => {
-	// https://drive.google.com/file/d/1cwTq_mi21Kr_fi7dIZJ7tJmIFOobesdU/view
-	const id = link.split('/').pop().split('/')[0];
-	return id;
-};
+export function extractGoogleDriveFileId(url: string): string | null {
+	const regex = /\/d\/([a-zA-Z0-9_-]+)\//;
+	const match = url.match(regex);
+
+	if (match && match[1]) {
+		return match[1]; // Return the file ID
+	} else {
+		console.error('Invalid Google Drive URL: File ID not found.');
+		return null;
+	}
+}

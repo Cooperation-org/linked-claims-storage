@@ -17,20 +17,55 @@ import { GoogleDriveStorage } from './GoogleDriveStorage.js';
 /**
  * Class representing the Credential Engine.
  * @class CredentialEngine
+ * @param {string} accessToken - The access token for the user.
  * @classdesc Credential Engine class to create DIDs and VCs.
  * @method createDID - Create a new DID with Digital Bazaar's Ed25519VerificationKey2020 key pair.
  * @method createWalletDID - Create a new DID with user metamask address as controller.
  * @method signVC - Sign a Verifiable Credential (VC).
+ * @method verifyCredential - Verify a Verifiable Credential (VC).
+ * @method createPresentation - Create a Verifiable Presentation (VP).
+ * @method signPresentation - Sign a Verifiable Presentation (VP).
  */
 export class CredentialEngine {
 	private uuid: string;
 	private storage: GoogleDriveStorage;
+	private keyPair: KeyPair;
 
 	constructor(accessToken: string) {
 		this.uuid = uuidv4();
 		this.storage = new GoogleDriveStorage(accessToken);
 	}
 
+	private async getKeyPair(vc: VerifiableCredential) {
+		// Fetch all stored key pairs
+		const keyPairs = await this.storage.getAllFilesByType('KEYPAIRs');
+		if (!keyPairs || keyPairs.length === 0) {
+			throw new Error('No key pairs found in storage.');
+		}
+
+		// Extract UUID from VC ID
+		const vcIdParts = vc.id.split(':');
+		if (vcIdParts.length < 3) {
+			throw new Error('Invalid Verifiable Credential ID format.');
+		}
+
+		const uuidFromVC = vcIdParts[2];
+
+		// Match UUID with key pair files
+		const matchingKeyPairFile = keyPairs.find((key) => {
+			const [uuidPart] = key.name.split('_');
+			return uuidPart === uuidFromVC;
+		});
+
+		if (!matchingKeyPairFile) {
+			throw new Error('No matching key pair found for the Verifiable Credential ID.');
+		}
+
+		// Return the key pair content
+		const key = matchingKeyPairFile.content as KeyPair;
+		this.keyPair = key;
+		return key;
+	}
 	private generateKeyPair = async (address?: string) => {
 		const keyPair = await Ed25519VerificationKey2020.generate();
 		const a = address || keyPair.publicKeyMultibase;
@@ -39,6 +74,16 @@ export class CredentialEngine {
 		keyPair.revoked = false;
 		return keyPair;
 	};
+	private async verifyCreds(creds: VerifiableCredential[]): Promise<boolean> {
+		await Promise.all(
+			creds.map((cred) => {
+				const res = this.verifyCredential(cred);
+				if (!res) return false;
+			})
+		);
+		return true;
+	}
+
 	/**
 	 * Create a new DID with Digital Bazaar's Ed25519VerificationKey2020 key pair.
 	 * @returns {Promise<{didDocument: object, keyPair: object}>} The created DID document and key pair.
@@ -103,6 +148,12 @@ export class CredentialEngine {
 		}
 	}
 
+	/**
+	 * Verify a Verifiable Credential (VC)
+	 * @param {object} credential - The Verifiable Credential to verify.
+	 * @returns {Promise<boolean>} The verification result.
+	 * @throws Will throw an error if VC verification fails.
+	 */
 	public async verifyCredential(credential: VerifiableCredential): Promise<boolean> {
 		try {
 			const keyPair = await extractKeyPairFromCredential(credential);
@@ -126,22 +177,17 @@ export class CredentialEngine {
 		}
 	}
 
-	private async verifyCreds(creds: VerifiableCredential[]): Promise<boolean> {
-		await Promise.all(
-			creds.map((cred) => {
-				const res = this.verifyCredential(cred);
-				if (!res) return false;
-			})
-		);
-		return true;
-	}
-
+	/**
+	 * Create a Verifiable Presentation (VP)
+	 * @param verifiableCredential
+	 * @returns
+	 */
 	public async createPresentation(verifiableCredential: VerifiableCredential[]) {
 		try {
 			const res = await this.verifyCreds(verifiableCredential);
 			if (!res) throw new Error('Some credentials failed verification');
 			const id = `urn:uuid:${uuidv4()}`;
-			const keyPair = await this.generateKeyPair(); //! delete that and get the one with VC
+			const keyPair = await this.getKeyPair(verifiableCredential[0]);
 			console.log('🚀 ~ CredentialEngine ~ createPresentation ~ keyPair:', keyPair);
 			const VP = await vc.createPresentation({ verifiableCredential, id, holder: keyPair.controller });
 			return VP;
@@ -151,21 +197,26 @@ export class CredentialEngine {
 		}
 	}
 
-	public async signPresentation(presentation: any, keyPair: KeyPair) {
+	/**
+	 * Sign a Verifiable Presentation (VP)
+	 * @param presentation
+	 * @returns
+	 */
+	public async signPresentation(presentation: any) {
 		try {
-			// Wrap the keyPair into an Ed25519KeyPair that includes the signer method
+			// Wrap the keyPair into an Ed25519VerificationKey2020 that includes the signer method
 			const signingKey = new Ed25519VerificationKey2020({
-				id: keyPair.id,
-				controller: keyPair.controller,
-				type: keyPair.type,
-				publicKeyMultibase: keyPair.publicKeyMultibase,
-				privateKeyMultibase: keyPair.privateKeyMultibase, // Required for signing
+				id: this.keyPair.id,
+				controller: this.keyPair.controller,
+				type: this.keyPair.type,
+				publicKeyMultibase: this.keyPair.publicKeyMultibase,
+				privateKeyMultibase: this.keyPair.privateKeyMultibase,
 			});
 
 			// Create the Ed25519Signature2020 suite with the wrapped key that includes the signer
 			const suite = new Ed25519Signature2020({
 				key: signingKey,
-				verificationMethod: keyPair.id,
+				verificationMethod: this.keyPair.id,
 			});
 
 			// Sign the presentation

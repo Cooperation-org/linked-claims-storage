@@ -1,9 +1,9 @@
 import { CredentialEngine, GoogleDriveStorage } from './dist/index.js';
 import { generateViewLink, saveToGoogleDrive } from './dist/utils/google.js';
-import { getVP } from './dist/utils/presentation.js';
+import { createAndSignVerifiablePresentation } from './dist/utils/presentation.js';
 
 const accessToken =
-	'ya29.a0AcM612y9dQZxjSk-6hHRJHM6Z4sZbX-sxIOiRHTcGFaPS3oaKxv8cCffTNUhnibfu3gUOzcKFg_fUfbUg2Oe4GxoLMnfMyc2ffI_ftuAXlGLC2D26G6GSkTtx7bNPSrTo7cs628deTkzVbsnYe6VDLTEFaGZUKJKjn1iCtlCaCgYKAUYSARESFQHGX2Mieh6ilNkA3FtCywPURrcasw0175';
+	'ya29.a0AcM612zKGMLv_B0vNV_J_TfgYgWe5wTC8oaGbdwbEYa0PYaV6xhWCosVR28AZ4fgYJcQsmC6PmmH2UIM5yr2wbSZtxjLDseA61thBTgsWlhZPL95lEz5NGBYQzxrat3QZhhit4mb6hNJmHRho9XYHjT2jHwGYoYS7zsjo6nfaCgYKAcQSARESFQHGX2MiUBqBEYcAHt_TFZlXPtxJlg0175';
 
 const credentialEngine = new CredentialEngine(accessToken);
 
@@ -14,7 +14,7 @@ const formData = {
 	duration: '1 year',
 	criteriaNarrative: 'This is a narrative',
 	achievementDescription: 'This is an achievement',
-	achievementName: 'Achievement Name',
+	achi6evementName: 'Achievement Name',
 	portfolio: [
 		{
 			name: 'Portfolio 1',
@@ -50,37 +50,37 @@ const RecommendtaionformData = {
 
 async function main() {
 	// Step 1: Create DID
-	const { didDocument, keyPair } = await credentialEngine.createDID();
-	console.log('🚀 ~ main ~ didDocument:', didDocument);
-	console.log('--------------------------------');
-	console.log('KeyPair:', keyPair);
-	await saveToGoogleDrive(
-		storage,
-		{
-			...didDocument,
-			keyPair: { ...keyPair },
-		},
-		'DID'
-	);
+	// const { didDocument, keyPair } = await credentialEngine.createDID();
+	// console.log('🚀 ~ main ~ didDocument:', didDocument);
+	// console.log('--------------------------------');
+	// console.log('KeyPair:', keyPair);
+	// await saveToGoogleDrive(
+	// 	storage,
+	// 	{
+	// 		...didDocument,
+	// 		keyPair: { ...keyPair },
+	// 	},
+	// 	'DID'
+	// );
 
 	// Step 3: Sign VC
 	try {
-		const signedVC = await credentialEngine.signVC(formData, 'VC', keyPair, didDocument.id);
-		const signedRecommendationVC = await credentialEngine.signVC(RecommendtaionformData, 'RECOMMENDATION', keyPair, didDocument.id);
-		// // console.log('🚀 ~ main ~ signedVC:', signedVC);
-		const file = await saveToGoogleDrive(storage, signedVC, 'VC');
-		console.log('🚀 ~ main ~ file:', file);
-		const storage1 = new GoogleDriveStorage(
-			'ya29.a0AcM612xP1PWfKvJTLjjHIFD_39OvZaw9LDXWgfq5gJsvuSnG6q7T-A11n17Nxt_e8SnodKIDaj1KR3eKS3WvRvhqJzb787b5zVBhsRgpYKjLaE2u5Fl-zIV2v8UrjqLAC2Rcbc7mXtx_UjhKjoimUeKGqsEDQYZIisis1hc0aCgYKAaQSARMSFQHGX2Mic8Nk0Z_pR09AR_joD3O6dA0175'
-		);
-		const savedRecommendation = await saveToGoogleDrive(storage1, signedRecommendationVC, 'RECOMMENDATION');
-		console.log('🚀 ~ main ~ savedRecommendation:', savedRecommendation);
-		const recommendation = await storage1.addCommentToFile(file.id, savedRecommendation.id);
-		console.log('Recommendation:', recommendation);
-		console.log('Signed VC:', signedVC);
-		await credentialEngine.verifyCredential(signedVC);
-		const presentation = await getVP(accessToken, file.id);
-		console.log('��� ~ main ~ presentation:', presentation);
+		// const signedVC = await credentialEngine.signVC(formData, 'VC', keyPair, didDocument.id);
+		// const signedRecommendationVC = await credentialEngine.signVC(RecommendtaionformData, 'RECOMMENDATION', keyPair, didDocument.id);
+		// // // console.log('🚀 ~ main ~ signedVC:', signedVC);
+		// const file = await saveToGoogleDrive(storage, signedVC, 'VC');
+		// console.log('🚀 ~ main ~ file:', file);
+		// const storage1 = new GoogleDriveStorage(
+		// 	'ya29.a0AcM612xpi10TAc8xc_NPS6VLDu40KbZetotZZivHAskKWuhLjdBp8j6McWojB7AmREK--JtuWuSassqQC8verihbB5FiYpkLO3OclcJ6_YGUgIhSZbkZ5u4okxBnZXQSJACj_ycHHAonFqB1qsFu8IPVpBBalpoj5PXZ-Zx3aCgYKAUwSARESFQHGX2Mip2_n6t3hKcr-xak18JtOIw0175'
+		// );
+		// const savedRecommendation = await saveToGoogleDrive(storage1, signedRecommendationVC, 'RECOMMENDATION');
+		// console.log('🚀 ~ main ~ savedRecommendation:', savedRecommendation);
+		// const recommendation = await storage1.addCommentToFile(file.id, savedRecommendation.id);
+		// console.log('Recommendation:', recommendation);
+		// console.log('Signed VC:', signedVC);
+		// await credentialEngine.verifyCredential(signedVC);
+		const presentation = await createAndSignVerifiablePresentation(accessToken, '1LSSEZD3_kRHE4I6j4TbLVMa1NoNRo15H');
+		console.log('��� ~ main ~ presentation:', JSON.stringify(presentation));
 	} catch (error) {
 		console.error('Error during VC signing:', error);
 	}
@@ -88,39 +88,105 @@ async function main() {
 
 main().catch(console.error);
 const nn = {
-	'@context': [
-		'https://www.w3.org/2018/credentials/v1',
-		'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
-		{
-			howKnow: 'https://schema.org/howKnow',
-			recommendationText: 'https://schema.org/recommendationText',
-			qualifications: 'https://schema.org/qualifications',
-			explainAnswer: 'https://schema.org/explainAnswer',
-			portfolio: 'https://schema.org/portfolio',
-		},
-		'https://w3id.org/security/suites/ed25519-2020/v1',
-	],
-	id: 'urn:uuid:f10892ac-287d-43b8-aeba-f45984faf810',
-	type: ['VerifiableCredential', 'https://schema.org/RecommendationCredential'],
-	issuer: { id: 'did:key:z6Mksca3iFio7C1qNyD9auSFpe6sWXqqnJbkzyK2EGMVZavt', type: ['Profile'] },
-	issuanceDate: '2024-09-30T18:22:52.929Z',
-	expirationDate: '2025-09-18T00:00:00Z',
-	credentialSubject: {
-		name: 'John Doe',
-		howKnow: 'Worked together at XYZ Company',
-		recommendationText: 'John consistently delivered high-quality work on time.',
-		qualifications: "Master's in Computer Science",
-		explainAnswer: 'John has strong analytical and problem-solving skills, which he demonstrated in complex projects.',
-		portfolio: [
-			{ name: 'Project A', url: 'https://example.com/project-a' },
-			{ name: 'Project B', url: 'https://example.com/project-b' },
+	signedPresentation: {
+		'@context': ['https://www.w3.org/2018/credentials/v1', 'https://w3id.org/security/suites/ed25519-2020/v1'],
+		type: ['VerifiablePresentation'],
+		verifiableCredential: [
+			{
+				'@context': [
+					'https://www.w3.org/2018/credentials/v1',
+					'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
+					{
+						duration: 'https://schema.org/duration',
+						fullName: 'https://schema.org/name',
+						portfolio: 'https://schema.org/portfolio',
+						evidenceLink: 'https://schema.org/evidenceLink',
+						evidenceDescription: 'https://schema.org/evidenceDescription',
+						credentialType: 'https://schema.org/credentialType',
+					},
+					'https://w3id.org/security/suites/ed25519-2020/v1',
+				],
+				id: 'urn:uuid:518cf21e-89a0-4025-9487-c3a07e4b4350',
+				type: ['VerifiableCredential', 'OpenBadgeCredential'],
+				issuer: { id: 'did:key:z6MkriggL2cQGLdtEUc6FZzdpgz4wXVPm15UrNrXHwsR9wKu', type: ['Profile'] },
+				issuanceDate: '2024-10-04T15:10:21.487Z',
+				expirationDate: '2025-12-31T23:59:59Z',
+				credentialSubject: {
+					type: ['AchievementSubject'],
+					name: 'John Doe',
+					portfolio: [
+						{ name: 'Portfolio 1', url: 'https://example.com/portfolio1' },
+						{ name: 'Portfolio 2', url: 'https://example.com/portfolio2' },
+					],
+					evidenceLink: 'https://example.com/evidence',
+					evidenceDescription: 'This is an achievement',
+					duration: '1 year',
+					credentialType: 'Credential Type',
+					achievement: [
+						{
+							id: 'urn:uuid:994fb091-8da1-4e82-8402-e71f6aa1b21c',
+							type: ['Achievement'],
+							criteria: { narrative: 'This is a narrative' },
+							description: 'This is an achievement',
+							image: { id: 'https://example.com/evidence', type: 'Image' },
+						},
+					],
+				},
+				proof: {
+					type: 'Ed25519Signature2020',
+					created: '2024-10-04T15:10:21Z',
+					verificationMethod: 'did:key:z6MkriggL2cQGLdtEUc6FZzdpgz4wXVPm15UrNrXHwsR9wKu#z6MkriggL2cQGLdtEUc6FZzdpgz4wXVPm15UrNrXHwsR9wKu',
+					proofPurpose: 'assertionMethod',
+					proofValue: 'z2S6GDdssLNDwwtsuMnehBh1g1sW91yz2AzYnxgkc3WdUFXWjRefqxeGPhR4xLb7WvsPYr7yrkZkXiP34ArsfJFvA',
+				},
+			},
+			{
+				'@context': [
+					'https://www.w3.org/2018/credentials/v1',
+					'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
+					{
+						howKnow: 'https://schema.org/howKnow',
+						recommendationText: 'https://schema.org/recommendationText',
+						qualifications: 'https://schema.org/qualifications',
+						explainAnswer: 'https://schema.org/explainAnswer',
+						portfolio: 'https://schema.org/portfolio',
+					},
+					'https://w3id.org/security/suites/ed25519-2020/v1',
+				],
+				id: 'urn:uuid:3a2a1b31-3da2-4557-b473-e2ce27eba8fb',
+				type: ['VerifiableCredential', 'https://schema.org/RecommendationCredential'],
+				issuer: { id: 'did:key:z6MkriggL2cQGLdtEUc6FZzdpgz4wXVPm15UrNrXHwsR9wKu', type: ['Profile'] },
+				issuanceDate: '2024-10-04T15:10:21.538Z',
+				expirationDate: '2025-09-18T00:00:00Z',
+				credentialSubject: {
+					name: 'John Doe',
+					howKnow: 'Worked together at XYZ Company',
+					recommendationText: 'John consistently delivered high-quality work on time.',
+					qualifications: "Master's in Computer Science",
+					explainAnswer: 'John has strong analytical and problem-solving skills, which he demonstrated in complex projects.',
+					portfolio: [
+						{ name: 'Project A', url: 'https://example.com/project-a' },
+						{ name: 'Project B', url: 'https://example.com/project-b' },
+					],
+				},
+				proof: {
+					type: 'Ed25519Signature2020',
+					created: '2024-10-04T15:10:21Z',
+					verificationMethod: 'did:key:z6MkriggL2cQGLdtEUc6FZzdpgz4wXVPm15UrNrXHwsR9wKu#z6MkriggL2cQGLdtEUc6FZzdpgz4wXVPm15UrNrXHwsR9wKu',
+					proofPurpose: 'assertionMethod',
+					proofValue: 'z8hFYSyWm1jJu6RKBrks6YnkYXzz1ShybywvRv4RANoEcmaBxRwyMgQmMMx8RF4EuXh525aDMwZL38bTjpM4FoTB',
+				},
+			},
 		],
-	},
-	proof: {
-		type: 'Ed25519Signature2020',
-		created: '2024-09-30T18:22:52Z',
-		verificationMethod: 'did:key:z6Mksca3iFio7C1qNyD9auSFpe6sWXqqnJbkzyK2EGMVZavt#z6Mksca3iFio7C1qNyD9auSFpe6sWXqqnJbkzyK2EGMVZavt',
-		proofPurpose: 'assertionMethod',
-		proofValue: 'z4stXgzprWhhqikxyEq7QFYA4wM1T6zxDnEL6Kw7iiAdPuhuFcWPnKfGyactpJoWw6mYpmnjCyi7v1xperpWBWdLe',
+		id: 'urn:uuid:4f6ab14b-b2e5-4239-9ea4-5d6dbfe95f69',
+		holder: 'did:key:z6MkriggL2cQGLdtEUc6FZzdpgz4wXVPm15UrNrXHwsR9wKu',
+		proof: {
+			type: 'Ed25519Signature2020',
+			created: '2024-10-04T15:59:23Z',
+			verificationMethod: 'did:key:z6MkriggL2cQGLdtEUc6FZzdpgz4wXVPm15UrNrXHwsR9wKu#z6MkriggL2cQGLdtEUc6FZzdpgz4wXVPm15UrNrXHwsR9wKu',
+			proofPurpose: 'authentication',
+			challenge: '',
+			proofValue: 'z227SMTxWP86KUJu3P8ANoyQc5Ax7Q92DziXR5Ktmd9auaqysvwuMZvotRsPebZJwFmvPMJ9LVXQiLyzMuMgaVkd9',
+		},
 	},
 };
