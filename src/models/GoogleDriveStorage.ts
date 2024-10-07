@@ -1,6 +1,11 @@
-import { DataToSaveI } from '../../types';
-import { generateViewLink } from '../utils/saveToGoogle.js';
+import { DataToSaveI, KeyPair } from '../../types';
+import { generateViewLink } from '../utils/google.js';
 
+interface FileContent {
+	name: string;
+	content: any;
+	comments: string[];
+}
 interface FetcherI {
 	method: string;
 	headers: HeadersInit;
@@ -114,14 +119,19 @@ export class GoogleDriveStorage {
 		}
 	}
 
-	public async addCommentToFile(fileId: string) {
-		if (!fileId || !this.accessToken) {
+	/**
+	 * Add comment to VC
+	 * @param fileId - th id of VC file
+	 * @returns
+	 */
+	public async addCommentToFile(vcFileId: string, recommendationFileId: string) {
+		if (!recommendationFileId || !vcFileId || !this.accessToken) {
 			throw new Error('Missing required parameters: fileId, commentText, or accessToken');
 		}
 
-		const url = `https://www.googleapis.com/drive/v3/files/${fileId}/comments?fields=id,content,createdTime`;
+		const url = `https://www.googleapis.com/drive/v3/files/${vcFileId}/comments?fields=id,content,createdTime`;
 		const body = {
-			content: generateViewLink(fileId),
+			content: generateViewLink(recommendationFileId),
 		};
 
 		try {
@@ -197,7 +207,6 @@ export class GoogleDriveStorage {
 				url: `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
 			});
 
-			console.log('File retrieved:', file);
 			return file;
 		} catch (error) {
 			console.error('Error retrieving file:', error);
@@ -222,7 +231,7 @@ export class GoogleDriveStorage {
 	/**
 	 * Get the last file from folder by folderId
 	 * @param folderId
-	 * @returns
+	 * @returns last file content from folder by folderId
 	 */
 	findLastFile = async (folderId: string): Promise<any> => {
 		try {
@@ -244,12 +253,15 @@ export class GoogleDriveStorage {
 					})
 			);
 
+			// Find the latest file based on the timestamp in the file name
 			const latestFile = fileContents.reduce((latest: any | null, current: any) => {
-				const latestTimestamp = latest ? parseInt(latest.name.split('-')[1].split('.')[0], 10) : 0;
-				const currentTimestamp = parseInt(current.name.split('-')[1].split('.')[0], 10);
+				// Assuming the file name is formatted as `${uuid}_${type}_${timestamp}.json`
+				const latestTimestamp = latest ? parseInt(latest.name.split('_')[2].split('.')[0], 10) : 0;
+				const currentTimestamp = parseInt(current.name.split('_')[2].split('.')[0], 10);
 				return currentTimestamp > latestTimestamp ? current : latest;
 			}, null);
 
+			// Return the content of the latest file
 			return latestFile ? latestFile.content : null;
 		} catch (error) {
 			console.error('Error finding last file:', error);
@@ -257,91 +269,75 @@ export class GoogleDriveStorage {
 		}
 	};
 
-	/**
-	 * Get all verefiable credentials
-	 * @returns
-	 */
-	public async getAllVCs() {
-		const rootFolders = await this.findFolders();
-		const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
-		if (!credentialsFolder) return [];
+	public async getFileComments(fileId: string) {
+		try {
+			// Fetch comments on the file using Google Drive API
+			const commentsResponse = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files/${fileId}/comments?fields=comments(content,author/displayName,createdTime)`,
+			});
 
-		const credentialsFolderId = credentialsFolder.id;
-		const subfolders = await this.findFolders(credentialsFolderId);
-		const signedVCFolder = subfolders.find((f: any) => f.name === 'VCs');
-		if (!signedVCFolder) return [];
-
-		const claims = await this.fetcher({
-			method: 'GET',
-			headers: {},
-			url: `https://www.googleapis.com/drive/v3/files?q='${signedVCFolder.id}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
-		});
-		return claims;
+			// Return the comments data if available
+			return commentsResponse.comments || []; // Return an empty array if no comments
+		} catch (error) {
+			console.error(`Failed to fetch comments for file ID: ${fileId}`, error);
+			return []; // Handle errors by returning an empty array or some error indication
+		}
 	}
 
 	/**
-	 * Get all Sessions
+	 * Get all files content for the specified type ('KEYPAIRs' | 'VCs' | 'SESSIONs' | 'DIDs' | 'RECOMMENDATIONs')
+	 * @param type
 	 * @returns
 	 */
-	public async getAllSessions() {
+	public async getAllFilesByType(type: 'KEYPAIRs' | 'VCs' | 'SESSIONs' | 'DIDs' | 'RECOMMENDATIONs'): Promise<FileContent[]> {
 		try {
-			// Find all root folders
-			const rootFolders = await this.fetcher({
-				method: 'GET',
-				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files?q='root' in parents and mimeType='application/vnd.google-apps.folder'&trashed=false&fields=files(id,name)`,
-			});
-			console.log('🚀 ~ GoogleDriveStorage ~ getAllSessions ~ rootFolders:', rootFolders);
-
-			// Find the "Credentials" folder
-			const credentialsFolder = rootFolders.files.find((f: any) => f.name === 'Credentials');
-			if (!credentialsFolder) {
-				return []; // Return an empty array if "Credentials" folder is not found
-			}
+			// Step 1: Find all root folders
+			const rootFolders = await this.findFolders();
+			const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
+			if (!credentialsFolder) return [];
 
 			const credentialsFolderId = credentialsFolder.id;
 
-			// Find subfolders within the "Credentials" folder
-			const subfolders = await this.fetcher({
+			// Step 2: Find the subfolder corresponding to the specified type
+			const subfolders = await this.findFolders(credentialsFolderId);
+			const targetFolder = subfolders.find((f: any) => f.name === type);
+			if (!targetFolder) return [];
+
+			// Step 3: Fetch all files in the specified folder
+			const filesResponse = await this.fetcher({
 				method: 'GET',
 				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files?q='${credentialsFolderId}' in parents and mimeType='application/vnd.google-apps.folder'&trashed=false&fields=files(id,name)`,
+				url: `https://www.googleapis.com/drive/v3/files?q='${targetFolder.id}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
 			});
 
-			const sessionsFolder = subfolders.files.find((f: any) => f.name === 'SESSIONs');
-			if (!sessionsFolder) {
-				return []; // Return an empty array if "SESSIONs" folder is not found
-			}
+			const files = filesResponse.files;
 
-			// Fetch all session files inside the "SESSIONs" folder
-			const sessions = await this.fetcher({
-				method: 'GET',
-				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files?q='${sessionsFolder.id}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
-			});
-
-			const sessionFiles = sessions.files;
-
-			// Fetch the content of each session file
-			const sessionContents = await Promise.all(
-				sessionFiles.map(async (file: any) => {
+			// Step 4: Fetch the content and comments of each file
+			const fileContents = await Promise.all(
+				files.map(async (file: any) => {
 					// Fetch file content
 					const content = await this.fetcher({
 						method: 'GET',
 						headers: {},
 						url: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
 					});
+
+					// Fetch file comments (if applicable)
+					const comments = await this.getFileComments(file.id);
+
 					return {
+						name: file.name,
 						content,
+						comments: comments.map((comment: any) => comment.content),
 					};
 				})
 			);
 
-			console.log('🚀 ~ GoogleDriveStorage ~ getAllSessions ~ sessionContents:', sessionContents);
-
-			return sessionContents; // Return the list of files with their content
+			return fileContents; // Return the list of files with their content and comments
 		} catch (error) {
-			console.error('Error getting session contents:', error);
+			console.error(`Error getting files of type ${type}:`, error);
 			return []; // Return an empty array on error
 		}
 	}

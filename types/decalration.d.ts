@@ -4,6 +4,7 @@ declare module 'did-method-key' {
 
 declare module '@digitalbazaar/ed25519-verification-key-2020' {
 	export class Ed25519VerificationKey2020 {
+		constructor(options: any) {}
 		static generate(): Promise<any>;
 		static from(params: any): Promise<any>;
 	}

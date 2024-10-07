@@ -30,6 +30,8 @@ export interface KeyPair {
 	fingerprint: () => string;
 	revoked: boolean;
 	publicKeyMultibase: string;
+	type: string;
+	privateKeyMultibase: string;
 }
 
 export interface DidDocument {
