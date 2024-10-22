@@ -30,6 +30,33 @@
     js-tokens "^4.0.0"
     picocolors "^1.0.0"
 
+"@cooperation/vc-storage@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@cooperation/vc-storage/-/vc-storage-1.0.3.tgz#f620669497dbe1d2535994ab17310f237674656e"
+  integrity sha512-+6vta6j9mlMqQYy9XADcWGXP3sodjVeCVUsRE8MMQUi8+xuIvQjqb7hIq1MUjYV4JE0iRiibn1Xaxu0BZLRNWg==
+  dependencies:
+    "@digitalbazaar/did-method-key" "^5.2.0"
+    "@digitalbazaar/ed25519-signature-2020" "^5.3.0"
+    "@digitalbazaar/ed25519-verification-key-2020" "^4.1.0"
+    "@digitalbazaar/vc" "^6.3.0"
+    ethers "^6.13.2"
+    tsc "^2.0.4"
+    uuid "^10.0.0"
+
+"@cooperation/vc-storage@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@cooperation/vc-storage/-/vc-storage-1.0.4.tgz#51e6163d25558c52265899b860b48a3c6856e653"
+  integrity sha512-gHN/8hhyxZItyWbimEDY6J6fjRN/AeIOTjFR8ls/LvN1Z2+46djrqPYTobUh0nrnGLt2jxPJO8I8Dm2FqbALKQ==
+  dependencies:
+    "@cooperation/vc-storage" "^1.0.3"
+    "@digitalbazaar/did-method-key" "^5.2.0"
+    "@digitalbazaar/ed25519-signature-2020" "^5.3.0"
+    "@digitalbazaar/ed25519-verification-key-2020" "^4.1.0"
+    "@digitalbazaar/vc" "^6.3.0"
+    ethers "^6.13.2"
+    tsc "^2.0.4"
+    uuid "^10.0.0"
+
 "@digitalbazaar/did-io@^2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@digitalbazaar/did-io/-/did-io-2.0.0.tgz#a6945be43ccb2e46218d811ba5e630e5df7dd86a"

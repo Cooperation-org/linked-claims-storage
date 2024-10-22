@@ -1,4 +1,3 @@
-import { KeyPair } from '../../types';
 import { CredentialEngine } from '../models/CredentialEngine.js';
 import { GoogleDriveStorage } from '../models/GoogleDriveStorage.js';
 import { extractGoogleDriveFileId } from './google.js';
