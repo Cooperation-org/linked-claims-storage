@@ -328,6 +328,7 @@ export class GoogleDriveStorage {
 					const comments = await this.getFileComments(file.id);
 
 					return {
+						id: file.id,
 						name: file.name,
 						content,
 						comments: comments.map((comment: any) => comment.content),
