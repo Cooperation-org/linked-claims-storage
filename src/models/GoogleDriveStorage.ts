@@ -255,9 +255,26 @@ export class GoogleDriveStorage {
 
 			// Find the latest file based on the timestamp in the file name
 			const latestFile = fileContents.reduce((latest: any | null, current: any) => {
-				// Assuming the file name is formatted as `${uuid}_${type}_${timestamp}.json`
-				const latestTimestamp = latest ? parseInt(latest.name.split('_')[2].split('.')[0], 10) : 0;
-				const currentTimestamp = parseInt(current.name.split('_')[2].split('.')[0], 10);
+				// Check if the file name has the expected structure
+				const nameParts = current.name.split('_');
+				let currentTimestampStr;
+
+				if (nameParts.length === 3) {
+					// Structure with UUID: `${uuid}_${type}_${timestamp}.json`
+					currentTimestampStr = nameParts[2];
+				} else if (nameParts.length === 2) {
+					// Structure without UUID: `${type}_${timestamp}.json`
+					currentTimestampStr = nameParts[1];
+				} else {
+					// Log warning and skip this file if the structure is not as expected
+					console.warn(`Unexpected file name format: ${current.name}`);
+					return latest;
+				}
+
+				// Parse the timestamp from the file name
+				const latestTimestamp = latest ? parseInt(latest.name.split('_').pop().split('.')[0], 10) : 0;
+				const currentTimestamp = parseInt(currentTimestampStr.split('.')[0], 10);
+
 				return currentTimestamp > latestTimestamp ? current : latest;
 			}, null);
 
