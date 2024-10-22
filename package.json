@@ -1,7 +1,7 @@
 {
 	"name": "@cooperation/vc-storage",
 	"type": "module",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"description": "Sign and store your verifiable credentials.",
 	"main": "dist/index.js",
 	"types": "dist/types/index.d.ts",
@@ -16,6 +16,7 @@
 	"author": "cooperation",
 	"license": "ISC",
 	"dependencies": {
+		"@cooperation/vc-storage": "^1.0.6",
 		"@digitalbazaar/did-method-key": "^5.2.0",
 		"@digitalbazaar/ed25519-signature-2020": "^5.3.0",
 		"@digitalbazaar/ed25519-verification-key-2020": "^4.1.0",
