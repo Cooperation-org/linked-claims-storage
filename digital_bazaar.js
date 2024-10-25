@@ -1,4 +1,10 @@
-import { createAndSignVerifiablePresentation, CredentialEngine, GoogleDriveStorage, saveToGoogleDrive } from '@cooperation/vc-storage';
+import {
+	createAndSignVerifiablePresentation,
+	CredentialEngine,
+	GoogleDriveStorage,
+	saveToGoogleDrive,
+	uploadImageToGoogleDrive,
+} from './dist/index.js';
 
 const accessToken = 'FIRST_ACCESS_TOKEN';
 const credentialEngine = new CredentialEngine(accessToken);
@@ -75,6 +81,18 @@ async function main() {
 		await credentialEngine.verifyCredential(signedVC);
 		const presentation = await createAndSignVerifiablePresentation(accessToken, file.id);
 		console.log('��� ~ main ~ presentation:', JSON.stringify(presentation));
+		console.log('�~ main ~ RETRIEVE:', await storage.retrieve(file.id));
+
+		const imageFile = new File(
+			[
+				/* image data */
+			],
+			'example.png',
+			{ type: 'image/png' }
+		);
+
+		const uploadedImage = await uploadImageToGoogleDrive(storage, imageFile);
+		console.log('Uploaded Image:', uploadedImage);
 	} catch (error) {
 		console.error('Error during VC signing:', error);
 	}
