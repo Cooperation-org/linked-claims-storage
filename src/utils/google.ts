@@ -77,41 +77,36 @@ export async function saveToGoogleDrive(
  * Upload an image to Google Drive in the Credentials/MEDIAs folder.
  * @param {GoogleDriveStorage} storage - The GoogleDriveStorage instance.
  * @param {File} imageFile - The image file to upload.
- * @returns {Promise<object>} - The uploaded image file object.
+ * @returns {Promise<>} - The uploaded image file object.
  * @throws Will throw an error if the upload operation fails.
  */
-export async function uploadImageToGoogleDrive(storage: GoogleDriveStorage, imageFile: File): Promise<object> {
+export async function uploadImageToGoogleDrive(
+	storage: GoogleDriveStorage,
+	imageFile: File
+): Promise<{
+	id: string;
+}> {
 	try {
-		// Get all root folders
 		const rootFolders = await storage.findFolders();
-		console.log('Root folders:', rootFolders);
 
-		// Find or create the "Credentials" folder
 		let credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
 		let credentialsFolderId: string;
 
 		if (!credentialsFolder) {
 			credentialsFolderId = await storage.createFolder('Credentials');
-			console.log('Created Credentials folder with ID:', credentialsFolderId);
 		} else {
 			credentialsFolderId = credentialsFolder.id;
-			console.log('Found Credentials folder with ID:', credentialsFolderId);
 		}
 
-		// Get subfolders within the "Credentials" folder
 		const subfolders = await storage.findFolders(credentialsFolderId);
-		console.log(`Subfolders in Credentials (ID: ${credentialsFolderId}):`, subfolders);
 
-		// Find or create the "MEDIAs" folder
 		let mediasFolder = subfolders.find((f: any) => f.name === 'MEDIAs');
 		let mediasFolderId: string;
 
 		if (!mediasFolder) {
 			mediasFolderId = await storage.createFolder('MEDIAs', credentialsFolderId);
-			console.log('Created MEDIAs folder with ID:', mediasFolderId);
 		} else {
 			mediasFolderId = mediasFolder.id;
-			console.log('Found MEDIAs folder with ID:', mediasFolderId);
 		}
 
 		// Prepare the image file data
@@ -124,11 +119,6 @@ export async function uploadImageToGoogleDrive(storage: GoogleDriveStorage, imag
 		// Save the image in the "MEDIAs" folder
 		const uploadedImage = await storage.save(imageData, mediasFolderId);
 		console.log(`Image uploaded: ${uploadedImage?.id} to MEDIAs folder in Credentials`);
-
-		if (uploadedImage && uploadedImage.id) {
-			console.log('Sharing image file with second user...');
-			await storage.addCommenterRoleToFile(uploadedImage.id);
-		}
 
 		return uploadedImage;
 	} catch (error) {

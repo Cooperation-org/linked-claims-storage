@@ -45,7 +45,7 @@ export const createAndSignVerifiablePresentation = async (
 		}
 
 		// Create Verifiable Presentation (VP) with the retrieved VC
-		const presentation = await engine.createPresentation([verifiableCredential, ...recommendations]); //! do not edit the array order!!
+		const presentation = await engine.createPresentation([verifiableCredential.data, ...recommendations]); //! do not edit the array order!!
 
 		// Use the key pair to sign the presentation
 		const signedPresentation = await engine.signPresentation(presentation);

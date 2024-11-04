@@ -95,7 +95,7 @@ export class GoogleDriveStorage {
 			const fileMetadata = {
 				name: data.fileName,
 				parents: [folderId], // Specify the folder ID
-				mimeType: 'application/json', // Use provided MIME type or default to JSON
+				mimeType: data.mimeType,
 			};
 
 			let uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
@@ -104,6 +104,7 @@ export class GoogleDriveStorage {
 			formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
 			formData.append('file', new Blob([data.body], { type: fileMetadata.mimeType })); // Set file data and MIME type
 
+			// Upload file to Google Drive
 			const file = await this.fetcher({
 				method: 'POST',
 				headers: {},
@@ -112,9 +113,27 @@ export class GoogleDriveStorage {
 			});
 
 			console.log('File uploaded successfully:', file.id);
-			return file;
+
+			// Set the file permission to "Anyone with the link" can view
+			const permissionUrl = `https://www.googleapis.com/drive/v3/files/${file.id}/permissions`;
+			const permissionData = {
+				role: 'reader',
+				type: 'anyone', // Public access
+			};
+
+			await this.fetcher({
+				method: 'POST',
+				url: permissionUrl,
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(permissionData),
+			});
+
+			console.log('Permission set to public for file:', file.id);
+			return { id: file.id };
 		} catch (error) {
-			console.error('Error uploading file:', error.message);
+			console.error('Error uploading file or setting permission:', error.message);
 			return null;
 		}
 	}
@@ -199,17 +218,75 @@ export class GoogleDriveStorage {
 	 * @param id
 	 * @returns file content
 	 */
-	async retrieve(id: string): Promise<any> {
+	async retrieve(id: string): Promise<{ id: string; name: string; data: any } | null> {
+		const metadataUrl = `https://www.googleapis.com/drive/v3/files/${id}?fields=name`;
+		const dataUrl = `https://www.googleapis.com/drive/v3/files/${id}?alt=media`;
+
 		try {
-			const file = await this.fetcher({
+			console.log(`Starting retrieval for file ID: ${id}`);
+
+			// Fetch file metadata to get the name
+			const metadataResponse = await fetch(metadataUrl, {
 				method: 'GET',
-				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+				},
 			});
 
-			return file;
+			if (!metadataResponse.ok) {
+				const errorData = await metadataResponse.json();
+				console.error(`Failed to retrieve metadata for file ID ${id}:`, errorData);
+				return null;
+			}
+
+			const metadata = await metadataResponse.json();
+			const fileName = metadata.name;
+			console.log(`File name retrieved: ${fileName}`);
+
+			// Fetch actual file data
+			const dataResponse = await fetch(dataUrl, {
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+				},
+			});
+
+			if (!dataResponse.ok) {
+				const errorData = await dataResponse.json();
+				console.error(`Failed to retrieve file data for ID ${id}:`, errorData);
+				return null;
+			}
+
+			const contentType = dataResponse.headers.get('Content-Type');
+			console.log(`File content type: ${contentType}`);
+
+			let fileData;
+			if (contentType?.includes('application/json')) {
+				fileData = await dataResponse.json();
+			} else if (contentType?.includes('text') || contentType?.includes('image/svg+xml')) {
+				fileData = await dataResponse.text(); // Fetch SVG files as text for easy manipulation
+			} else if (
+				contentType?.includes('image') ||
+				contentType?.includes('video') ||
+				contentType?.includes('audio') ||
+				contentType?.includes('application/octet-stream') ||
+				contentType?.includes('application/pdf') ||
+				contentType?.includes('application/msword') ||
+				contentType?.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+				contentType?.includes('application/vnd.ms-excel') ||
+				contentType?.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+			) {
+				fileData = await dataResponse.blob();
+			} else {
+				fileData = await dataResponse.arrayBuffer(); // Fallback for other binary types
+			}
+
+			console.log('🚀 ~ GoogleDriveStorage ~ retrieve ~ fileData:', fileData);
+
+			// Return file ID, name, and data
+			return { id, name: fileName, data: fileData };
 		} catch (error) {
-			console.error('Error retrieving file:', error);
+			console.error(`Error retrieving file with ID ${id}:`, error.message);
 			return null;
 		}
 	}
@@ -308,7 +385,7 @@ export class GoogleDriveStorage {
 	 * @param type
 	 * @returns
 	 */
-	public async getAllFilesByType(type: 'KEYPAIRs' | 'VCs' | 'SESSIONs' | 'DIDs' | 'RECOMMENDATIONs'): Promise<FileContent[]> {
+	public async getAllFilesByType(type: 'KEYPAIRs' | 'VCs' | 'SESSIONs' | 'DIDs' | 'RECOMMENDATIONs' | 'MEDIAs'): Promise<FileContent[]> {
 		try {
 			// Step 1: Find all root folders
 			const rootFolders = await this.findFolders();
@@ -357,6 +434,33 @@ export class GoogleDriveStorage {
 		} catch (error) {
 			console.error(`Error getting files of type ${type}:`, error);
 			return []; // Return an empty array on error
+		}
+	}
+
+	/**
+	 * Update the name of a file in Google Drive
+	 * @param fileId - The ID of the file to update
+	 * @param newFileName - The new name for the file
+	 * @returns The updated file metadata, including the new name
+	 */
+	async updateFileName(fileId: string, newFileName: string): Promise<any> {
+		try {
+			const metadata = {
+				name: newFileName, // New name for the file
+			};
+
+			const updatedFile = await this.fetcher({
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(metadata),
+				url: `https://www.googleapis.com/drive/v3/files/${fileId}`,
+			});
+
+			console.log('File name updated successfully:', updatedFile.name);
+			return updatedFile;
+		} catch (error) {
+			console.error('Error updating file name:', error.message);
+			throw error;
 		}
 	}
 
