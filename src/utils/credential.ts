@@ -75,7 +75,7 @@ export function generateUnsignedVC(formData: FormDataI, issuerDid: string, vcId:
 					credentialType: 'https://schema.org/credentialType',
 				},
 			],
-			id: `urn:uuid:${vcId}`, //! i want this uuid to be in the condition where vcId part == keypair file name which is like this `${uuid ? uuid + '_' : ''}${type}_${timestamp}.json`,
+			id: `urn:uuid:${vcId}`,
 			type: ['VerifiableCredential', 'OpenBadgeCredential'],
 			issuer: {
 				id: issuerDid,
@@ -86,7 +86,11 @@ export function generateUnsignedVC(formData: FormDataI, issuerDid: string, vcId:
 			credentialSubject: {
 				type: ['AchievementSubject'],
 				name: formData.fullName,
-				portfolio: formData.portfolio,
+				portfolio: formData.portfolio.map((item) => ({
+					'@type': 'schema:CreativeWork',
+					name: item.name,
+					url: item.url,
+				})),
 				evidenceLink: formData.evidenceLink,
 				evidenceDescription: formData.achievementDescription,
 				duration: formData.duration,

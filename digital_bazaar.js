@@ -6,17 +6,22 @@ import {
 	uploadImageToGoogleDrive,
 } from './dist/index.js';
 
-const accessToken = 'FIRST_ACCESS_TOKEN';
-const credentialEngine = new CredentialEngine(accessToken);
+const accessTokenA =
+	'ya29.a0AeDClZC35NOgFhg8kz2OzOKpMEAQeNkYydmmYUJLnYwPRAd2PUH0_yWqs2ql2Q8vq67IK4G7ATqOhOvSJlnEgV7t8ClNS9VxGMXgvA9473EutBZC-XXmzDIzC3qHTOI4aB_chVyNWWTaJSjBKc7xamuDBcwgjUKp3WbKLp_faCgYKAawSARESFQHGX2MiJxVd7XC-tzE5L26cvN97IA0175';
+const accessTokenB =
+	'ya29.a0AeDClZDN11EcRGyqOX-ZPvUYuf25wrMc6eMgy3YTzW8wYsmJFFszGTlx8ejxeFwu0LBt3yT2esDvIKDsKsndkN46A4gGbgAkyj57jbEgudzrNGEqgVOSmQWyUhCUdgt6IvUoIOdy2CabAdp_P6jLApOKoUqOlR6hCFvJaJFHaCgYKAZ8SARESFQHGX2MiIVi7BGA5ec6CVOx5HZwuHQ0175';
+const credentialEngine = new CredentialEngine(accessTokenA);
 
-const storage = new GoogleDriveStorage(accessToken);
+const storageA = new GoogleDriveStorage(accessTokenA); // Used by User A
+const storageB = new GoogleDriveStorage(accessTokenB); // Used by User B
+
 const formData = {
 	expirationDate: '2025-12-31T23:59:59Z',
 	fullName: 'John Doe',
 	duration: '1 year',
 	criteriaNarrative: 'This is a narrative',
 	achievementDescription: 'This is an achievement',
-	achi6evementName: 'Achievement Name',
+	achievementName: 'Achievement Name',
 	portfolio: [
 		{
 			name: 'Portfolio 1',
@@ -31,74 +36,69 @@ const formData = {
 	evidenceDescription: 'This is an evidence description',
 	credentialType: 'Credential Type',
 };
-const RecommendtaionformData = {
-	expirationDate: '2025-09-18T00:00:00Z',
-	fullName: 'John Doe',
-	howKnow: 'Worked together at XYZ Company',
-	recommendationText: 'John consistently delivered high-quality work on time.',
-	portfolio: [
-		{
-			name: 'Project A',
-			url: 'https://example.com/project-a',
-		},
-		{
-			name: 'Project B',
-			url: 'https://example.com/project-b',
-		},
-	],
-	qualifications: "Master's in Computer Science",
-	explainAnswer: 'John has strong analytical and problem-solving skills, which he demonstrated in complex projects.',
-};
 
 async function main() {
-	// Step 1: Create DID
-	const { didDocument, keyPair } = await credentialEngine.createDID();
-	console.log('🚀 ~ main ~ didDocument:', didDocument);
-	console.log('--------------------------------');
-	console.log('KeyPair:', keyPair);
-	await saveToGoogleDrive(
-		storage,
-		{
-			...didDocument,
-			keyPair: { ...keyPair },
-		},
-		'DID'
-	);
-
-	// Step 3: Sign VC
 	try {
+		// Step 1: Create DID
+		const { didDocument, keyPair } = await credentialEngine.createDID();
+		console.log('DID Document:', didDocument);
+		console.log('Key Pair:', keyPair);
+
+		// Step 2: Sign VC
 		const signedVC = await credentialEngine.signVC(formData, 'VC', keyPair, didDocument.id);
-		const signedRecommendationVC = await credentialEngine.signVC(RecommendtaionformData, 'RECOMMENDATION', keyPair, didDocument.id);
-		// // console.log('🚀 ~ main ~ signedVC:', signedVC);
-		const file = await saveToGoogleDrive(storage, signedVC, 'VC');
-		console.log('🚀 ~ main ~ file:', file);
-		const storage1 = new GoogleDriveStorage('SECOND_ACCESS_TOKEN');
-		const savedRecommendation = await saveToGoogleDrive(storage1, signedRecommendationVC, 'RECOMMENDATION');
-		console.log('🚀 ~ main ~ savedRecommendation:', savedRecommendation);
-		const recommendation = await storage1.addCommentToFile(file.id, savedRecommendation.id);
-		console.log('Recommendation:', recommendation);
-		console.log('Signed VC:', signedVC);
-		await credentialEngine.verifyCredential(signedVC);
-		const presentation = await createAndSignVerifiablePresentation(accessToken, file.id);
-		console.log('��� ~ main ~ presentation:', JSON.stringify(presentation));
-		console.log('�~ main ~ RETRIEVE:', await storage.retrieve(file.id));
+		const file = await saveToGoogleDrive(storageA, signedVC, 'VC');
+		console.log('Signed VC saved by User A:', file);
 
-		const imageFile = new File(
-			[
-				/* image data */
+		// Step 3: Grant access to User B and touch the file
+		const userBEmail = 'omar.salah1597@gmail.com'; // Replace with User B's actual email
+		const permissionGranted = await storageA.touchFileAndGrantPermission(file.id, accessTokenA, userBEmail);
+		if (!permissionGranted) {
+			throw new Error("Couldn't grant view access to User B");
+		}
+
+		// Step 4: User B logs in and retrieves the file for reviewnode
+		const retrievedFile = await storageB.retrieve(file.id);
+		console.log('File retrieved by User B:', retrievedFile);
+
+		// Step 5: User B uploads recommendation (additional steps as needed)
+		const recommendationFormData = {
+			expirationDate: '2025-09-18T00:00:00Z',
+			fullName: 'John Doe',
+			howKnow: 'Worked together at XYZ Company',
+			recommendationText: 'John consistently delivered high-quality work on time.',
+			portfolio: [
+				{
+					name: 'Project A',
+					url: 'https://example.com/project-a',
+				},
+				{
+					name: 'Project B',
+					url: 'https://example.com/project-b',
+				},
 			],
-			'example.png',
-			{ type: 'image/png' }
-		);
+			qualifications: "Master's in Computer Science",
+			explainAnswer: 'John has strong analytical and problem-solving skills, which he demonstrated in complex projects.',
+		};
 
-		const uploadedImage = await uploadImageToGoogleDrive(storage, imageFile);
-		console.log('Uploaded Image:', uploadedImage);
+		const signedRecommendationVC = await credentialEngine.signVC(recommendationFormData, 'RECOMMENDATION', keyPair, didDocument.id);
+		const savedRecommendation = await saveToGoogleDrive(storageB, signedRecommendationVC, 'RECOMMENDATION');
+		console.log('Recommendation saved by User B:', savedRecommendation);
+
+		// Add a comment linking recommendation
+		const recommendationLink = await storageA.addCommentToFile(file.id, savedRecommendation.id);
+		console.log('Recommendation link added by User A:', recommendationLink);
+
+		// Verification and presentation (if needed)
+		await credentialEngine.verifyCredential(signedVC);
+		const presentation = await createAndSignVerifiablePresentation(accessTokenA, file.id);
+		console.log('Presentation:', JSON.stringify(presentation));
 	} catch (error) {
-		console.error('Error during VC signing:', error);
+		console.error('Error during the process:', error);
 	}
 }
 
 main().catch(console.error);
+
 const presentationSample = {
 	signedPresentation: {
 		'@context': ['https://www.w3.org/2018/credentials/v1', 'https://w3id.org/security/suites/ed25519-2020/v1'],
@@ -200,5 +200,131 @@ const presentationSample = {
 			challenge: '',
 			proofValue: 'z227SMTxWP86KUJu3P8ANoyQc5Ax7Q92DziXR5Ktmd9auaqysvwuMZvotRsPebZJwFmvPMJ9LVXQiLyzMuMgaVkd9',
 		},
+	},
+};
+
+const t = {
+	'@context': [
+		'https://www.w3.org/2018/credentials/v1',
+		'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
+		{
+			duration: 'https://schema.org/duration',
+			fullName: 'https://schema.org/name',
+			portfolio: 'https://schema.org/portfolio',
+			evidenceLink: 'https://schema.org/evidenceLink',
+			evidenceDescription: 'https://schema.org/evidenceDescription',
+			credentialType: 'https://schema.org/credentialType',
+		},
+		'https://w3id.org/security/suites/ed25519-2020/v1',
+	],
+	id: 'urn:uuid:f41c2df7-f2b6-425a-a7fc-2fea74bee9f3',
+	type: ['VerifiableCredential', 'OpenBadgeCredential'],
+	issuer: {
+		id: 'did:key:z6MkpREKDyMn3X5kXpQxpuLRh7UnFVMSxrZGiFqPN52Lx6fG',
+		type: ['Profile'],
+	},
+	issuanceDate: '2024-11-13T18:56:50.528Z',
+	expirationDate: '2025-11-13T18:56:50.527Z',
+	credentialSubject: {
+		type: ['AchievementSubject'],
+		name: 'omar salah',
+		portfolio: [
+			{
+				name: 'folder.svg',
+				url: 'https://drive.google.com/uc?export=view&id=10QQMTGBFOqWpn6ttGN4j-_rVlaAFcTJA',
+			},
+			{
+				name: 'badge.svg',
+				url: 'https://drive.google.com/uc?export=view&id=1zSzRdH7qyPrI--wJ_oLWrH0TpUomkNYG',
+			},
+		],
+		evidenceLink: 'https://drive.google.com/uc?export=view&id=1jAa25oiwynKcHqvqX-BP2bidfc7rWR_m',
+		evidenceDescription:
+			'SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION ',
+		duration: '3 days',
+		credentialType: '',
+		achievement: [
+			{
+				id: 'urn:uuid:f11711a8-f766-4dac-ad02-ab87079daeca',
+				type: ['Achievement'],
+				criteria: {
+					narrative:
+						'SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL ',
+				},
+				description:
+					'SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION SKILL DESCRIPTION ',
+				name: 'Software Developer',
+				image: {
+					id: 'https://drive.google.com/uc?export=view&id=1jAa25oiwynKcHqvqX-BP2bidfc7rWR_m',
+					type: 'Image',
+				},
+			},
+		],
+	},
+	proof: {
+		type: 'Ed25519Signature2020',
+		created: '2024-11-13T18:56:50Z',
+		verificationMethod: 'did:key:z6MkpREKDyMn3X5kXpQxpuLRh7UnFVMSxrZGiFqPN52Lx6fG#z6MkpREKDyMn3X5kXpQxpuLRh7UnFVMSxrZGiFqPN52Lx6fG',
+		proofPurpose: 'assertionMethod',
+		proofValue: 'z2GyUbSA7XWKkFsDyc83QegH228iRNiVcvz6yHX86HLRYDxs289jc93QCutQrhv7Bre9YT7WvM4uuDzYbH3nSuLYD',
+	},
+};
+const LOL = {
+	'@context': [
+		'https://www.w3.org/2018/credentials/v1',
+		'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
+		{
+			duration: 'https://schema.org/duration',
+			// 			fullName: 'https://schema.org/name',
+			portfolio: 'https://schema.org/portfolio',
+			evidenceLink: 'https://schema.org/evidenceLink',
+			evidenceDescription: 'https://schema.org/evidenceDescription',
+			credentialType: 'https://schema.org/credentialType',
+		},
+		'https://w3id.org/security/suites/ed25519-2020/v1',
+	],
+	id: 'urn:uuid:8d111152-c935-4043-a628-2d73b872266c',
+	type: ['VerifiableCredential', 'OpenBadgeCredential'],
+	issuer: {
+		id: 'did:key:z6Mku745r5TVvwKvBXQuyWFi5UpmnUjJ7zZyxfA1ggSTRmmt',
+		type: ['Profile'],
+	},
+	issuanceDate: '2024-11-12T12:29:07.595Z',
+	expirationDate: '2025-11-12T12:29:07.594Z',
+	credentialSubject: {
+		type: ['AchievementSubject'],
+		name: 'Omar Salah',
+		portfolio: [
+			{
+				name: 'Light Bulb.png',
+				url: 'https://drive.google.com/uc?export=view&id=1LjQrC3Smyh63pwlbmUgg-MvspeD7CFch',
+			},
+		],
+		evidenceLink: 'https://drive.google.com/uc?export=view&id=1F42wPYIZXf8qY_XsXXZlCOCm7riDBzxX',
+		evidenceDescription: 'lol',
+		duration: 'lol',
+		credentialType: '',
+		achievement: [
+			{
+				id: 'urn:uuid:80336490-9237-4997-a832-0be293cb6439',
+				type: ['Achievement'],
+				criteria: {
+					narrative: 'lol',
+				},
+				description: 'lol',
+				name: 'lol',
+				image: {
+					id: 'https://drive.google.com/uc?export=view&id=1F42wPYIZXf8qY_XsXXZlCOCm7riDBzxX',
+					type: 'Image',
+				},
+			},
+		],
+	},
+	proof: {
+		type: 'Ed25519Signature2020',
+		created: '2024-11-12T12:29:07Z',
+		verificationMethod: 'did:key:z6Mku745r5TVvwKvBXQuyWFi5UpmnUjJ7zZyxfA1ggSTRmmt#z6Mku745r5TVvwKvBXQuyWFi5UpmnUjJ7zZyxfA1ggSTRmmt',
+		proofPurpose: 'assertionMethod',
+		proofValue: 'z4A5BHa1WKz7xYxJp4T2LeoqBkcZD1h1FxG1PAt6YZxzY8becLVTVtjG199Sw5WeBYYzHekhQXX16Bpc5KkZai8Sm',
 	},
 };
