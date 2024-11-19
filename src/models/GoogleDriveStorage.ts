@@ -219,29 +219,30 @@ export class GoogleDriveStorage {
 	 * @returns file content
 	 */
 	async retrieve(id: string): Promise<{ id: string; name: string; data: any } | null> {
-		const metadataUrl = `https://www.googleapis.com/drive/v3/files/${id}?fields=name`;
+		const metadataUrl = `https://www.googleapis.com/drive/v3/files/${id}?fields=id,name`;
 		const dataUrl = `https://www.googleapis.com/drive/v3/files/${id}?alt=media`;
 
 		try {
 			console.log(`Starting retrieval for file ID: ${id}`);
 
-			// Fetch file metadata to get the name
-			const metadataResponse = await fetch(metadataUrl, {
+			// Initial "touch" request to ensure file accessibility for the current user
+			const touchResponse = await fetch(metadataUrl, {
 				method: 'GET',
 				headers: {
 					Authorization: `Bearer ${this.accessToken}`,
 				},
 			});
 
-			if (!metadataResponse.ok) {
-				const errorData = await metadataResponse.json();
-				console.error(`Failed to retrieve metadata for file ID ${id}:`, errorData);
+			if (!touchResponse.ok) {
+				const errorData = await touchResponse.json();
+				console.error(`Failed to "touch" file for accessibility with ID ${id}:`, errorData);
 				return null;
 			}
 
-			const metadata = await metadataResponse.json();
+			// Fetch file metadata to get the name
+			const metadata = await touchResponse.json();
 			const fileName = metadata.name;
-			console.log(`File name retrieved: ${fileName}`);
+			console.log(`File name retrieved after "touch": ${fileName}`);
 
 			// Fetch actual file data
 			const dataResponse = await fetch(dataUrl, {
@@ -480,6 +481,85 @@ export class GoogleDriveStorage {
 			return response;
 		} catch (error) {
 			console.error('Error deleting file:', error);
+			return null;
+		}
+	}
+	async touchFileAndGrantPermission(fileId: string, recommenderEmail: string): Promise<boolean> {
+		const metadataUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name`;
+		const permissionUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
+
+		try {
+			console.log(`Granting view permission to ${recommenderEmail} for file ID: ${fileId}`);
+
+			// Step 1: Grant "view" permission to User B using User A's access token
+			const permissionResponse = await fetch(permissionUrl, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					role: 'reader',
+					type: 'user',
+					emailAddress: recommenderEmail,
+				}),
+			});
+
+			if (!permissionResponse.ok) {
+				const errorData = await permissionResponse.json();
+				console.error(`Failed to grant permission for file ID ${fileId}:`, errorData);
+				return false;
+			}
+			console.log(`View permission granted to ${recommenderEmail} for file ID: ${fileId}`);
+
+			// Step 2: "Touch" the file to ensure it’s accessible for User B when they log in
+			const touchResponse = await fetch(metadataUrl, {
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+				},
+			});
+
+			if (!touchResponse.ok) {
+				const errorData = await touchResponse.json();
+				console.error(`Failed to "touch" file for accessibility with ID ${fileId}:`, errorData);
+				return false;
+			}
+
+			const metadata = await touchResponse.json();
+			console.log(`File touched successfully, file name: ${metadata.name}`);
+			return true;
+		} catch (error) {
+			console.error(`Error processing file with ID ${fileId}:`, error.message);
+			return false;
+		}
+	}
+	async downloadFileInApp(fileId: string) {
+		const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+
+		try {
+			// Make a GET request to download the file using User B's access token
+			const response = await fetch(downloadUrl, {
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${this.accessToken}`,
+				},
+			});
+
+			if (!response.ok) {
+				console.error(`Failed to download file: ${response.statusText}`);
+				return null;
+			}
+
+			// Depending on the file type, you may want to handle it differently
+			const contentType = response.headers.get('Content-Type');
+			if (contentType?.includes('application/json')) {
+				return await response.json(); // Parse as JSON if applicable
+			} else {
+				return await response.blob(); // Otherwise, return as blob for general file types
+			}
+		} catch (error) {
+			console.error('Error downloading file:', error);
 			return null;
 		}
 	}
