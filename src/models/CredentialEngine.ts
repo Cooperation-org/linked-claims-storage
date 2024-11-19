@@ -14,6 +14,13 @@ import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI, VerifiableCre
 import { saveToGoogleDrive } from '../utils/google.js';
 import { GoogleDriveStorage } from './GoogleDriveStorage.js';
 
+interface SignPropsI {
+	formData: FormDataI | RecommendationFormDataI;
+	type: 'VC' | 'RECOMMENDATION';
+	keyPair: KeyPair;
+	issuerId: string;
+	VCId?: string;
+}
 /**
  * Class representing the Credential Engine.
  * @class CredentialEngine
@@ -92,7 +99,12 @@ export class CredentialEngine {
 	public async createDID(): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
 			const keyPair = await this.generateKeyPair();
-			const keyFile = await saveToGoogleDrive(this.storage, keyPair, 'KEYPAIR', this.uuid);
+			const keyFile = await saveToGoogleDrive({
+				storage: this.storage,
+				data: keyPair,
+				type: 'KEYPAIR',
+				vcId: this.uuid,
+			});
 			console.log('🚀 ~ CredentialEngine ~ createDID ~ keyFile:', keyFile);
 			const didDocument = await generateDIDSchema(keyPair);
 
@@ -112,7 +124,12 @@ export class CredentialEngine {
 	public async createWalletDID(walletrAddress: string): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
 			const keyPair = await this.generateKeyPair(walletrAddress);
-			const keyFile = await saveToGoogleDrive(this.storage, keyPair, 'KEYPAIR', this.uuid);
+			const keyFile = await saveToGoogleDrive({
+				storage: this.storage,
+				data: keyPair,
+				type: 'KEYPAIR',
+				vcId: this.uuid,
+			});
 			console.log('🚀 ~ CredentialEngine ~ createWalletDID ~ keyFile:', keyFile);
 			const didDocument = await generateDIDSchema(keyPair);
 
@@ -128,18 +145,23 @@ export class CredentialEngine {
 	 * @param {'VC' | 'RECOMMENDATION'} type - The signature type.
 	 * @param {string} issuerId - The ID of the issuer [currently we put it as the did id]
 	 * @param {KeyPair} keyPair - The key pair to use for signing.
+	 * @param {FormDataI | RecommendationFormDataI} formData - The form data to include in the VC.
+	 * @param {string} VCId - The ID of the credential when the type is RECOMMENDATION
 	 * @returns {Promise<Credential>} The signed VC.
 	 * @throws Will throw an error if VC signing fails.
 	 */
-	public async signVC(formData: any, type: 'VC' | 'RECOMMENDATION', keyPair: KeyPair, issuerId: string): Promise<any> {
+	public async signVC({ formData, type, keyPair, issuerId, VCId }: SignPropsI): Promise<any> {
 		let credential: any;
-		if (type == 'VC') {
-			credential = generateUnsignedVC(formData as FormDataI, issuerId, this.uuid);
-		} else if (type == 'RECOMMENDATION') {
+		if (type == 'RECOMMENDATION' && VCId) {
 			credential = generateUnsignedRecommendation(formData as RecommendationFormDataI, issuerId);
+		} else {
+			credential = generateUnsignedVC(formData as FormDataI, issuerId, this.uuid);
 		}
-		const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
+
 		try {
+			console.log('🚀 ~ CredentialEngine ~ signVC ~ credential:', credential);
+			if (!credential) throw new Error('Invalid credential type');
+			const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
 			const signedVC = await vc.issue({ credential, suite, documentLoader: customDocumentLoader });
 			return signedVC;
 		} catch (error) {

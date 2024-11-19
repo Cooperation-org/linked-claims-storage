@@ -1,4 +1,4 @@
-import { DataToSaveI, KeyPair } from '../../types';
+import { DataToSaveI } from '../../types';
 import { generateViewLink } from '../utils/google.js';
 
 interface FileContent {
@@ -112,8 +112,6 @@ export class GoogleDriveStorage {
 				url: uploadUrl,
 			});
 
-			console.log('File uploaded successfully:', file.id);
-
 			// Set the file permission to "Anyone with the link" can view
 			const permissionUrl = `https://www.googleapis.com/drive/v3/files/${file.id}/permissions`;
 			const permissionData = {
@@ -139,86 +137,11 @@ export class GoogleDriveStorage {
 	}
 
 	/**
-	 * Add comment to VC
-	 * @param fileId - th id of VC file
-	 * @returns
-	 */
-	public async addCommentToFile(vcFileId: string, recommendationFileId: string) {
-		if (!recommendationFileId || !vcFileId || !this.accessToken) {
-			throw new Error('Missing required parameters: fileId, commentText, or accessToken');
-		}
-
-		const url = `https://www.googleapis.com/drive/v3/files/${vcFileId}/comments?fields=id,content,createdTime`;
-		const body = {
-			content: generateViewLink(recommendationFileId),
-		};
-
-		try {
-			const response = await fetch(url, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${this.accessToken}`,
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(body),
-			});
-
-			if (!response.ok) {
-				const errorDetails = await response.json();
-				throw new Error(`Failed to add comment: ${JSON.stringify(errorDetails)}`);
-			}
-
-			const result = await response.json();
-			console.log('Comment added successfully:', result);
-			return result;
-		} catch (error) {
-			console.error('Error adding comment to file:', error);
-			throw error;
-		}
-	}
-
-	/**
-	 * Add commenter role to a file
-	 * @param fileId
-	 * @returns
-	 */
-	async addCommenterRoleToFile(fileId: string) {
-		const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
-		const body = {
-			role: 'commenter',
-			type: 'anyone',
-		};
-
-		try {
-			const response = await fetch(url, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${this.accessToken}`,
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(body),
-			});
-
-			if (!response.ok) {
-				const errorDetails = await response.json();
-				throw new Error(`Failed to add permission: ${JSON.stringify(errorDetails)}`);
-			}
-
-			const result = await response.json();
-			console.log('Permission added successfully:', result);
-			return result;
-		} catch (error) {
-			console.error('Error adding permission:', error.message);
-			throw error;
-		}
-	}
-
-	/**
 	 * Get file from google drive by id
 	 * @param id
 	 * @returns file content
 	 */
-	async retrieve(id: string): Promise<{ id: string; name: string; data: any } | null> {
+	async retrieve(id: string): Promise<{ name: string; data: any } | null> {
 		const metadataUrl = `https://www.googleapis.com/drive/v3/files/${id}?fields=id,name`;
 		const dataUrl = `https://www.googleapis.com/drive/v3/files/${id}?alt=media`;
 
@@ -285,7 +208,7 @@ export class GoogleDriveStorage {
 			console.log('🚀 ~ GoogleDriveStorage ~ retrieve ~ fileData:', fileData);
 
 			// Return file ID, name, and data
-			return { id, name: fileName, data: fileData };
+			return { name: fileName, data: fileData };
 		} catch (error) {
 			console.error(`Error retrieving file with ID ${id}:`, error.message);
 			return null;
@@ -481,85 +404,6 @@ export class GoogleDriveStorage {
 			return response;
 		} catch (error) {
 			console.error('Error deleting file:', error);
-			return null;
-		}
-	}
-	async touchFileAndGrantPermission(fileId: string, recommenderEmail: string): Promise<boolean> {
-		const metadataUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name`;
-		const permissionUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
-
-		try {
-			console.log(`Granting view permission to ${recommenderEmail} for file ID: ${fileId}`);
-
-			// Step 1: Grant "view" permission to User B using User A's access token
-			const permissionResponse = await fetch(permissionUrl, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${this.accessToken}`,
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					role: 'reader',
-					type: 'user',
-					emailAddress: recommenderEmail,
-				}),
-			});
-
-			if (!permissionResponse.ok) {
-				const errorData = await permissionResponse.json();
-				console.error(`Failed to grant permission for file ID ${fileId}:`, errorData);
-				return false;
-			}
-			console.log(`View permission granted to ${recommenderEmail} for file ID: ${fileId}`);
-
-			// Step 2: "Touch" the file to ensure it’s accessible for User B when they log in
-			const touchResponse = await fetch(metadataUrl, {
-				method: 'GET',
-				headers: {
-					Authorization: `Bearer ${this.accessToken}`,
-				},
-			});
-
-			if (!touchResponse.ok) {
-				const errorData = await touchResponse.json();
-				console.error(`Failed to "touch" file for accessibility with ID ${fileId}:`, errorData);
-				return false;
-			}
-
-			const metadata = await touchResponse.json();
-			console.log(`File touched successfully, file name: ${metadata.name}`);
-			return true;
-		} catch (error) {
-			console.error(`Error processing file with ID ${fileId}:`, error.message);
-			return false;
-		}
-	}
-	async downloadFileInApp(fileId: string) {
-		const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
-
-		try {
-			// Make a GET request to download the file using User B's access token
-			const response = await fetch(downloadUrl, {
-				method: 'GET',
-				headers: {
-					Authorization: `Bearer ${this.accessToken}`,
-				},
-			});
-
-			if (!response.ok) {
-				console.error(`Failed to download file: ${response.statusText}`);
-				return null;
-			}
-
-			// Depending on the file type, you may want to handle it differently
-			const contentType = response.headers.get('Content-Type');
-			if (contentType?.includes('application/json')) {
-				return await response.json(); // Parse as JSON if applicable
-			} else {
-				return await response.blob(); // Otherwise, return as blob for general file types
-			}
-		} catch (error) {
-			console.error('Error downloading file:', error);
 			return null;
 		}
 	}

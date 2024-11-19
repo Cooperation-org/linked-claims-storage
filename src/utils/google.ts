@@ -1,5 +1,12 @@
 import { GoogleDriveStorage } from '../models/GoogleDriveStorage.js';
 
+interface SaveToGooglePropsI {
+	storage: GoogleDriveStorage;
+	data: any;
+	type: 'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR';
+	vcId?: string;
+}
+
 /**
  * keyFile name  = {uuid}-type-timestamp // we need that
  * vc.id = urn-uuid-{uuid} // we got that
@@ -7,19 +14,22 @@ import { GoogleDriveStorage } from '../models/GoogleDriveStorage.js';
  * @param {object} data - The data to save.
  * @param {'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR'} type - The type of data being saved.
  * @returns {Promise<object>} - The file object saved to Google Drive.
- * @param {string} uuid - Optional unique identifier for the VC.
+ * @param {string} vcId - Optional unique identifier for the VC to link the recommendations.
  * @throws Will throw an error if the save operation fails.
  */
-export async function saveToGoogleDrive(
-	storage: GoogleDriveStorage,
-	data: any,
-	type: 'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR',
-	uuid?: string
-): Promise<object> {
+export async function saveToGoogleDrive({ storage, data, type, vcId }: SaveToGooglePropsI): Promise<object> {
 	try {
-		const timestamp = Date.now();
+		let fName: string;
+		if (type === 'RECOMMENDATION' && !vcId) {
+			throw new Error('vcId is required for saving a recommendation.');
+		} else if (type === 'RECOMMENDATION' && vcId) {
+			fName = `urn:uuid:${vcId}`;
+		} else {
+			fName = `${type}-${Date.now()}`;
+		}
+
 		const fileData = {
-			fileName: `${uuid ? uuid + '_' : ''}${type}_${timestamp}.json`,
+			fileName: fName,
 			mimeType: 'application/json',
 			body: JSON.stringify(data),
 		};
@@ -60,11 +70,6 @@ export async function saveToGoogleDrive(
 		// Save the file in the specific subfolder
 		const file = await storage.save(fileData, typeFolderId);
 		console.log(`File uploaded: ${file?.id} under ${type}s with ID ${typeFolderId} folder in Credentials folder`);
-
-		if (file && file.id) {
-			console.log('Sharing file with second user...');
-			await storage.addCommenterRoleToFile(file.id);
-		}
 
 		return file;
 	} catch (error) {
