@@ -1,5 +1,5 @@
 node_modules
 .env*
 dist/
-test_digital_bazaar.js
+testVc.js
 test_recommendation.js

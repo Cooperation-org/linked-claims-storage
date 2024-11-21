@@ -397,6 +397,29 @@ export class GoogleDriveStorage {
 		return files[0];
 	}
 
+	async updateFileData(fileId: string, data: DataToSaveI) {
+		const fileMetadata = {
+			name: data.fileName,
+			mimeType: data.mimeType,
+		};
+
+		let uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+
+		const formData = new FormData();
+		formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+		formData.append('file', new Blob([data.body], { type: fileMetadata.mimeType }));
+
+		const updatedFile = await this.fetcher({
+			method: 'PATCH',
+			headers: {},
+			body: JSON.stringify(formData),
+			url: `${uploadUrl}&fields=id,parents`,
+		});
+
+		console.log('File updated:', updatedFile);
+		return updatedFile;
+	}
+
 	async addAndGrantWritePermissionToRecommender({
 		vcFileId,
 		recommendationFileId,
@@ -422,6 +445,20 @@ export class GoogleDriveStorage {
 					}),
 				},
 				folderId: credentialsFolderId,
+			});
+		} else {
+			// update with adding the recommendation file id
+			const relationsFileContent = await this.retrieve(relationsFile.id);
+			console.log('🚀 ~ GoogleDriveStorage ~ relationsFileContent:', relationsFileContent);
+			const relationsData = relationsFileContent.data;
+			console.log('🚀 ~ GoogleDriveStorage ~ relationsData:', relationsData);
+			relationsData.reommendations.push(recommendationFileId);
+			console.log('🚀 ~ GoogleDriveStorage ~ relationsData2:', relationsData);
+			// update
+			await this.updateFileData(relationsFile.id, {
+				fileName: 'RELATIONS',
+				mimeType: 'application/json',
+				body: JSON.stringify(relationsData),
 			});
 		}
 
