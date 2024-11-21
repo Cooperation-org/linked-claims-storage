@@ -15,7 +15,7 @@ import { saveToGoogleDrive } from '../utils/google.js';
 import { GoogleDriveStorage } from './GoogleDriveStorage.js';
 
 interface SignPropsI {
-	formData: FormDataI | RecommendationFormDataI;
+	data: FormDataI | RecommendationFormDataI;
 	type: 'VC' | 'RECOMMENDATION';
 	keyPair: KeyPair;
 	issuerId: string;
@@ -150,12 +150,12 @@ export class CredentialEngine {
 	 * @returns {Promise<Credential>} The signed VC.
 	 * @throws Will throw an error if VC signing fails.
 	 */
-	public async signVC({ formData, type, keyPair, issuerId, VCId }: SignPropsI): Promise<any> {
+	public async signVC({ data, type, keyPair, issuerId, VCId }: SignPropsI): Promise<any> {
 		let credential: any;
 		if (type == 'RECOMMENDATION' && VCId) {
-			credential = generateUnsignedRecommendation(formData as RecommendationFormDataI, issuerId);
+			credential = generateUnsignedRecommendation(data as RecommendationFormDataI, issuerId);
 		} else {
-			credential = generateUnsignedVC(formData as FormDataI, issuerId, this.uuid);
+			credential = generateUnsignedVC(data as FormDataI, issuerId, this.uuid);
 		}
 
 		try {
