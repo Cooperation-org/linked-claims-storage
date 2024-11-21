@@ -2,4 +2,3 @@ node_modules
 .env*
 dist/
 testVc.js
-test_recommendation.js
