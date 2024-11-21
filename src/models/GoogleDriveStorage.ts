@@ -1,4 +1,4 @@
-import { DataToSaveI } from '../../types';
+import { DataToSaveI, FilesType } from '../../types';
 import { generateViewLink } from '../utils/google.js';
 
 interface FileContent {
@@ -89,7 +89,7 @@ export class GoogleDriveStorage {
 		return folder.id;
 	}
 
-	async save(data: DataToSaveI, folderId: string): Promise<{ id: string } | null> {
+	async saveFile({ data, folderId }: { data: DataToSaveI; folderId: string }) {
 		try {
 			// Define file metadata, ensure correct folder is assigned
 			const fileMetadata = {
@@ -109,7 +109,7 @@ export class GoogleDriveStorage {
 				method: 'POST',
 				headers: {},
 				body: formData,
-				url: uploadUrl,
+				url: `${uploadUrl}&fields=id,parents`, // Request the file ID and parent folder IDs
 			});
 
 			// Set the file permission to "Anyone with the link" can view
@@ -122,14 +122,13 @@ export class GoogleDriveStorage {
 			await this.fetcher({
 				method: 'POST',
 				url: permissionUrl,
-				headers: {
-					'Content-Type': 'application/json',
-				},
+				headers: {},
 				body: JSON.stringify(permissionData),
 			});
 
 			console.log('Permission set to public for file:', file.id);
-			return { id: file.id };
+			console.log('Parent folder IDs:', file.parents);
+			return file;
 		} catch (error) {
 			console.error('Error uploading file or setting permission:', error.message);
 			return null;
@@ -217,7 +216,7 @@ export class GoogleDriveStorage {
 
 	/**
 	 * Get folder by folderId, if folderId == null you will have them all
-	 * @param id [Optional]
+	 * @param folderId [Optional]
 	 * @returns
 	 */
 	findFolders = async (folderId?: string): Promise<any[]> => {
@@ -386,6 +385,63 @@ export class GoogleDriveStorage {
 			console.error('Error updating file name:', error.message);
 			throw error;
 		}
+	}
+
+	async findFileByName(name: FilesType) {
+		// find the file named under Credentials folder
+		const rootFolders = await this.findFolders();
+		const credentialsFolderId = rootFolders.find((f: any) => f.name === 'Credentials')?.id;
+		if (!credentialsFolderId) throw new Error('Credentials folder not found');
+
+		const files = await this.searchFiles(`'${credentialsFolderId}' in parents and name='${name}'`);
+		return files[0];
+	}
+
+	async addAndGrantWritePermissionToRecommender({
+		vcFileId,
+		recommendationFileId,
+		userEmail,
+	}: {
+		userEmail: string;
+		vcFileId: string;
+		recommendationFileId: string;
+	}) {
+		// path Credentials/RELATIONS.json
+		let relationsFile = await this.findFileByName('RELATIONS');
+		if (!relationsFile) {
+			// create RELATIONS file
+			const rootFolders = await this.findFolders();
+			const credentialsFolderId = rootFolders.find((f: any) => f.name === 'Credentials')?.id;
+			relationsFile = await this.saveFile({
+				data: {
+					fileName: 'RELATIONS',
+					mimeType: 'application/json',
+					body: JSON.stringify({
+						vc_id: vcFileId,
+						reommendations: [recommendationFileId],
+					}),
+				},
+				folderId: credentialsFolderId,
+			});
+		}
+
+		const permissionUrl = `https://www.googleapis.com/drive/v3/files/${relationsFile.id}/permissions`;
+		const permissionData = {
+			emailAddress: userEmail,
+			role: 'writer',
+			type: 'user',
+		};
+
+		await this.fetcher({
+			method: 'POST',
+			url: permissionUrl,
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(permissionData),
+		});
+
+		return relationsFile;
 	}
 
 	/**

@@ -1,6 +1,6 @@
 import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
 import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
-import * as vc from '@digitalbazaar/vc';
+import * as dbVc from '@digitalbazaar/vc';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -19,7 +19,7 @@ interface SignPropsI {
 	type: 'VC' | 'RECOMMENDATION';
 	keyPair: KeyPair;
 	issuerId: string;
-	VCId?: string;
+	vcFileId?: string;
 }
 /**
  * Class representing the Credential Engine.
@@ -34,12 +34,10 @@ interface SignPropsI {
  * @method signPresentation - Sign a Verifiable Presentation (VP).
  */
 export class CredentialEngine {
-	private uuid: string;
 	private storage: GoogleDriveStorage;
 	private keyPair: KeyPair;
 
 	constructor(accessToken: string) {
-		this.uuid = uuidv4();
 		this.storage = new GoogleDriveStorage(accessToken);
 	}
 
@@ -103,7 +101,6 @@ export class CredentialEngine {
 				storage: this.storage,
 				data: keyPair,
 				type: 'KEYPAIR',
-				vcId: this.uuid,
 			});
 			console.log('🚀 ~ CredentialEngine ~ createDID ~ keyFile:', keyFile);
 			const didDocument = await generateDIDSchema(keyPair);
@@ -128,7 +125,6 @@ export class CredentialEngine {
 				storage: this.storage,
 				data: keyPair,
 				type: 'KEYPAIR',
-				vcId: this.uuid,
 			});
 			console.log('🚀 ~ CredentialEngine ~ createWalletDID ~ keyFile:', keyFile);
 			const didDocument = await generateDIDSchema(keyPair);
@@ -150,19 +146,22 @@ export class CredentialEngine {
 	 * @returns {Promise<Credential>} The signed VC.
 	 * @throws Will throw an error if VC signing fails.
 	 */
-	public async signVC({ data, type, keyPair, issuerId, VCId }: SignPropsI): Promise<any> {
-		let credential: any;
-		if (type == 'RECOMMENDATION' && VCId) {
-			credential = generateUnsignedRecommendation(data as RecommendationFormDataI, issuerId);
-		} else {
-			credential = generateUnsignedVC(data as FormDataI, issuerId, this.uuid);
+	public async signVC({ data, type, keyPair, issuerId, vcFileId }: SignPropsI): Promise<any> {
+		console.log('🚀 ~ CredentialEngine ~ signVC ~ data:', data);
+		let vc;
+		let credential = generateUnsignedVC({ formData: data as FormDataI, issuerDid: issuerId }) as any;
+		if (type == 'RECOMMENDATION' && vcFileId) {
+			console.log('WOW');
+			vc = (await this.storage.retrieve(vcFileId)) as unknown as VerifiableCredential;
+			credential = generateUnsignedRecommendation({ vc, recommendation: data as unknown as RecommendationFormDataI, issuerDid: issuerId });
 		}
 
 		try {
 			console.log('🚀 ~ CredentialEngine ~ signVC ~ credential:', credential);
 			if (!credential) throw new Error('Invalid credential type');
 			const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
-			const signedVC = await vc.issue({ credential, suite, documentLoader: customDocumentLoader });
+			console.log('before');
+			const signedVC = await dbVc.issue({ credential, suite, documentLoader: customDocumentLoader });
 			return signedVC;
 		} catch (error) {
 			console.error('Error signing VC:', error);
@@ -185,7 +184,7 @@ export class CredentialEngine {
 				verificationMethod: keyPair.id,
 			});
 
-			const result = await vc.verifyCredential({
+			const result = await dbVc.verifyCredential({
 				credential,
 				suite,
 				documentLoader: customDocumentLoader,
@@ -211,7 +210,7 @@ export class CredentialEngine {
 			const id = `urn:uuid:${uuidv4()}`;
 			const keyPair = await this.getKeyPair(verifiableCredential[0]);
 			console.log('🚀 ~ CredentialEngine ~ createPresentation ~ keyPair:', keyPair);
-			const VP = await vc.createPresentation({ verifiableCredential, id, holder: keyPair.controller });
+			const VP = await dbVc.createPresentation({ verifiableCredential, id, holder: keyPair.controller });
 			return VP;
 		} catch (error) {
 			console.error('Error creating presentation:', error);
@@ -242,7 +241,7 @@ export class CredentialEngine {
 			});
 
 			// Sign the presentation
-			const signedVP = await vc.signPresentation({
+			const signedVP = await dbVc.signPresentation({
 				presentation,
 				suite,
 				documentLoader: customDocumentLoader,

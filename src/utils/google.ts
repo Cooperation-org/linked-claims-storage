@@ -12,24 +12,15 @@ interface SaveToGooglePropsI {
  * vc.id = urn-uuid-{uuid} // we got that
  * Save data to Google Drive in the specified folder type.
  * @param {object} data - The data to save.
- * @param {'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR'} type - The type of data being saved.
+ * @param {'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR'} data.type - The type of data being saved.
  * @returns {Promise<object>} - The file object saved to Google Drive.
- * @param {string} vcId - Optional unique identifier for the VC to link the recommendations.
+ * @param {string} data.vcId - Optional unique identifier for the VC to link the recommendations.
  * @throws Will throw an error if the save operation fails.
  */
-export async function saveToGoogleDrive({ storage, data, type, vcId }: SaveToGooglePropsI): Promise<object> {
+export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePropsI): Promise<object> {
 	try {
-		let fName: string;
-		if (type === 'RECOMMENDATION' && !vcId) {
-			throw new Error('vcId is required for saving a recommendation.');
-		} else if (type === 'RECOMMENDATION' && vcId) {
-			fName = `urn:uuid:${vcId}`;
-		} else {
-			fName = `${type}-${Date.now()}`;
-		}
-
 		const fileData = {
-			fileName: fName,
+			fileName: `${type}-${Date.now()}`,
 			mimeType: 'application/json',
 			body: JSON.stringify(data),
 		};
@@ -68,7 +59,7 @@ export async function saveToGoogleDrive({ storage, data, type, vcId }: SaveToGoo
 		}
 
 		// Save the file in the specific subfolder
-		const file = await storage.save(fileData, typeFolderId);
+		const file = await storage.saveFile({ data: fileData, folderId: typeFolderId });
 		console.log(`File uploaded: ${file?.id} under ${type}s with ID ${typeFolderId} folder in Credentials folder`);
 
 		return file;
@@ -121,8 +112,11 @@ export async function uploadImageToGoogleDrive(
 			body: imageFile,
 		};
 
-		// Save the image in the "MEDIAs" folder
-		const uploadedImage = await storage.save(imageData, mediasFolderId);
+		// SaveFile the image in the "MEDIAs" folder
+		const uploadedImage = await storage.saveFile({
+			data: imageData,
+			folderId: mediasFolderId,
+		});
 		console.log(`Image uploaded: ${uploadedImage?.id} to MEDIAs folder in Credentials`);
 
 		return uploadedImage;
