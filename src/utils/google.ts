@@ -17,7 +17,7 @@ interface SaveToGooglePropsI {
  * @param {string} data.vcId - Optional unique identifier for the VC to link the recommendations.
  * @throws Will throw an error if the save operation fails.
  */
-export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePropsI): Promise<object> {
+export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePropsI) {
 	try {
 		const fileData = {
 			fileName: `${type}-${Date.now()}`,

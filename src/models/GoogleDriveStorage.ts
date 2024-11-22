@@ -420,49 +420,75 @@ export class GoogleDriveStorage {
 		return updatedFile;
 	}
 
-	async addAndGrantWritePermissionToRecommender({
-		vcFileId,
-		recommendationFileId,
-		userEmail,
-	}: {
-		userEmail: string;
-		vcFileId: string;
-		recommendationFileId: string;
-	}) {
-		// path Credentials/RELATIONS.json
-		let relationsFile = await this.findFileByName('RELATIONS');
+	async updateRelationsFile({ recommendationFileId }: { recommendationFileId: string }) {
+		const relationsFile = await this.findFileByName('RELATIONS');
+
 		if (!relationsFile) {
-			// create RELATIONS file
-			const rootFolders = await this.findFolders();
-			const credentialsFolderId = rootFolders.find((f: any) => f.name === 'Credentials')?.id;
-			relationsFile = await this.saveFile({
-				data: {
-					fileName: 'RELATIONS',
-					mimeType: 'application/json',
-					body: JSON.stringify({
-						vc_id: vcFileId,
-						reommendations: [recommendationFileId],
-					}),
-				},
-				folderId: credentialsFolderId,
-			});
-		} else {
-			// update with adding the recommendation file id
-			const relationsFileContent = await this.retrieve(relationsFile.id);
-			console.log('🚀 ~ GoogleDriveStorage ~ relationsFileContent:', relationsFileContent);
-			const relationsData = relationsFileContent.data;
-			console.log('🚀 ~ GoogleDriveStorage ~ relationsData:', relationsData);
-			relationsData.reommendations.push(recommendationFileId);
-			console.log('🚀 ~ GoogleDriveStorage ~ relationsData2:', relationsData);
-			// update
-			await this.updateFileData(relationsFile.id, {
-				fileName: 'RELATIONS',
-				mimeType: 'application/json',
-				body: JSON.stringify(relationsData),
-			});
+			throw new Error('RELATIONS file not found');
 		}
 
-		const permissionUrl = `https://www.googleapis.com/drive/v3/files/${relationsFile.id}/permissions`;
+		const relationsFileContent = await this.retrieve(relationsFile.id);
+		const relationsData = relationsFileContent.data || {};
+
+		if (!Array.isArray(relationsData.recommendations)) {
+			relationsData.recommendations = [];
+		}
+
+		relationsData.recommendations.push(recommendationFileId);
+
+		await this.updateFileData(relationsFile.id, {
+			fileName: 'RELATIONS',
+			mimeType: 'application/json',
+			body: JSON.stringify(relationsData),
+		});
+
+		return relationsFile;
+	}
+
+	async createRelationsFile({ vcFileId }: { vcFileId: string }) {
+		const isRelationsExist = await this.findFileByName('RELATIONS');
+		if (isRelationsExist) {
+			return;
+		}
+
+		const rootFolders = await this.findFolders();
+		const credentialsFolderId = rootFolders.find((f: any) => f.name === 'Credentials')?.id;
+		const vcFolderId = await this.findFolders(credentialsFolderId).then((folders) => {
+			const vcFolder = folders.find((f: any) => f.name === 'VCs');
+			return vcFolder?.id;
+		});
+
+		const relationsFile = await this.saveFile({
+			data: {
+				fileName: 'RELATIONS',
+				mimeType: 'application/json',
+				body: JSON.stringify({
+					vc_id: vcFileId,
+					recommendations: [],
+				}),
+			},
+			folderId: vcFolderId,
+		});
+
+		return relationsFile;
+	}
+
+	async grantWritePermissionToRecommender({ vcFileId, userEmail }: { vcFileId: string; userEmail: string }) {
+		let relationsFile = await this.findFileByName('RELATIONS');
+		if (!relationsFile) {
+			relationsFile = await this.createRelationsFile({ vcFileId });
+		}
+
+		await this.grantWritePermissionToUser({
+			fileId: relationsFile.id,
+			userEmail,
+		});
+
+		return relationsFile;
+	}
+
+	async grantWritePermissionToUser({ fileId, userEmail }: { fileId: string; userEmail: string }) {
+		const permissionUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
 		const permissionData = {
 			emailAddress: userEmail,
 			role: 'writer',
@@ -477,10 +503,7 @@ export class GoogleDriveStorage {
 			},
 			body: JSON.stringify(permissionData),
 		});
-
-		return relationsFile;
 	}
-
 	/**
 	 * Delete file by id
 	 * @param id
