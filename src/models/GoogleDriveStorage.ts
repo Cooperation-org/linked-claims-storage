@@ -47,16 +47,26 @@ export class GoogleDriveStorage {
 				body,
 			});
 
-			// Check for errors in the response
-			const data = await res.json();
+			// Check the Content-Type to ensure it's JSON before parsing
+			const contentType = res.headers.get('Content-Type') || '';
+			let data;
+			if (contentType.includes('application/json')) {
+				data = await res.json();
+			} else {
+				const text = await res.text();
+				console.error('Unexpected Response Type:', text);
+				throw new Error(`Expected JSON response but got: ${contentType}`);
+			}
+
+			// Handle non-200 HTTP responses
 			if (!res.ok) {
 				console.error('Error Response:', JSON.stringify(data));
-				throw new Error(data.error.message || 'Unknown error');
+				throw new Error(data?.error?.message || 'Unknown error occurred');
 			}
 
 			return data;
 		} catch (error) {
-			console.error('Error fetching data:', error.message);
+			console.error('Error fetching data:', error.message || error);
 			throw error;
 		}
 	}
@@ -397,6 +407,11 @@ export class GoogleDriveStorage {
 		return files[0];
 	}
 
+	async findFilesUnderFolder(folderId: string) {
+		const files = await this.searchFiles(`'${folderId}' in parents`);
+		return files;
+	}
+
 	async updateFileData(fileId: string, data: DataToSaveI) {
 		const fileMetadata = {
 			name: data.fileName,
@@ -445,49 +460,37 @@ export class GoogleDriveStorage {
 		return relationsFile;
 	}
 
-	async createRelationsFile({ vcFileId }: { vcFileId: string }) {
-		const isRelationsExist = await this.findFileByName('RELATIONS');
-		if (isRelationsExist) {
-			return;
-		}
-
-		const rootFolders = await this.findFolders();
-		const credentialsFolderId = rootFolders.find((f: any) => f.name === 'Credentials')?.id;
-		const vcFolderId = await this.findFolders(credentialsFolderId).then((folders) => {
-			const vcFolder = folders.find((f: any) => f.name === 'VCs');
-			return vcFolder?.id;
-		});
+	async createRelationsFile({ vcFolderId }: { vcFolderId: string }) {
+		// fet the file under vcFolderId name VC.json
+		const files = await this.findFilesUnderFolder(vcFolderId);
+		const vcFile = files.find((file: any) => file.name === 'VC');
 
 		const relationsFile = await this.saveFile({
 			data: {
 				fileName: 'RELATIONS',
 				mimeType: 'application/json',
 				body: JSON.stringify({
-					vc_id: vcFileId,
+					vc_id: vcFile.id,
 					recommendations: [],
 				}),
 			},
 			folderId: vcFolderId,
 		});
+		console.log('WHATS THE HACK');
 
 		return relationsFile;
 	}
 
-	async grantWritePermissionToRecommender({ vcFileId, userEmail }: { vcFileId: string; userEmail: string }) {
-		let relationsFile = await this.findFileByName('RELATIONS');
-		if (!relationsFile) {
-			relationsFile = await this.createRelationsFile({ vcFileId });
+	async grantWritePermissionToFileId({ fileId, userEmail }: { fileId: string; userEmail: string }) {
+		const isExist = await this.fetcher({
+			method: 'GET',
+			headers: {},
+			url: `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+		});
+		if (!isExist) {
+			throw new Error('File not found');
 		}
 
-		await this.grantWritePermissionToUser({
-			fileId: relationsFile.id,
-			userEmail,
-		});
-
-		return relationsFile;
-	}
-
-	async grantWritePermissionToUser({ fileId, userEmail }: { fileId: string; userEmail: string }) {
 		const permissionUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
 		const permissionData = {
 			emailAddress: userEmail,

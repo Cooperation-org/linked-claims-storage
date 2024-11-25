@@ -1,9 +1,11 @@
 import { GoogleDriveStorage } from '../models/GoogleDriveStorage.js';
 
+export type FileType = 'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR';
+
 interface SaveToGooglePropsI {
 	storage: GoogleDriveStorage;
 	data: any;
-	type: 'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR';
+	type: FileType;
 	vcId?: string;
 }
 
@@ -12,15 +14,15 @@ interface SaveToGooglePropsI {
  * vc.id = urn-uuid-{uuid} // we got that
  * Save data to Google Drive in the specified folder type.
  * @param {object} data - The data to save.
- * @param {'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR'} data.type - The type of data being saved.
+ * @param {FileType} data.type - The type of data being saved.
  * @returns {Promise<object>} - The file object saved to Google Drive.
  * @param {string} data.vcId - Optional unique identifier for the VC to link the recommendations.
  * @throws Will throw an error if the save operation fails.
  */
-export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePropsI) {
+export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePropsI): Promise<any> {
 	try {
 		const fileData = {
-			fileName: `${type}-${Date.now()}`,
+			fileName: type === 'VC' ? 'VC' : `${type}-${Date.now()}`,
 			mimeType: 'application/json',
 			body: JSON.stringify(data),
 		};
@@ -35,15 +37,12 @@ export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePro
 
 		if (!credentialsFolder) {
 			credentialsFolderId = await storage.createFolder('Credentials');
-			console.log('Created Credentials folder with ID:', credentialsFolderId);
 		} else {
 			credentialsFolderId = credentialsFolder.id;
-			console.log('Found Credentials folder with ID:', credentialsFolderId);
 		}
 
 		// Get subfolders within the "Credentials" folder
 		const subfolders = await storage.findFolders(credentialsFolderId);
-		console.log(`Subfolders in Credentials (ID: ${credentialsFolderId}):`, subfolders);
 
 		// Find or create the specific subfolder (DIDs or VCs)
 		let typeFolder = subfolders.find((f: any) => f.name === `${type}s`);
@@ -51,11 +50,16 @@ export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePro
 
 		if (!typeFolder) {
 			typeFolderId = await storage.createFolder(`${type}s`, credentialsFolderId);
-			console.log(`Created ${type}s folder with ID:`, typeFolderId);
 		} else {
 			typeFolderId = typeFolder.id;
-			console.log(`Found ${type} files:`, await storage.findLastFile(typeFolderId));
-			console.log(`Found ${type}s folder with ID:`, typeFolderId);
+		}
+
+		if (type === 'VC') {
+			// save the data in Credentials/VCs/VC-timestamp/vc.json
+			const vcFolderId = await storage.createFolder(`${fileData.fileName}-${Date.now()}`, typeFolderId);
+			const file = await storage.saveFile({ data: fileData, folderId: vcFolderId });
+			console.log(`File uploaded: ${file?.id} under ${fileData.fileName} folder in VCs folder`);
+			return file;
 		}
 
 		// Save the file in the specific subfolder
