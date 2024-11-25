@@ -323,19 +323,60 @@ export class GoogleDriveStorage {
 	 */
 	public async getAllFilesByType(type: 'KEYPAIRs' | 'VCs' | 'SESSIONs' | 'DIDs' | 'RECOMMENDATIONs' | 'MEDIAs'): Promise<FileContent[]> {
 		try {
-			// Step 1: Find all root folders
+			// Step 1: Find the root 'Credentials' folder
 			const rootFolders = await this.findFolders();
 			const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
-			if (!credentialsFolder) return [];
+			if (!credentialsFolder) {
+				console.error('Credentials folder not found.');
+				return [];
+			}
 
 			const credentialsFolderId = credentialsFolder.id;
 
-			// Step 2: Find the subfolder corresponding to the specified type
+			// Step 2: Handle special case for 'VCs'
+			if (type === 'VCs') {
+				// Find the 'VCs' folder under 'Credentials'
+				const subfolders = await this.findFolders(credentialsFolderId);
+				const targetFolder = subfolders.find((f: any) => f.name === 'VCs');
+				if (!targetFolder) {
+					console.error(`Folder for type ${type} not found.`);
+					return [];
+				}
+
+				const targetFolderId = targetFolder.id;
+
+				// Fetch all 'VC-timestamp' subfolders under 'VCs'
+				const vcSubfolders = await this.findFolders(targetFolderId);
+
+				// Retrieve all 'VC.json' files from each 'VC-timestamp' subfolder
+				const fileContents: any[] = [];
+
+				for (const folder of vcSubfolders) {
+					const files = await this.findFilesUnderFolder(folder.id);
+
+					// Fetch the content of each file
+					for (const file of files) {
+						try {
+							const content = await this.retrieve(file.id);
+
+							fileContents.push(content);
+						} catch (error) {
+							console.error(`Error retrieving content for file ${file.id}:`, error);
+						}
+					}
+				}
+
+				return fileContents;
+			}
+
+			// Step 3: Generic handling for other types
 			const subfolders = await this.findFolders(credentialsFolderId);
 			const targetFolder = subfolders.find((f: any) => f.name === type);
-			if (!targetFolder) return [];
+			if (!targetFolder) {
+				console.error(`Folder for type ${type} not found.`);
+				return [];
+			}
 
-			// Step 3: Fetch all files in the specified folder
 			const filesResponse = await this.fetcher({
 				method: 'GET',
 				headers: {},
@@ -344,29 +385,23 @@ export class GoogleDriveStorage {
 
 			const files = filesResponse.files;
 
-			// Step 4: Fetch the content and comments of each file
 			const fileContents = await Promise.all(
 				files.map(async (file: any) => {
-					// Fetch file content
 					const content = await this.fetcher({
 						method: 'GET',
 						headers: {},
 						url: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
 					});
 
-					// Fetch file comments (if applicable)
-					const comments = await this.getFileComments(file.id);
-
 					return {
 						id: file.id,
 						name: file.name,
 						content,
-						comments: comments.map((comment: any) => comment.content),
 					};
 				})
 			);
 
-			return fileContents; // Return the list of files with their content and comments
+			return fileContents;
 		} catch (error) {
 			console.error(`Error getting files of type ${type}:`, error);
 			return []; // Return an empty array on error
