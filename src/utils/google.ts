@@ -8,6 +8,30 @@ interface SaveToGooglePropsI {
 	type: FileType;
 	vcId?: string;
 }
+export const getVCWithRecommendations = async ({ vcId, storage }: { vcId: string; storage: GoogleDriveStorage }) => {
+	const vcFolderId = await storage.getFileParents(vcId);
+	const files = await storage.findFilesUnderFolder(vcFolderId);
+	const relationsFile = files.find((f: any) => f.name === 'RELATIONS');
+	console.log('🚀 ~ getVCAndRecommendations ~ relationsFile:', relationsFile);
+
+	const relationsContent = await storage.retrieve(relationsFile.id);
+	console.log('🚀 ~ getVCAndRecommendations ~ relationsContent:', relationsContent);
+	const relationsData = relationsContent.data;
+	console.log('🚀 ~ getVCAndRecommendations ~ relationsData:', relationsData);
+
+	const [vcFileId, recommendations] = [relationsData.vc_id, relationsData.recommendations];
+	const vc = await storage.retrieve(vcFileId);
+	console.log('🚀 ~ getVCAndRecommendations ~ vc:', vc);
+
+	const recommendationsData = await Promise.all(
+		recommendations.map(async (rec: any) => {
+			const recFile = await storage.retrieve(rec);
+			return recFile.data;
+		})
+	);
+
+	return { vc: vc.data, recommendations: recommendationsData };
+};
 
 /**
  * keyFile name  = {uuid}-type-timestamp // we need that

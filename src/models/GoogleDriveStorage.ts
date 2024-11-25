@@ -78,6 +78,10 @@ export class GoogleDriveStorage {
 			headers: {},
 			url: `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&trashed=false&fields=files(id,name,mimeType,parents)`,
 		});
+		if (!result.files) {
+			console.error('No files found:', result);
+			return [];
+		}
 		return result.files;
 	}
 
@@ -174,7 +178,6 @@ export class GoogleDriveStorage {
 			// Fetch file metadata to get the name
 			const metadata = await touchResponse.json();
 			const fileName = metadata.name;
-			console.log(`File name retrieved after "touch": ${fileName}`);
 
 			// Fetch actual file data
 			const dataResponse = await fetch(dataUrl, {
@@ -435,33 +438,39 @@ export class GoogleDriveStorage {
 		return updatedFile;
 	}
 
-	async updateRelationsFile({ recommendationFileId }: { recommendationFileId: string }) {
-		const relationsFile = await this.findFileByName('RELATIONS');
+	async getFileParents(fileId: string) {
+		const file = await this.fetcher({
+			method: 'GET',
+			headers: {},
+			url: `https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`,
+		});
 
-		if (!relationsFile) {
-			throw new Error('RELATIONS file not found');
-		}
+		return file.parents;
+	}
 
-		const relationsFileContent = await this.retrieve(relationsFile.id);
-		const relationsData = relationsFileContent.data || {};
-
-		if (!Array.isArray(relationsData.recommendations)) {
-			relationsData.recommendations = [];
-		}
+	async updateRelationsFile({ relationsFileId, recommendationFileId }: { relationsFileId: string; recommendationFileId: string }) {
+		const relationsFileContent = await this.retrieve(relationsFileId);
+		const relationsData = relationsFileContent.data;
 
 		relationsData.recommendations.push(recommendationFileId);
 
-		await this.updateFileData(relationsFile.id, {
-			fileName: 'RELATIONS',
-			mimeType: 'application/json',
-			body: JSON.stringify(relationsData),
+		const updatedContent = JSON.stringify(relationsData);
+
+		const updateResponse = await this.fetcher({
+			method: 'PATCH',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: updatedContent,
+			url: `https://www.googleapis.com/upload/drive/v3/files/${relationsFileId}?uploadType=media`,
 		});
 
-		return relationsFile;
+		console.log('🚀 ~ GoogleDriveStorage ~ updateRelationsFile ~ updateResponse:', updateResponse);
+
+		return updateResponse;
 	}
 
 	async createRelationsFile({ vcFolderId }: { vcFolderId: string }) {
-		// fet the file under vcFolderId name VC.json
 		const files = await this.findFilesUnderFolder(vcFolderId);
 		const vcFile = files.find((file: any) => file.name === 'VC');
 
@@ -476,7 +485,6 @@ export class GoogleDriveStorage {
 			},
 			folderId: vcFolderId,
 		});
-		console.log('WHATS THE HACK');
 
 		return relationsFile;
 	}
