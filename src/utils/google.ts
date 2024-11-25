@@ -26,7 +26,7 @@ export const getVCWithRecommendations = async ({ vcId, storage }: { vcId: string
 		})
 	);
 
-	return { vc: vc.data, recommendations };
+	return { vc: vc.data, recommendations, relationsFileId: relationsFile.id };
 };
 
 /**
