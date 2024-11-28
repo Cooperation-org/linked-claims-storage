@@ -102,7 +102,6 @@ export class CredentialEngine {
 				data: keyPair,
 				type: 'KEYPAIR',
 			});
-			console.log('🚀 ~ CredentialEngine ~ createDID ~ keyFile:', keyFile);
 			const didDocument = await generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
@@ -110,6 +109,21 @@ export class CredentialEngine {
 			console.error('Error creating DID:', error);
 			throw error;
 		}
+	}
+
+	public async findKeysAndDIDs() {
+		const keyPairs = (await this.storage.getAllFilesByType('KEYPAIRs')) as any;
+
+		const DIDs = (await this.storage.getAllFilesByType('DIDs')) as any;
+
+		if (DIDs.length === 0 || keyPairs.length === 0) return null;
+		const keyPair = keyPairs[0].data;
+		const didDocument = DIDs[0].data.didDocument;
+
+		return {
+			didDocument,
+			keyPair,
+		};
 	}
 
 	/**
@@ -147,7 +161,13 @@ export class CredentialEngine {
 	 * @throws Will throw an error if VC signing fails.
 	 */
 	public async signVC({ data, type, keyPair, issuerId, vcFileId }: SignPropsI): Promise<any> {
-		console.log('🚀 ~ CredentialEngine ~ signVC ~ data:', data);
+		console.log('🚀 ~ CredentialEngine ~ signVC ~ { data, type, keyPair, issuerId, vcFileId }:', {
+			data,
+			type,
+			keyPair,
+			issuerId,
+			vcFileId,
+		});
 		let vc;
 		let credential = generateUnsignedVC({ formData: data as FormDataI, issuerDid: issuerId }) as any;
 		if (type == 'RECOMMENDATION' && vcFileId) {

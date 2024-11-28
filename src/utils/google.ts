@@ -22,16 +22,14 @@ export const getVCWithRecommendations = async ({ vcId, storage }: { vcId: string
 	const recommendations = await Promise.all(
 		recommendationIds.map(async (rec: any) => {
 			const recFile = await storage.retrieve(rec);
-			return recFile.data;
+			return recFile;
 		})
 	);
 
-	return { vc: vc.data, recommendations, relationsFileId: relationsFile.id };
+	return { vc: vc, recommendations, relationsFileId: relationsFile.id };
 };
 
 /**
- * keyFile name  = {uuid}-type-timestamp // we need that
- * vc.id = urn-uuid-{uuid} // we got that
  * Save data to Google Drive in the specified folder type.
  * @param {object} data - The data to save.
  * @param {FileType} data.type - The type of data being saved.

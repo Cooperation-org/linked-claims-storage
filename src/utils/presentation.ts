@@ -19,38 +19,32 @@ export const createAndSignVerifiablePresentation = async (
 	}
 
 	try {
-		const storage = new GoogleDriveStorage(accessTokens);
-		const engine = new CredentialEngine(accessTokens);
-
-		// Fetch Verifiable Credential (VC)
-		const verifiableCredential = await storage.retrieve(vcFileId);
-		if (!verifiableCredential) {
-			throw new Error('Verifiable Credential not found.');
-		}
-
-		// Fetch VC comments (potential recommendations)
-		const verifiableCredentialComments = await storage.getFileComments(vcFileId);
-		let recommendations: object[] = [];
-
-		// Extract recommendations from comments if present
-		if (verifiableCredentialComments.length > 0) {
-			for (const comment of verifiableCredentialComments) {
-				console.log('🚀 ~ createAndSignVerifiablePresentation ~ comment', comment);
-				const recommendationFile = await storage.retrieve(extractGoogleDriveFileId(comment.content));
-				console.log('🚀 ~ createAndSignVerifiablePresentation ~ recommendationFile', recommendationFile);
-				if (recommendationFile) {
-					recommendations.push(recommendationFile);
-				}
-			}
-		}
-
-		// Create Verifiable Presentation (VP) with the retrieved VC
-		const presentation = await engine.createPresentation([verifiableCredential.data, ...recommendations]); //! do not edit the array order!!
-
-		// Use the key pair to sign the presentation
-		const signedPresentation = await engine.signPresentation(presentation);
-
-		return { signedPresentation };
+		// const storage = new GoogleDriveStorage(accessTokens);
+		// const engine = new CredentialEngine(accessTokens);
+		// // Fetch Verifiable Credential (VC)
+		// const verifiableCredential = await storage.retrieve(vcFileId);
+		// if (!verifiableCredential) {
+		// 	throw new Error('Verifiable Credential not found.');
+		// }
+		// // Fetch VC comments (potential recommendations)
+		// const verifiableCredentialComments = await storage.getFileComments(vcFileId);
+		// let recommendations: object[] = [];
+		// // Extract recommendations from comments if present
+		// if (verifiableCredentialComments.length > 0) {
+		// 	for (const comment of verifiableCredentialComments) {
+		// 		console.log('🚀 ~ createAndSignVerifiablePresentation ~ comment', comment);
+		// 		const recommendationFile = await storage.retrieve(extractGoogleDriveFileId(comment.content));
+		// 		console.log('🚀 ~ createAndSignVerifiablePresentation ~ recommendationFile', recommendationFile);
+		// 		if (recommendationFile) {
+		// 			recommendations.push(recommendationFile);
+		// 		}
+		// 	}
+		// }
+		// // Create Verifiable Presentation (VP) with the retrieved VC
+		// const presentation = await engine.createPresentation([verifiableCredential.data, ...recommendations]); //! do not edit the array order!!
+		// // Use the key pair to sign the presentation
+		// const signedPresentation = await engine.signPresentation(presentation);
+		// return {};
 	} catch (error) {
 		console.error('Error during Verifiable Presentation creation and signing:', error);
 		return null;

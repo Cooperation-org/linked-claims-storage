@@ -35,7 +35,6 @@ export class GoogleDriveStorage {
 		this.accessToken = accessToken;
 	}
 
-	// Method to fetch data from Google Drive API
 	private async fetcher({ method, headers, body, url }: FetcherI) {
 		try {
 			const res = await fetch(url, {
@@ -71,7 +70,6 @@ export class GoogleDriveStorage {
 		}
 	}
 
-	// Method to search for files in Google Drive by query
 	private async searchFiles(query: string): Promise<any[]> {
 		const result = await this.fetcher({
 			method: 'GET',
@@ -154,13 +152,11 @@ export class GoogleDriveStorage {
 	 * @param id
 	 * @returns file content
 	 */
-	async retrieve(id: string): Promise<{ name: string; data: any } | null> {
+	async retrieve(id: string): Promise<{ name: string; data: any; id: string } | null> {
 		const metadataUrl = `https://www.googleapis.com/drive/v3/files/${id}?fields=id,name`;
 		const dataUrl = `https://www.googleapis.com/drive/v3/files/${id}?alt=media`;
 
 		try {
-			console.log(`Starting retrieval for file ID: ${id}`);
-
 			// Initial "touch" request to ensure file accessibility for the current user
 			const touchResponse = await fetch(metadataUrl, {
 				method: 'GET',
@@ -217,10 +213,8 @@ export class GoogleDriveStorage {
 				fileData = await dataResponse.arrayBuffer(); // Fallback for other binary types
 			}
 
-			console.log('🚀 ~ GoogleDriveStorage ~ retrieve ~ fileData:', fileData);
-
 			// Return file ID, name, and data
-			return { name: fileName, data: fileData };
+			return { id: metadata.id, name: fileName, data: fileData };
 		} catch (error) {
 			console.error(`Error retrieving file with ID ${id}:`, error.message);
 			return null;
@@ -299,23 +293,6 @@ export class GoogleDriveStorage {
 		}
 	};
 
-	public async getFileComments(fileId: string) {
-		try {
-			// Fetch comments on the file using Google Drive API
-			const commentsResponse = await this.fetcher({
-				method: 'GET',
-				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files/${fileId}/comments?fields=comments(content,author/displayName,createdTime)`,
-			});
-
-			// Return the comments data if available
-			return commentsResponse.comments || []; // Return an empty array if no comments
-		} catch (error) {
-			console.error(`Failed to fetch comments for file ID: ${fileId}`, error);
-			return []; // Handle errors by returning an empty array or some error indication
-		}
-	}
-
 	/**
 	 * Get all files content for the specified type ('KEYPAIRs' | 'VCs' | 'SESSIONs' | 'DIDs' | 'RECOMMENDATIONs')
 	 * @param type
@@ -387,17 +364,7 @@ export class GoogleDriveStorage {
 
 			const fileContents = await Promise.all(
 				files.map(async (file: any) => {
-					const content = await this.fetcher({
-						method: 'GET',
-						headers: {},
-						url: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
-					});
-
-					return {
-						id: file.id,
-						name: file.name,
-						content,
-					};
+					return await this.retrieve(file.id);
 				})
 			);
 
@@ -446,6 +413,8 @@ export class GoogleDriveStorage {
 	}
 
 	async findFilesUnderFolder(folderId: string) {
+		if (!folderId) throw new Error('Folder ID is required');
+		console.log('🚀 ~ GoogleDriveStorage ~ findFilesUnderFolder ~ folderId', folderId);
 		const files = await this.searchFiles(`'${folderId}' in parents`);
 		return files;
 	}
@@ -474,6 +443,7 @@ export class GoogleDriveStorage {
 	}
 
 	async getFileParents(fileId: string) {
+		console.log('🚀 ~ GoogleDriveStorage ~ getFileParents ~ fileId', fileId);
 		const file = await this.fetcher({
 			method: 'GET',
 			headers: {},
@@ -524,32 +494,6 @@ export class GoogleDriveStorage {
 		return relationsFile;
 	}
 
-	async grantWritePermissionToFileId({ fileId, userEmail }: { fileId: string; userEmail: string }) {
-		const isExist = await this.fetcher({
-			method: 'GET',
-			headers: {},
-			url: `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
-		});
-		if (!isExist) {
-			throw new Error('File not found');
-		}
-
-		const permissionUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
-		const permissionData = {
-			emailAddress: userEmail,
-			role: 'writer',
-			type: 'user',
-		};
-
-		await this.fetcher({
-			method: 'POST',
-			url: permissionUrl,
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(permissionData),
-		});
-	}
 	/**
 	 * Delete file by id
 	 * @param id
