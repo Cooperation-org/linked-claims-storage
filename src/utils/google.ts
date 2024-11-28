@@ -1,25 +1,46 @@
 import { GoogleDriveStorage } from '../models/GoogleDriveStorage.js';
 
+export type FileType = 'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR';
+
+interface SaveToGooglePropsI {
+	storage: GoogleDriveStorage;
+	data: any;
+	type: FileType;
+	vcId?: string;
+}
+export const getVCWithRecommendations = async ({ vcId, storage }: { vcId: string; storage: GoogleDriveStorage }) => {
+	const vcFolderId = await storage.getFileParents(vcId);
+	const files = await storage.findFilesUnderFolder(vcFolderId);
+	const relationsFile = files.find((f: any) => f.name === 'RELATIONS');
+
+	const relationsContent = await storage.retrieve(relationsFile.id);
+	const relationsData = relationsContent.data;
+
+	const [vcFileId, recommendationIds] = [relationsData.vc_id, relationsData.recommendations];
+	const vc = await storage.retrieve(vcFileId);
+
+	const recommendations = await Promise.all(
+		recommendationIds.map(async (rec: any) => {
+			const recFile = await storage.retrieve(rec);
+			return recFile;
+		})
+	);
+
+	return { vc: vc, recommendations, relationsFileId: relationsFile.id };
+};
+
 /**
- * keyFile name  = {uuid}-type-timestamp // we need that
- * vc.id = urn-uuid-{uuid} // we got that
  * Save data to Google Drive in the specified folder type.
  * @param {object} data - The data to save.
- * @param {'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR'} type - The type of data being saved.
+ * @param {FileType} data.type - The type of data being saved.
  * @returns {Promise<object>} - The file object saved to Google Drive.
- * @param {string} uuid - Optional unique identifier for the VC.
+ * @param {string} data.vcId - Optional unique identifier for the VC to link the recommendations.
  * @throws Will throw an error if the save operation fails.
  */
-export async function saveToGoogleDrive(
-	storage: GoogleDriveStorage,
-	data: any,
-	type: 'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR',
-	uuid?: string
-): Promise<object> {
+export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePropsI): Promise<any> {
 	try {
-		const timestamp = Date.now();
 		const fileData = {
-			fileName: `${uuid ? uuid + '_' : ''}${type}_${timestamp}.json`,
+			fileName: type === 'VC' ? 'VC' : `${type}-${Date.now()}`,
 			mimeType: 'application/json',
 			body: JSON.stringify(data),
 		};
@@ -34,15 +55,12 @@ export async function saveToGoogleDrive(
 
 		if (!credentialsFolder) {
 			credentialsFolderId = await storage.createFolder('Credentials');
-			console.log('Created Credentials folder with ID:', credentialsFolderId);
 		} else {
 			credentialsFolderId = credentialsFolder.id;
-			console.log('Found Credentials folder with ID:', credentialsFolderId);
 		}
 
 		// Get subfolders within the "Credentials" folder
 		const subfolders = await storage.findFolders(credentialsFolderId);
-		console.log(`Subfolders in Credentials (ID: ${credentialsFolderId}):`, subfolders);
 
 		// Find or create the specific subfolder (DIDs or VCs)
 		let typeFolder = subfolders.find((f: any) => f.name === `${type}s`);
@@ -50,21 +68,21 @@ export async function saveToGoogleDrive(
 
 		if (!typeFolder) {
 			typeFolderId = await storage.createFolder(`${type}s`, credentialsFolderId);
-			console.log(`Created ${type}s folder with ID:`, typeFolderId);
 		} else {
 			typeFolderId = typeFolder.id;
-			console.log(`Found ${type} files:`, await storage.findLastFile(typeFolderId));
-			console.log(`Found ${type}s folder with ID:`, typeFolderId);
+		}
+
+		if (type === 'VC') {
+			// save the data in Credentials/VCs/VC-timestamp/vc.json
+			const vcFolderId = await storage.createFolder(`${fileData.fileName}-${Date.now()}`, typeFolderId);
+			const file = await storage.saveFile({ data: fileData, folderId: vcFolderId });
+			console.log(`File uploaded: ${file?.id} under ${fileData.fileName} folder in VCs folder`);
+			return file;
 		}
 
 		// Save the file in the specific subfolder
-		const file = await storage.save(fileData, typeFolderId);
+		const file = await storage.saveFile({ data: fileData, folderId: typeFolderId });
 		console.log(`File uploaded: ${file?.id} under ${type}s with ID ${typeFolderId} folder in Credentials folder`);
-
-		if (file && file.id) {
-			console.log('Sharing file with second user...');
-			await storage.addCommenterRoleToFile(file.id);
-		}
 
 		return file;
 	} catch (error) {
@@ -116,8 +134,11 @@ export async function uploadImageToGoogleDrive(
 			body: imageFile,
 		};
 
-		// Save the image in the "MEDIAs" folder
-		const uploadedImage = await storage.save(imageData, mediasFolderId);
+		// SaveFile the image in the "MEDIAs" folder
+		const uploadedImage = await storage.saveFile({
+			data: imageData,
+			folderId: mediasFolderId,
+		});
 		console.log(`Image uploaded: ${uploadedImage?.id} to MEDIAs folder in Credentials`);
 
 		return uploadedImage;

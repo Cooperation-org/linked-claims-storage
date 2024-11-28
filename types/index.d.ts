@@ -4,4 +4,6 @@ export interface DataToSaveI {
 	body: any;
 }
 
+export type FilesType = 'KEYPAIRs' | 'MEDIAs' | 'VCs' | 'VPs' | 'RECOMMENDATIONs' | 'DIDs' | 'RELATIONS';
+
 export * from './credential';

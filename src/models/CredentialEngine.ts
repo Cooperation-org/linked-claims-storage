@@ -1,6 +1,6 @@
 import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
 import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
-import * as vc from '@digitalbazaar/vc';
+import * as dbVc from '@digitalbazaar/vc';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -14,6 +14,13 @@ import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI, VerifiableCre
 import { saveToGoogleDrive } from '../utils/google.js';
 import { GoogleDriveStorage } from './GoogleDriveStorage.js';
 
+interface SignPropsI {
+	data: FormDataI | RecommendationFormDataI;
+	type: 'VC' | 'RECOMMENDATION';
+	keyPair: KeyPair;
+	issuerId: string;
+	vcFileId?: string;
+}
 /**
  * Class representing the Credential Engine.
  * @class CredentialEngine
@@ -27,12 +34,10 @@ import { GoogleDriveStorage } from './GoogleDriveStorage.js';
  * @method signPresentation - Sign a Verifiable Presentation (VP).
  */
 export class CredentialEngine {
-	private uuid: string;
 	private storage: GoogleDriveStorage;
 	private keyPair: KeyPair;
 
 	constructor(accessToken: string) {
-		this.uuid = uuidv4();
 		this.storage = new GoogleDriveStorage(accessToken);
 	}
 
@@ -92,8 +97,11 @@ export class CredentialEngine {
 	public async createDID(): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
 			const keyPair = await this.generateKeyPair();
-			const keyFile = await saveToGoogleDrive(this.storage, keyPair, 'KEYPAIR', this.uuid);
-			console.log('🚀 ~ CredentialEngine ~ createDID ~ keyFile:', keyFile);
+			const keyFile = await saveToGoogleDrive({
+				storage: this.storage,
+				data: keyPair,
+				type: 'KEYPAIR',
+			});
 			const didDocument = await generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
@@ -101,6 +109,21 @@ export class CredentialEngine {
 			console.error('Error creating DID:', error);
 			throw error;
 		}
+	}
+
+	public async findKeysAndDIDs() {
+		const keyPairs = (await this.storage.getAllFilesByType('KEYPAIRs')) as any;
+
+		const DIDs = (await this.storage.getAllFilesByType('DIDs')) as any;
+
+		if (DIDs.length === 0 || keyPairs.length === 0) return null;
+		const keyPair = keyPairs[0].data;
+		const didDocument = DIDs[0].data.didDocument;
+
+		return {
+			didDocument,
+			keyPair,
+		};
 	}
 
 	/**
@@ -112,7 +135,11 @@ export class CredentialEngine {
 	public async createWalletDID(walletrAddress: string): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
 			const keyPair = await this.generateKeyPair(walletrAddress);
-			const keyFile = await saveToGoogleDrive(this.storage, keyPair, 'KEYPAIR', this.uuid);
+			const keyFile = await saveToGoogleDrive({
+				storage: this.storage,
+				data: keyPair,
+				type: 'KEYPAIR',
+			});
 			console.log('🚀 ~ CredentialEngine ~ createWalletDID ~ keyFile:', keyFile);
 			const didDocument = await generateDIDSchema(keyPair);
 
@@ -128,19 +155,33 @@ export class CredentialEngine {
 	 * @param {'VC' | 'RECOMMENDATION'} type - The signature type.
 	 * @param {string} issuerId - The ID of the issuer [currently we put it as the did id]
 	 * @param {KeyPair} keyPair - The key pair to use for signing.
+	 * @param {FormDataI | RecommendationFormDataI} formData - The form data to include in the VC.
+	 * @param {string} VCId - The ID of the credential when the type is RECOMMENDATION
 	 * @returns {Promise<Credential>} The signed VC.
 	 * @throws Will throw an error if VC signing fails.
 	 */
-	public async signVC(formData: any, type: 'VC' | 'RECOMMENDATION', keyPair: KeyPair, issuerId: string): Promise<any> {
-		let credential: any;
-		if (type == 'VC') {
-			credential = generateUnsignedVC(formData as FormDataI, issuerId, this.uuid);
-		} else if (type == 'RECOMMENDATION') {
-			credential = generateUnsignedRecommendation(formData as RecommendationFormDataI, issuerId);
+	public async signVC({ data, type, keyPair, issuerId, vcFileId }: SignPropsI): Promise<any> {
+		console.log('🚀 ~ CredentialEngine ~ signVC ~ { data, type, keyPair, issuerId, vcFileId }:', {
+			data,
+			type,
+			keyPair,
+			issuerId,
+			vcFileId,
+		});
+		let vc;
+		let credential = generateUnsignedVC({ formData: data as FormDataI, issuerDid: issuerId }) as any;
+		if (type == 'RECOMMENDATION' && vcFileId) {
+			console.log('WOW');
+			vc = (await this.storage.retrieve(vcFileId)) as unknown as VerifiableCredential;
+			credential = generateUnsignedRecommendation({ vc, recommendation: data as unknown as RecommendationFormDataI, issuerDid: issuerId });
 		}
-		const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
+
 		try {
-			const signedVC = await vc.issue({ credential, suite, documentLoader: customDocumentLoader });
+			console.log('🚀 ~ CredentialEngine ~ signVC ~ credential:', credential);
+			if (!credential) throw new Error('Invalid credential type');
+			const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
+			console.log('before');
+			const signedVC = await dbVc.issue({ credential, suite, documentLoader: customDocumentLoader });
 			return signedVC;
 		} catch (error) {
 			console.error('Error signing VC:', error);
@@ -163,7 +204,7 @@ export class CredentialEngine {
 				verificationMethod: keyPair.id,
 			});
 
-			const result = await vc.verifyCredential({
+			const result = await dbVc.verifyCredential({
 				credential,
 				suite,
 				documentLoader: customDocumentLoader,
@@ -189,7 +230,7 @@ export class CredentialEngine {
 			const id = `urn:uuid:${uuidv4()}`;
 			const keyPair = await this.getKeyPair(verifiableCredential[0]);
 			console.log('🚀 ~ CredentialEngine ~ createPresentation ~ keyPair:', keyPair);
-			const VP = await vc.createPresentation({ verifiableCredential, id, holder: keyPair.controller });
+			const VP = await dbVc.createPresentation({ verifiableCredential, id, holder: keyPair.controller });
 			return VP;
 		} catch (error) {
 			console.error('Error creating presentation:', error);
@@ -220,7 +261,7 @@ export class CredentialEngine {
 			});
 
 			// Sign the presentation
-			const signedVP = await vc.signPresentation({
+			const signedVP = await dbVc.signPresentation({
 				presentation,
 				suite,
 				documentLoader: customDocumentLoader,
