@@ -83,7 +83,7 @@ export class GoogleDriveStorage {
 		return result.files;
 	}
 
-	async createFolder(folderName: string, parentFolderId?: string): Promise<string> {
+	async createFolder({ folderName, parentFolderId }: { folderName: string; parentFolderId?: string }): Promise<string> {
 		const metadata = {
 			name: folderName,
 			mimeType: 'application/vnd.google-apps.folder',
@@ -101,7 +101,7 @@ export class GoogleDriveStorage {
 		return folder.id;
 	}
 
-	async saveFile({ data, folderId }: { data: DataToSaveI; folderId: string }) {
+	async saveFile({ data, folderId }: { data: any; folderId: string }) {
 		try {
 			// Define file metadata, ensure correct folder is assigned
 			const fileMetadata = {
@@ -137,9 +137,6 @@ export class GoogleDriveStorage {
 				headers: {},
 				body: JSON.stringify(permissionData),
 			});
-
-			console.log('Permission set to public for file:', file.id);
-			console.log('Parent folder IDs:', file.parents);
 			return file;
 		} catch (error) {
 			console.error('Error uploading file or setting permission:', error.message);
@@ -326,22 +323,17 @@ export class GoogleDriveStorage {
 				const vcSubfolders = await this.findFolders(targetFolderId);
 
 				// Retrieve all 'VC.json' files from each 'VC-timestamp' subfolder
-				const fileContents: any[] = [];
+				const fileContents: any[] = await Promise.all(
+					vcSubfolders.map(async (folder: any) => {
+						const files = await this.findFilesUnderFolder(folder.id);
 
-				for (const folder of vcSubfolders) {
-					const files = await this.findFilesUnderFolder(folder.id);
-
-					// Fetch the content of each file
-					for (const file of files) {
-						try {
-							const content = await this.retrieve(file.id);
-
-							fileContents.push(content);
-						} catch (error) {
-							console.error(`Error retrieving content for file ${file.id}:`, error);
-						}
-					}
-				}
+						return Promise.all(
+							files.map(async (file: any) => {
+								return await this.retrieve(file.id);
+							})
+						);
+					})
+				);
 
 				return fileContents;
 			}
