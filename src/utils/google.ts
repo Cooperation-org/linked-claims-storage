@@ -47,17 +47,15 @@ export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePro
 
 		// Get all root folders
 		const rootFolders = await storage.findFolders();
-		console.log('Root folders:', rootFolders);
 
 		// Find or create the "Credentials" folder
 		let credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
 		let credentialsFolderId: string;
 
 		if (!credentialsFolder) {
-			credentialsFolderId = await storage.createFolder({ folderName: 'Credentials' });
-		} else {
-			credentialsFolderId = credentialsFolder.id;
+			credentialsFolder = await storage.createFolder({ folderName: 'Credentials', parentFolderId: 'root' });
 		}
+		credentialsFolderId = credentialsFolder.id;
 
 		// Get subfolders within the "Credentials" folder
 		const subfolders = await storage.findFolders(credentialsFolderId);
@@ -67,23 +65,21 @@ export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePro
 		let typeFolderId: string;
 
 		if (!typeFolder) {
-			typeFolderId = await storage.createFolder({ folderName: `${type}s`, parentFolderId: credentialsFolderId });
-		} else {
-			typeFolderId = typeFolder.id;
+			typeFolder = await storage.createFolder({ folderName: `${type}s`, parentFolderId: credentialsFolderId });
 		}
+		typeFolderId = typeFolder.id;
 
 		if (type === 'VC') {
 			// save the data in Credentials/VCs/VC-timestamp/vc.json
-			const vcFolderId = await storage.createFolder({ folderName: `${fileData.fileName}-${Date.now()}`, parentFolderId: typeFolderId });
-			const file = await storage.saveFile({ data: fileData, folderId: vcFolderId });
-			console.log(`File uploaded: ${file?.id} under ${fileData.fileName} folder in VCs folder`);
+			const vcFolder = await storage.createFolder({ folderName: `${fileData.fileName}-${Date.now()}`, parentFolderId: typeFolderId });
+			const file = await storage.saveFile({ data: fileData, folderId: vcFolder.id });
+
 			return file;
 		}
 
 		// Save the file in the specific subfolder
 		const file = await storage.saveFile({ data: fileData, folderId: typeFolderId });
-		console.log(`File uploaded: ${file?.id} under ${type}s with ID ${typeFolderId} folder in Credentials folder`);
-
+		console.log('🚀 ~ file:', file);
 		return file;
 	} catch (error) {
 		console.error('Error saving to Google Drive:', error);
@@ -108,24 +104,20 @@ export async function uploadImageToGoogleDrive(
 		const rootFolders = await storage.findFolders();
 
 		let credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
-		let credentialsFolderId: string;
 
 		if (!credentialsFolder) {
-			credentialsFolderId = await storage.createFolder({ folderName: 'Credentials' });
-		} else {
-			credentialsFolderId = credentialsFolder.id;
+			credentialsFolder = await storage.createFolder({ folderName: 'Credentials', parentFolderId: 'root' });
 		}
+		const credentialsFolderId = credentialsFolder.id;
 
-		const subfolders = await storage.findFolders(credentialsFolderId);
+		const subfolders = await storage.findFolders(credentialsFolder.id);
 
 		let mediasFolder = subfolders.find((f: any) => f.name === 'MEDIAs');
-		let mediasFolderId: string;
 
 		if (!mediasFolder) {
-			mediasFolderId = await storage.createFolder({ folderName: 'MEDIAs', parentFolderId: credentialsFolderId });
-		} else {
-			mediasFolderId = mediasFolder.id;
+			mediasFolder = await storage.createFolder({ folderName: 'MEDIAs', parentFolderId: credentialsFolderId });
 		}
+		const mediasFolderId = mediasFolder.id;
 
 		// Prepare the image file data
 		const imageData = {
@@ -139,7 +131,7 @@ export async function uploadImageToGoogleDrive(
 			data: imageData,
 			folderId: mediasFolderId,
 		});
-		console.log(`Image uploaded: ${uploadedImage?.id} to MEDIAs folder in Credentials`);
+		console.log('🚀 ~ uploadedImage:', uploadedImage);
 
 		return uploadedImage;
 	} catch (error) {
