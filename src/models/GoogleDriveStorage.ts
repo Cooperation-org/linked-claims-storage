@@ -70,6 +70,23 @@ export class GoogleDriveStorage {
 		}
 	}
 
+	private async getFileContent(fileId: string): Promise<any> {
+		const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+		try {
+			const response = await this.fetcher({
+				method: 'GET',
+				headers: {}, // Add additional headers if required
+				url,
+			});
+
+			console.log(`Content fetched for file ID: ${fileId}`);
+			return response; // This could be text, JSON, or binary, depending on the file type
+		} catch (error) {
+			console.error(`Error fetching content for file ID: ${fileId}:`, error.message);
+			throw new Error(`Failed to fetch content for file ID: ${fileId}`);
+		}
+	}
+
 	private async searchFiles(query: string): Promise<any[]> {
 		const result = await this.fetcher({
 			method: 'GET',
@@ -83,11 +100,20 @@ export class GoogleDriveStorage {
 		return result.files;
 	}
 
-	async createFolder(folderName: string, parentFolderId?: string): Promise<string> {
+	async createFolder({ folderName, parentFolderId }: { folderName: string; parentFolderId: string }): Promise<{
+		id: string;
+		name: string;
+		mimeType: string;
+		parents: string[];
+	}> {
+		if (!parentFolderId) {
+			throw new Error(`Parent folder ID must be provided when creating folder "${folderName}".`);
+		}
+
 		const metadata = {
 			name: folderName,
 			mimeType: 'application/vnd.google-apps.folder',
-			parents: parentFolderId ? [parentFolderId] : [],
+			parents: [parentFolderId], // Explicitly associate with the parent folder
 		};
 
 		const folder = await this.fetcher({
@@ -97,18 +123,32 @@ export class GoogleDriveStorage {
 			url: 'https://www.googleapis.com/drive/v3/files',
 		});
 
-		console.log('Folder ID:', folder.id);
-		return folder.id;
+		console.log(`Folder created: "${folderName}" with ID: ${folder.id}, Parent: ${parentFolderId}`);
+		return folder;
 	}
 
-	async saveFile({ data, folderId }: { data: DataToSaveI; folderId: string }) {
+	async saveFile({ data, folderId }: { data: any; folderId: string }) {
 		try {
+			if (!folderId) {
+				throw new Error('Folder ID is required to save a file.');
+			}
 			// Define file metadata, ensure correct folder is assigned
 			const fileMetadata = {
 				name: data.fileName,
 				parents: [folderId], // Specify the folder ID
-				mimeType: data.mimeType,
+				mimeType: data.mimeType || 'application/json',
 			};
+
+			// make sure the parentId is not in trash
+
+			const folder = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files/${folderId}?fields=trashed`,
+			});
+			if (folder.trashed) {
+				throw new Error('Parent folder is in trash');
+			}
 
 			let uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
@@ -117,6 +157,7 @@ export class GoogleDriveStorage {
 			formData.append('file', new Blob([data.body], { type: fileMetadata.mimeType })); // Set file data and MIME type
 
 			// Upload file to Google Drive
+			console.log('Uploading file...');
 			const file = await this.fetcher({
 				method: 'POST',
 				headers: {},
@@ -137,9 +178,6 @@ export class GoogleDriveStorage {
 				headers: {},
 				body: JSON.stringify(permissionData),
 			});
-
-			console.log('Permission set to public for file:', file.id);
-			console.log('Parent folder IDs:', file.parents);
 			return file;
 		} catch (error) {
 			console.error('Error uploading file or setting permission:', error.message);
@@ -326,22 +364,17 @@ export class GoogleDriveStorage {
 				const vcSubfolders = await this.findFolders(targetFolderId);
 
 				// Retrieve all 'VC.json' files from each 'VC-timestamp' subfolder
-				const fileContents: any[] = [];
+				const fileContents: any[] = await Promise.all(
+					vcSubfolders.map(async (folder: any) => {
+						const files = await this.findFilesUnderFolder(folder.id);
 
-				for (const folder of vcSubfolders) {
-					const files = await this.findFilesUnderFolder(folder.id);
-
-					// Fetch the content of each file
-					for (const file of files) {
-						try {
-							const content = await this.retrieve(file.id);
-
-							fileContents.push(content);
-						} catch (error) {
-							console.error(`Error retrieving content for file ${file.id}:`, error);
-						}
-					}
-				}
+						return Promise.all(
+							files.map(async (file: any) => {
+								return await this.retrieve(file.id);
+							})
+						);
+					})
+				);
 
 				return fileContents;
 			}
@@ -402,7 +435,7 @@ export class GoogleDriveStorage {
 		}
 	}
 
-	async findFileByName(name: FilesType) {
+	async findFileByName(name: string) {
 		// find the file named under Credentials folder
 		const rootFolders = await this.findFolders();
 		const credentialsFolderId = rootFolders.find((f: any) => f.name === 'Credentials')?.id;
@@ -415,8 +448,28 @@ export class GoogleDriveStorage {
 	async findFilesUnderFolder(folderId: string) {
 		if (!folderId) throw new Error('Folder ID is required');
 		console.log('🚀 ~ GoogleDriveStorage ~ findFilesUnderFolder ~ folderId', folderId);
+
+		// Fetch files under the folder
 		const files = await this.searchFiles(`'${folderId}' in parents`);
-		return files;
+		if (files.length === 0) {
+			console.log('No files found in the folder.');
+			return [];
+		}
+
+		// Fetch content for each file
+		const filesWithContent = await Promise.all(
+			files.map(async (file) => {
+				try {
+					const content = await this.getFileContent(file.id);
+					return { ...file, content }; // Merge file metadata with its content
+				} catch (error) {
+					console.error(`Error fetching content for file "${file.name}" (ID: ${file.id}):`, error);
+					return { ...file, content: null }; // Handle errors gracefully
+				}
+			})
+		);
+
+		return filesWithContent;
 	}
 
 	async updateFileData(fileId: string, data: DataToSaveI) {

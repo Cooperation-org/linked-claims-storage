@@ -1,5 +1,4 @@
 import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
-import crypto from 'crypto';
 import {
 	KeyPair,
 	DidDocument,
@@ -10,6 +9,7 @@ import {
 	VerifiableCredential,
 } from '../../types/credential';
 import { v4 as uuidv4 } from 'uuid';
+import CryptoJS from 'crypto-js';
 
 /**
  * Utility function to generate a hashed ID for a credential.
@@ -21,7 +21,7 @@ function generateHashedId(credential: object): string {
 	// Exclude the `id` field from the hash
 	const credentialWithoutId = { ...credential, id: undefined };
 	const serialized = JSON.stringify(credentialWithoutId);
-	return crypto.createHash('sha256').update(serialized).digest('hex');
+	return CryptoJS.SHA256(serialized).toString(CryptoJS.enc.Hex);
 }
 
 /**
