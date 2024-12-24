@@ -39,14 +39,9 @@ export class StorageHandler {
 	}
 }
 
-export class Resume extends StorageHandler {
+export class ResumeStorage extends StorageHandler {
 	constructor(storage: GoogleDriveStorage) {
 		super(storage);
-	}
-
-	public signResume({ resume }) {
-		// genetrate unsingned resume
-		// sign resume
 	}
 
 	public async saveResume({ resume, type }: { resume: any; type: 'sign' | 'unsigned' }) {
@@ -135,8 +130,7 @@ export class Resume extends StorageHandler {
 		return rootFolder;
 	}
 
-	private generarteUnsignedResume() {}
 	private isResumeFolderExist() {}
 }
 
-export default Resume;
+export default ResumeStorage;
