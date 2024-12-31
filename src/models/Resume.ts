@@ -17,8 +17,6 @@ export class StorageHandler {
 		let folder = folders.find((folder) => {
 			return folder.name === folderName;
 		});
-		if (folder && folder.name === 'RESUMES_AUTHOR') {
-		}
 		if (!folder) {
 			folder = await this.storage.createFolder({
 				folderName,
@@ -39,7 +37,7 @@ export class StorageHandler {
 	}
 }
 
-export class ResumeStorage extends StorageHandler {
+export class Resume extends StorageHandler {
 	constructor(storage: GoogleDriveStorage) {
 		super(storage);
 	}
@@ -133,4 +131,4 @@ export class ResumeStorage extends StorageHandler {
 	private isResumeFolderExist() {}
 }
 
-export default ResumeStorage;
+export default Resume;
