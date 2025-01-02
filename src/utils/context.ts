@@ -1,4 +1,34 @@
-// Load the local context files
+export const inlineResumeContext = {
+	'@context': {
+		'@vocab': 'https://schema.hropenstandards.org/4.4/',
+		name: 'https://schema.org/name',
+		formattedName: 'https://schema.org/formattedName',
+		primaryLanguage: 'https://schema.org/primaryLanguage',
+		narrative: 'https://schema.org/narrative',
+		text: 'https://schema.org/text',
+		employmentHistory: {
+			'@id': 'https://schema.org/employmentHistory',
+			'@container': '@list', // Specify list container
+		},
+		company: 'https://schema.org/company',
+		position: 'https://schema.org/jobTitle',
+		duration: 'https://schema.org/temporalCoverage',
+		skills: {
+			'@id': 'https://schema.org/skills',
+			'@container': '@list', // Specify list container
+		},
+		educationAndLearning: 'https://schema.org/educationAndLearning',
+		degree: 'https://schema.org/degree',
+		institution: 'https://schema.org/institution',
+		year: 'https://schema.org/year',
+		issuanceDate: 'https://schema.org/issuanceDate',
+		issuer: 'https://schema.org/issuer',
+		credentialSubject: 'https://schema.org/credentialSubject',
+		person: 'https://schema.org/Person', // Added person
+		Resume: 'https://schema.hropenstandards.org/4.4#Resume', // Map Resume to an absolute IRI
+	},
+};
+
 let localOBContext = {
 	'@context': {
 		'@protected': true,
