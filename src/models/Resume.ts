@@ -1,4 +1,4 @@
-import { GoogleDriveStorage } from './GoogleDriveStorage';
+import { GoogleDriveStorage } from './GoogleDriveStorage.js';
 
 export const resumeFolderTypes = {
 	root: 'RESUMES_AUTHOR',
@@ -12,7 +12,7 @@ export class StorageHandler {
 		this.storage = storage;
 	}
 
-	protected async getOrCreateFolder(folderName: string, parentId: string): Promise<any> {
+	public async getOrCreateFolder(folderName: string, parentId: string): Promise<any> {
 		const folders = await this.storage.findFolders(parentId); // Fetch all child folders of the parent
 		let folder = folders.find((folder) => {
 			return folder.name === folderName;
