@@ -39,10 +39,10 @@ export class GoogleDriveStorage {
 		try {
 			const res = await fetch(url, {
 				method,
-				headers: new Headers({
+				headers: {
 					Authorization: `Bearer ${this.accessToken}`,
 					...headers,
-				}),
+				},
 				body,
 			});
 
