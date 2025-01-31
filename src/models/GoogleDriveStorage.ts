@@ -514,4 +514,27 @@ export class GoogleDriveStorage {
 			return null;
 		}
 	}
+
+	async update(fileId: string, data: any) {
+		const fileMetadata = {
+			name: data.fileName,
+			mimeType: data.mimeType,
+		};
+
+		let uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+
+		const formData = new FormData();
+		formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+		formData.append('file', new Blob([data.body], { type: fileMetadata.mimeType }));
+
+		const updatedFile = await this.fetcher({
+			method: 'PATCH',
+			headers: {},
+			body: JSON.stringify(formData),
+			url: `${uploadUrl}&fields=id,parents`,
+		});
+
+		console.log('File updated:', updatedFile);
+		return updatedFile;
+	}
 }
