@@ -39,10 +39,10 @@ export class GoogleDriveStorage {
 		try {
 			const res = await fetch(url, {
 				method,
-				headers: new Headers({
+				headers: {
 					Authorization: `Bearer ${this.accessToken}`,
 					...headers,
-				}),
+				},
 				body,
 			});
 
@@ -132,15 +132,15 @@ export class GoogleDriveStorage {
 			if (!folderId) {
 				throw new Error('Folder ID is required to save a file.');
 			}
+
 			// Define file metadata, ensure correct folder is assigned
 			const fileMetadata = {
-				name: data.fileName,
+				name: data.fileName || 'resume.json', // Use the provided fileName or default to 'resume.json'
 				parents: [folderId], // Specify the folder ID
-				mimeType: data.mimeType || 'application/json',
+				mimeType: 'application/json', // Ensure the MIME type is set to JSON
 			};
 
-			// make sure the parentId is not in trash
-
+			// Check if the parent folder is in the trash
 			const folder = await this.fetcher({
 				method: 'GET',
 				headers: {},
@@ -150,11 +150,16 @@ export class GoogleDriveStorage {
 				throw new Error('Parent folder is in trash');
 			}
 
-			let uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+			// Prepare the file content as a JSON string
+			const fileContent = JSON.stringify(data);
 
+			// Create a Blob from the JSON string
+			const fileBlob = new Blob([fileContent], { type: 'application/json' });
+
+			// Create FormData and append the metadata and file content
 			const formData = new FormData();
 			formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-			formData.append('file', new Blob([data.body], { type: fileMetadata.mimeType })); // Set file data and MIME type
+			formData.append('file', fileBlob);
 
 			// Upload file to Google Drive
 			console.log('Uploading file...');
@@ -162,7 +167,7 @@ export class GoogleDriveStorage {
 				method: 'POST',
 				headers: {},
 				body: formData,
-				url: `${uploadUrl}&fields=id,parents`, // Request the file ID and parent folder IDs
+				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`,
 			});
 
 			// Set the file permission to "Anyone with the link" can view
@@ -178,6 +183,7 @@ export class GoogleDriveStorage {
 				headers: {},
 				body: JSON.stringify(permissionData),
 			});
+
 			return file;
 		} catch (error) {
 			console.error('Error uploading file or setting permission:', error.message);
@@ -507,5 +513,28 @@ export class GoogleDriveStorage {
 			console.error('Error deleting file:', error);
 			return null;
 		}
+	}
+
+	async update(fileId: string, data: any) {
+		const fileMetadata = {
+			name: data.fileName,
+			mimeType: data.mimeType,
+		};
+
+		let uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+
+		const formData = new FormData();
+		formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+		formData.append('file', new Blob([data.body], { type: fileMetadata.mimeType }));
+
+		const updatedFile = await this.fetcher({
+			method: 'PATCH',
+			headers: {},
+			body: JSON.stringify(formData),
+			url: `${uploadUrl}&fields=id,parents`,
+		});
+
+		console.log('File updated:', updatedFile);
+		return updatedFile;
 	}
 }
