@@ -1,7 +1,7 @@
 {
 	"name": "@cooperation/vc-storage",
 	"type": "module",
-	"version": "1.0.17",
+	"version": "1.0.18",
 	"description": "Sign and store your verifiable credentials.",
 	"main": "dist/index.js",
 	"types": "dist/types/index.d.ts",

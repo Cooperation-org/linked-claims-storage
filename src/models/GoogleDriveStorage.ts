@@ -79,8 +79,7 @@ export class GoogleDriveStorage {
 				url,
 			});
 
-			console.log(`Content fetched for file ID: ${fileId}`);
-			return response; // This could be text, JSON, or binary, depending on the file type
+			return response;
 		} catch (error) {
 			console.error(`Error fetching content for file ID: ${fileId}:`, error.message);
 			throw new Error(`Failed to fetch content for file ID: ${fileId}`);
@@ -170,20 +169,6 @@ export class GoogleDriveStorage {
 				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`,
 			});
 
-			// Set the file permission to "Anyone with the link" can view
-			const permissionUrl = `https://www.googleapis.com/drive/v3/files/${file.id}/permissions`;
-			const permissionData = {
-				role: 'reader',
-				type: 'anyone', // Public access
-			};
-
-			await this.fetcher({
-				method: 'POST',
-				url: permissionUrl,
-				headers: {},
-				body: JSON.stringify(permissionData),
-			});
-
 			return file;
 		} catch (error) {
 			console.error('Error uploading file or setting permission:', error.message);
@@ -196,29 +181,11 @@ export class GoogleDriveStorage {
 	 * @param id
 	 * @returns file content
 	 */
-	async retrieve(id: string): Promise<{ name: string; data: any; id: string } | null> {
+	async retrieve(id: string): Promise<{ data: any } | null> {
 		const metadataUrl = `https://www.googleapis.com/drive/v3/files/${id}?fields=id,name`;
 		const dataUrl = `https://www.googleapis.com/drive/v3/files/${id}?alt=media`;
 
 		try {
-			// Initial "touch" request to ensure file accessibility for the current user
-			const touchResponse = await fetch(metadataUrl, {
-				method: 'GET',
-				headers: {
-					Authorization: `Bearer ${this.accessToken}`,
-				},
-			});
-
-			if (!touchResponse.ok) {
-				const errorData = await touchResponse.json();
-				console.error(`Failed to "touch" file for accessibility with ID ${id}:`, errorData);
-				return null;
-			}
-
-			// Fetch file metadata to get the name
-			const metadata = await touchResponse.json();
-			const fileName = metadata.name;
-
 			// Fetch actual file data
 			const dataResponse = await fetch(dataUrl, {
 				method: 'GET',
@@ -239,8 +206,6 @@ export class GoogleDriveStorage {
 			let fileData;
 			if (contentType?.includes('application/json')) {
 				fileData = await dataResponse.json();
-			} else if (contentType?.includes('text') || contentType?.includes('image/svg+xml')) {
-				fileData = await dataResponse.text(); // Fetch SVG files as text for easy manipulation
 			} else if (
 				contentType?.includes('image') ||
 				contentType?.includes('video') ||
@@ -254,11 +219,9 @@ export class GoogleDriveStorage {
 			) {
 				fileData = await dataResponse.blob();
 			} else {
-				fileData = await dataResponse.arrayBuffer(); // Fallback for other binary types
+				fileData = await dataResponse.arrayBuffer();
 			}
-
-			// Return file ID, name, and data
-			return { id: metadata.id, name: fileName, data: fileData };
+			return { data: fileData };
 		} catch (error) {
 			console.error(`Error retrieving file with ID ${id}:`, error.message);
 			return null;
@@ -315,6 +278,7 @@ export class GoogleDriveStorage {
 				const fileContents: any[] = await Promise.all(
 					vcSubfolders.map(async (folder: any) => {
 						const files = await this.findFilesUnderFolder(folder.id);
+						console.log('🚀 ~ GoogleDriveStorage ~ vcSubfolders.map ~ files:', files);
 
 						return Promise.all(
 							files.map(async (file: any) => {
@@ -323,6 +287,7 @@ export class GoogleDriveStorage {
 						);
 					})
 				);
+				console.log('🚀 ~ GoogleDriveStorage ~ getAllFilesByType ~ fileContents:', fileContents);
 
 				return fileContents;
 			}
@@ -395,9 +360,7 @@ export class GoogleDriveStorage {
 
 	async findFilesUnderFolder(folderId: string) {
 		if (!folderId) throw new Error('Folder ID is required');
-		console.log('🚀 ~ GoogleDriveStorage ~ findFilesUnderFolder ~ folderId', folderId);
 
-		// Fetch files under the folder
 		const files = await this.searchFiles(`'${folderId}' in parents`);
 		if (files.length === 0) {
 			console.log('No files found in the folder.');
@@ -409,7 +372,7 @@ export class GoogleDriveStorage {
 			files.map(async (file) => {
 				try {
 					const content = await this.getFileContent(file.id);
-					return { ...file, content }; // Merge file metadata with its content
+					return { ...file, content };
 				} catch (error) {
 					console.error(`Error fetching content for file "${file.name}" (ID: ${file.id}):`, error);
 					return { ...file, content: null }; // Handle errors gracefully
@@ -420,27 +383,26 @@ export class GoogleDriveStorage {
 		return filesWithContent;
 	}
 
-	async updateFileData(fileId: string, data: DataToSaveI) {
-		const fileMetadata = {
-			name: data.fileName,
-			mimeType: data.mimeType,
-		};
+	async updateFileData(fileId: string, data: { fileName: string }) {
+		try {
+			const updateUrl = `https://www.googleapis.com/drive/v3/files/${fileId}`;
 
-		let uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+			const updatedFile = await this.fetcher({
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					name: data.fileName,
+				}),
+				url: updateUrl,
+			});
 
-		const formData = new FormData();
-		formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-		formData.append('file', new Blob([data.body], { type: fileMetadata.mimeType }));
-
-		const updatedFile = await this.fetcher({
-			method: 'PATCH',
-			headers: {},
-			body: JSON.stringify(formData),
-			url: `${uploadUrl}&fields=id,parents`,
-		});
-
-		console.log('File updated:', updatedFile);
-		return updatedFile;
+			console.log('✅ File renamed successfully:', updatedFile);
+			return updatedFile;
+		} catch (error) {
+			throw error;
+		}
 	}
 
 	async getFileParents(fileId: string) {
@@ -516,25 +478,42 @@ export class GoogleDriveStorage {
 	}
 
 	async update(fileId: string, data: any) {
-		const fileMetadata = {
-			name: data.fileName,
-			mimeType: data.mimeType,
+		console.log('🚀 ~ GoogleDriveStorage ~ update ~ data:', data);
+		console.log('🚀 ~ GoogleDriveStorage ~ update ~ fileId:', fileId);
+
+		// ✅ Ensure JSON file type
+		const metadata = {
+			name: data.fileName || 'resume.json',
+			mimeType: 'application/json',
 		};
 
-		let uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+		const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
 
+		// ✅ Create multipart request to update Google Drive JSON file
 		const formData = new FormData();
-		formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-		formData.append('file', new Blob([data.body], { type: fileMetadata.mimeType }));
 
-		const updatedFile = await this.fetcher({
-			method: 'PATCH',
-			headers: {},
-			body: JSON.stringify(formData),
-			url: `${uploadUrl}&fields=id,parents`,
-		});
+		formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
 
-		console.log('File updated:', updatedFile);
-		return updatedFile;
+		formData.append(
+			'file',
+			new Blob([JSON.stringify(data.body)], { type: 'application/json' }) // ✅ Ensure JSON format
+		);
+
+		console.log('🚀 ~ GoogleDriveStorage ~ update ~ FormData:', formData);
+
+		try {
+			const response = await this.fetcher({
+				method: 'PATCH',
+				headers: {}, // ✅ No Content-Type needed, let FormData set it
+				body: formData, // ✅ Sends JSON file properly
+				url: `${uploadUrl}&fields=id,name,mimeType`,
+			});
+
+			console.log('✅ File updated successfully:', response);
+			return response;
+		} catch (error) {
+			console.error('❌ Error updating Google Drive file:', error);
+			throw error;
+		}
 	}
 }

@@ -57,7 +57,6 @@ export class Resume extends StorageHandler {
 			const subFolder = await this.getOrCreateFolder(subFolderName, rootFolder.id);
 
 			// Save the file in the subfolder
-
 			const savedResume = await this.storage.saveFile({
 				folderId: subFolder.id, // Ensure this points to the subfolder
 				data: resume,
