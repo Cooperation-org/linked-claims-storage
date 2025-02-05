@@ -586,4 +586,64 @@ export class GoogleDriveStorage {
 		console.log('File updated:', updatedFile);
 		return updatedFile;
 	}
+
+	async getFileIdsFromAppDataFolder() {
+		try {
+			// Step 1: Search for the file_ids.json file in the appDataFolder
+			const response = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
+			});
+
+			// Step 2: Check if the file exists
+			if (!response.files || response.files.length === 0) {
+				console.log('No file_ids.json found in appDataFolder.');
+				return [];
+			}
+
+			// Step 3: Get the file ID of file_ids.json
+			const fileId = response.files[0].id;
+
+			// Step 4: Fetch the content of file_ids.json
+			const fileContent = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+			});
+
+			// Step 5: Parse the file content (array of file IDs)
+			const fileIds = JSON.parse(fileContent);
+			return fileIds;
+		} catch (error) {
+			console.error('Error fetching file IDs from appDataFolder:', error.message);
+			return [];
+		}
+	}
+
+	async getAllFilesData() {
+		try {
+			// Step 1: Get the file IDs from appDataFolder
+			const fileIds = await this.getFileIdsFromAppDataFolder();
+			if (fileIds.length === 0) {
+				console.log('No files found.');
+				return [];
+			}
+
+			// Step 2: Fetch data for each file ID
+			const filesData = [];
+			for (const fileId of fileIds) {
+				const fileData = await this.retrieve(fileId);
+				if (fileData) {
+					filesData.push(fileData);
+				}
+			}
+
+			// Step 3: Return the array of file data
+			return filesData;
+		} catch (error) {
+			console.error('Error fetching all files data:', error.message);
+			return [];
+		}
+	}
 }
