@@ -168,10 +168,71 @@ export class GoogleDriveStorage {
 				body: formData,
 				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`,
 			});
+			// Set the file permission to "Anyone with the link" can view
+			const permissionUrl = `https://www.googleapis.com/drive/v3/files/${file.id}/permissions`;
+			const permissionData = {
+				role: 'reader',
+				type: 'anyone', // Public access
+			};
 
+			await this.fetcher({
+				method: 'POST',
+				url: permissionUrl,
+				headers: {},
+				body: JSON.stringify(permissionData),
+			});
+
+			// Step 9: Save the file ID in the appDataFolder
+			console.log('Saving file ID to appDataFolder...');
+			const appDataFileMetadata = {
+				name: 'file_ids.json', // File to store file IDs
+				parents: ['appDataFolder'], // Save in the hidden appDataFolder
+				mimeType: 'application/json',
+			};
+
+			// Step 10: Check if an existing file_ids.json exists in appDataFolder
+			let existingFileIds = [];
+			try {
+				const existingFile = await this.fetcher({
+					method: 'GET',
+					headers: {},
+					url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
+				});
+				if (existingFile.files && existingFile.files.length > 0) {
+					const fileId = existingFile.files[0].id;
+					const fileContent = await this.fetcher({
+						method: 'GET',
+						headers: {},
+						url: `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+					});
+					existingFileIds = JSON.parse(fileContent);
+				}
+			} catch (error) {
+				console.log('No existing file_ids.json found, creating a new one.');
+			}
+
+			// Step 11: Append the new file ID to the existing list
+			existingFileIds.push(file.id);
+
+			// Step 12: Create a Blob for the updated file IDs
+			const appDataFileBlob = new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' });
+
+			// Step 13: Upload the updated file_ids.json to appDataFolder
+			const appDataFormData = new FormData();
+			appDataFormData.append('metadata', new Blob([JSON.stringify(appDataFileMetadata)], { type: 'application/json' }));
+			appDataFormData.append('file', appDataFileBlob);
+
+			await this.fetcher({
+				method: 'POST',
+				headers: {},
+				body: appDataFormData,
+				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,
+			});
+
+			console.log('File ID saved to appDataFolder.');
 			return file;
 		} catch (error) {
-			console.error('Error uploading file or setting permission:', error.message);
+			console.error('Error uploading file or saving file ID:', error.message);
 			return null;
 		}
 	}
@@ -514,6 +575,66 @@ export class GoogleDriveStorage {
 		} catch (error) {
 			console.error('❌ Error updating Google Drive file:', error);
 			throw error;
+		}
+	}
+
+	async getFileIdsFromAppDataFolder() {
+		try {
+			// Step 1: Search for the file_ids.json file in the appDataFolder
+			const response = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
+			});
+
+			// Step 2: Check if the file exists
+			if (!response.files || response.files.length === 0) {
+				console.log('No file_ids.json found in appDataFolder.');
+				return [];
+			}
+
+			// Step 3: Get the file ID of file_ids.json
+			const fileId = response.files[0].id;
+
+			// Step 4: Fetch the content of file_ids.json
+			const fileContent = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+			});
+
+			// Step 5: Parse the file content (array of file IDs)
+			const fileIds = JSON.parse(fileContent);
+			return fileIds;
+		} catch (error) {
+			console.error('Error fetching file IDs from appDataFolder:', error.message);
+			return [];
+		}
+	}
+
+	async getAllFilesData() {
+		try {
+			// Step 1: Get the file IDs from appDataFolder
+			const fileIds = await this.getFileIdsFromAppDataFolder();
+			if (fileIds.length === 0) {
+				console.log('No files found.');
+				return [];
+			}
+
+			// Step 2: Fetch data for each file ID
+			const filesData = [];
+			for (const fileId of fileIds) {
+				const fileData = await this.retrieve(fileId);
+				if (fileData) {
+					filesData.push(fileData);
+				}
+			}
+
+			// Step 3: Return the array of file data
+			return filesData;
+		} catch (error) {
+			console.error('Error fetching all files data:', error.message);
+			return [];
 		}
 	}
 }
