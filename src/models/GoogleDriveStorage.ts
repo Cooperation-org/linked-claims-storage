@@ -30,6 +30,73 @@ interface FetcherI {
  */
 export class GoogleDriveStorage {
 	private accessToken: string;
+	public folderCache: any = {};
+	private fileIdsCache = null;
+
+	private async updateFileIdsJson(newFileId: string) {
+		try {
+			// ✅ Fetch `file_ids.json` ID once per session (cached)
+			if (!this.fileIdsCache) {
+				const existingFile = await this.fetcher({
+					method: 'GET',
+					headers: {},
+					url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
+				});
+
+				if (existingFile.files.length > 0) {
+					this.fileIdsCache = existingFile.files[0].id;
+				} else {
+					console.log('No existing file_ids.json found, creating a new one.');
+					this.fileIdsCache = null;
+				}
+			}
+
+			let existingFileIds = [];
+
+			// ✅ Fetch existing file IDs **only if `file_ids.json` exists**
+			if (this.fileIdsCache) {
+				try {
+					const fileContent = await this.fetcher({
+						method: 'GET',
+						headers: {},
+						url: `https://www.googleapis.com/drive/v3/files/${this.fileIdsCache}?alt=media`,
+					});
+					existingFileIds = JSON.parse(fileContent);
+				} catch (error) {
+					console.log('Error fetching existing file_ids.json content, creating new list.');
+				}
+			}
+
+			// ✅ Append the new file ID to the list
+			existingFileIds.push(newFileId);
+
+			// ✅ Prepare the updated `file_ids.json`
+			const appDataFileMetadata = {
+				name: 'file_ids.json',
+				parents: ['appDataFolder'],
+				mimeType: 'application/json',
+			};
+
+			const appDataFileBlob = new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' });
+
+			const appDataFormData = new FormData();
+			appDataFormData.append('metadata', new Blob([JSON.stringify(appDataFileMetadata)], { type: 'application/json' }));
+			appDataFormData.append('file', appDataFileBlob);
+
+			// ✅ Upload the updated `file_ids.json`
+			await this.fetcher({
+				method: 'POST',
+				headers: {},
+				body: appDataFormData,
+				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,
+			});
+
+			console.log('File ID saved to appDataFolder.');
+		} catch (error) {
+			console.error('Error updating file_ids.json:', error.message);
+			throw error;
+		}
+	}
 
 	constructor(accessToken: string) {
 		this.accessToken = accessToken;
@@ -99,12 +166,7 @@ export class GoogleDriveStorage {
 		return result.files;
 	}
 
-	async createFolder({ folderName, parentFolderId }: { folderName: string; parentFolderId: string }): Promise<{
-		id: string;
-		name: string;
-		mimeType: string;
-		parents: string[];
-	}> {
+	async createFolder({ folderName, parentFolderId }: { folderName: string; parentFolderId: string }) {
 		if (!parentFolderId) {
 			throw new Error(`Parent folder ID must be provided when creating folder "${folderName}".`);
 		}
@@ -112,7 +174,7 @@ export class GoogleDriveStorage {
 		const metadata = {
 			name: folderName,
 			mimeType: 'application/vnd.google-apps.folder',
-			parents: [parentFolderId], // Explicitly associate with the parent folder
+			parents: [parentFolderId],
 		};
 
 		const folder = await this.fetcher({
@@ -123,6 +185,15 @@ export class GoogleDriveStorage {
 		});
 
 		console.log(`Folder created: "${folderName}" with ID: ${folder.id}, Parent: ${parentFolderId}`);
+
+		// Set permissions once for the whole folder
+		await this.fetcher({
+			method: 'POST',
+			url: `https://www.googleapis.com/drive/v3/files/${folder.id}/permissions`,
+			headers: {},
+			body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+		});
+
 		return folder;
 	}
 
@@ -132,35 +203,22 @@ export class GoogleDriveStorage {
 				throw new Error('Folder ID is required to save a file.');
 			}
 
-			// Define file metadata, ensure correct folder is assigned
+			// ✅ Define file metadata
 			const fileMetadata = {
-				name: data.fileName || 'resume.json', // Use the provided fileName or default to 'resume.json'
+				name: data.fileName || 'resume.json', // Default name if none provided
 				parents: [folderId], // Specify the folder ID
 				mimeType: 'application/json', // Ensure the MIME type is set to JSON
 			};
 
-			// Check if the parent folder is in the trash
-			const folder = await this.fetcher({
-				method: 'GET',
-				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files/${folderId}?fields=trashed`,
-			});
-			if (folder.trashed) {
-				throw new Error('Parent folder is in trash');
-			}
+			// ✅ Prepare the file content as JSON
+			const fileBlob = new Blob([JSON.stringify(data)], { type: 'application/json' });
 
-			// Prepare the file content as a JSON string
-			const fileContent = JSON.stringify(data);
-
-			// Create a Blob from the JSON string
-			const fileBlob = new Blob([fileContent], { type: 'application/json' });
-
-			// Create FormData and append the metadata and file content
+			// ✅ Create FormData and append metadata + file content
 			const formData = new FormData();
 			formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
 			formData.append('file', fileBlob);
 
-			// Upload file to Google Drive
+			// ✅ Upload file to Google Drive
 			console.log('Uploading file...');
 			const file = await this.fetcher({
 				method: 'POST',
@@ -168,72 +226,16 @@ export class GoogleDriveStorage {
 				body: formData,
 				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`,
 			});
-			// Set the file permission to "Anyone with the link" can view
-			const permissionUrl = `https://www.googleapis.com/drive/v3/files/${file.id}/permissions`;
-			const permissionData = {
-				role: 'reader',
-				type: 'anyone', // Public access
-			};
 
-			await this.fetcher({
-				method: 'POST',
-				url: permissionUrl,
-				headers: {},
-				body: JSON.stringify(permissionData),
-			});
+			console.log(`File uploaded successfully: ${file.id}`);
 
-			// Step 9: Save the file ID in the appDataFolder
-			console.log('Saving file ID to appDataFolder...');
-			const appDataFileMetadata = {
-				name: 'file_ids.json', // File to store file IDs
-				parents: ['appDataFolder'], // Save in the hidden appDataFolder
-				mimeType: 'application/json',
-			};
+			// ✅ Save the file ID in `file_ids.json` immediately
+			await this.updateFileIdsJson(file.id);
 
-			// Step 10: Check if an existing file_ids.json exists in appDataFolder
-			let existingFileIds = [];
-			try {
-				const existingFile = await this.fetcher({
-					method: 'GET',
-					headers: {},
-					url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
-				});
-				if (existingFile.files && existingFile.files.length > 0) {
-					const fileId = existingFile.files[0].id;
-					const fileContent = await this.fetcher({
-						method: 'GET',
-						headers: {},
-						url: `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-					});
-					existingFileIds = JSON.parse(fileContent);
-				}
-			} catch (error) {
-				console.log('No existing file_ids.json found, creating a new one.');
-			}
-
-			// Step 11: Append the new file ID to the existing list
-			existingFileIds.push(file.id);
-
-			// Step 12: Create a Blob for the updated file IDs
-			const appDataFileBlob = new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' });
-
-			// Step 13: Upload the updated file_ids.json to appDataFolder
-			const appDataFormData = new FormData();
-			appDataFormData.append('metadata', new Blob([JSON.stringify(appDataFileMetadata)], { type: 'application/json' }));
-			appDataFormData.append('file', appDataFileBlob);
-
-			await this.fetcher({
-				method: 'POST',
-				headers: {},
-				body: appDataFormData,
-				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,
-			});
-
-			console.log('File ID saved to appDataFolder.');
 			return file;
 		} catch (error) {
-			console.error('Error uploading file or saving file ID:', error.message);
-			return null;
+			console.error('Error uploading file:', error.message);
+			throw error;
 		}
 	}
 
@@ -294,14 +296,19 @@ export class GoogleDriveStorage {
 	 * @param folderId [Optional]
 	 * @returns
 	 */
-	findFolders = async (folderId?: string): Promise<any[]> => {
+	async findFolders(folderId?: string): Promise<any[]> {
+		if (this.folderCache[folderId || 'root']) {
+			return this.folderCache[folderId || 'root'];
+		}
+
 		const query = folderId
 			? `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder'`
 			: `'root' in parents and mimeType='application/vnd.google-apps.folder'`;
-		const folders = await this.searchFiles(query);
 
-		return folders.filter((file: any) => file.mimeType === 'application/vnd.google-apps.folder');
-	};
+		const folders = await this.searchFiles(query);
+		this.folderCache[folderId || 'root'] = folders; // Store in cache
+		return folders;
+	}
 
 	/**
 	 * Get all files content for the specified type ('KEYPAIRs' | 'VCs' | 'SESSIONs' | 'DIDs' | 'RECOMMENDATIONs')
@@ -310,75 +317,69 @@ export class GoogleDriveStorage {
 	 */
 	public async getAllFilesByType(type: 'KEYPAIRs' | 'VCs' | 'SESSIONs' | 'DIDs' | 'RECOMMENDATIONs' | 'MEDIAs'): Promise<FileContent[]> {
 		try {
-			// Step 1: Find the root 'Credentials' folder
-			const rootFolders = await this.findFolders();
-			const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
+			// Step 1: Use cached folders to avoid redundant API calls
+			if (!this.folderCache['Credentials']) {
+				const rootFolders = await this.findFolders();
+				this.folderCache['Credentials'] = rootFolders;
+			}
+
+			const credentialsFolder = this.folderCache['Credentials'].find((f: any) => f.name === 'Credentials');
 			if (!credentialsFolder) {
 				console.error('Credentials folder not found.');
 				return [];
 			}
 
-			const credentialsFolderId = credentialsFolder.id;
-
-			// Step 2: Handle special case for 'VCs'
+			// Step 2: Handle 'VCs' separately
 			if (type === 'VCs') {
-				// Find the 'VCs' folder under 'Credentials'
-				const subfolders = await this.findFolders(credentialsFolderId);
-				const targetFolder = subfolders.find((f: any) => f.name === 'VCs');
-				if (!targetFolder) {
-					console.error(`Folder for type ${type} not found.`);
+				if (!this.folderCache['VCs']) {
+					const vcSubfolders = await this.findFolders(credentialsFolder.id);
+					this.folderCache['VCs'] = vcSubfolders;
+				}
+
+				const vcSubfolders = this.folderCache['VCs'];
+				if (!vcSubfolders.length) {
+					console.error(`No subfolders found for type: ${type}`);
 					return [];
 				}
 
-				const targetFolderId = targetFolder.id;
+				// Fetch all files in each subfolder in parallel
+				const allVcFiles = await Promise.all(vcSubfolders.map(async (folder: any) => await this.findFilesUnderFolder(folder.id)));
 
-				// Fetch all 'VC-timestamp' subfolders under 'VCs'
-				const vcSubfolders = await this.findFolders(targetFolderId);
+				// Flatten and retrieve all file contents in parallel
+				const fileContents = await Promise.allSettled(allVcFiles.flat().map(async (file: any) => await this.retrieve(file.id)));
 
-				// Retrieve all 'VC.json' files from each 'VC-timestamp' subfolder
-				const fileContents: any[] = await Promise.all(
-					vcSubfolders.map(async (folder: any) => {
-						const files = await this.findFilesUnderFolder(folder.id);
-						console.log('🚀 ~ GoogleDriveStorage ~ vcSubfolders.map ~ files:', files);
-
-						return Promise.all(
-							files.map(async (file: any) => {
-								return await this.retrieve(file.id);
-							})
-						);
-					})
-				);
-				console.log('🚀 ~ GoogleDriveStorage ~ getAllFilesByType ~ fileContents:', fileContents);
-
-				return fileContents;
+				return fileContents.filter((res) => res.status === 'fulfilled').map((res: any) => res.value);
 			}
 
 			// Step 3: Generic handling for other types
-			const subfolders = await this.findFolders(credentialsFolderId);
-			const targetFolder = subfolders.find((f: any) => f.name === type);
-			if (!targetFolder) {
+			if (!this.folderCache[type]) {
+				const subfolders = await this.findFolders(credentialsFolder.id);
+				const targetFolder = subfolders.find((f: any) => f.name === type);
+				this.folderCache[type] = targetFolder ? targetFolder.id : null;
+			}
+
+			const targetFolderId = this.folderCache[type];
+			if (!targetFolderId) {
 				console.error(`Folder for type ${type} not found.`);
 				return [];
 			}
 
+			// Fetch files inside the target folder
 			const filesResponse = await this.fetcher({
 				method: 'GET',
 				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files?q='${targetFolder.id}' in parents and trashed=false&fields=files(id,name,mimeType,parents)`,
+				url: `https://www.googleapis.com/drive/v3/files?q='${targetFolderId}' in parents and trashed=false&fields=files(id,name,mimeType)`,
 			});
 
-			const files = filesResponse.files;
+			const files = filesResponse.files || [];
 
-			const fileContents = await Promise.all(
-				files.map(async (file: any) => {
-					return await this.retrieve(file.id);
-				})
-			);
+			// Fetch all file contents in parallel
+			const fileContents = await Promise.allSettled(files.map((file: any) => this.retrieve(file.id)));
 
-			return fileContents;
+			return fileContents.filter((res) => res.status === 'fulfilled').map((res: any) => res.value);
 		} catch (error) {
 			console.error(`Error getting files of type ${type}:`, error);
-			return []; // Return an empty array on error
+			return [];
 		}
 	}
 
