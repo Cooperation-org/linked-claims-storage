@@ -212,7 +212,7 @@ export class GoogleDriveStorage {
 			const appDataFileMetadata = {
 				name: 'file_ids.json',
 				mimeType: 'application/json',
-				spaces: ['appDataFolder'],
+				parents: ['appDataFolder'],
 			};
 
 			// Update or create file_ids.json
@@ -225,7 +225,7 @@ export class GoogleDriveStorage {
 					method: 'PATCH',
 					headers: {},
 					body: formDataForAppData,
-					url: `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart`,
+					url: `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart&fields=id`,
 				});
 			} else {
 				await this.fetcher({
