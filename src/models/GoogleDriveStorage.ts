@@ -168,75 +168,81 @@ export class GoogleDriveStorage {
 				body: formData,
 				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`,
 			});
-			// Set the file permission to "Anyone with the link" can view
-			const permissionUrl = `https://www.googleapis.com/drive/v3/files/${file.id}/permissions`;
-			const permissionData = {
-				role: 'reader',
-				type: 'anyone', // Public access
-			};
 
+			// Set file permissions
 			await this.fetcher({
 				method: 'POST',
-				url: permissionUrl,
+				url: `https://www.googleapis.com/drive/v3/files/${file.id}/permissions`,
 				headers: {},
-				body: JSON.stringify(permissionData),
+				body: JSON.stringify({
+					role: 'reader',
+					type: 'anyone',
+				}),
 			});
 
-			// Step 9: Save the file ID in the appDataFolder
-			console.log('Saving file ID to appDataFolder...');
-			const appDataFileMetadata = {
-				name: 'file_ids.json', // File to store file IDs
-				parents: ['appDataFolder'], // Save in the hidden appDataFolder
-				mimeType: 'application/json',
-			};
-
-			// Step 10: Check if an existing file_ids.json exists in appDataFolder
+			// Check for existing file_ids.json in appDataFolder
+			let existingFileId: string | null = null;
 			let existingFileIds = [];
+
 			try {
-				const existingFile = await this.fetcher({
+				const existingFileQuery = await this.fetcher({
 					method: 'GET',
 					headers: {},
-					url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
+					url: `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='file_ids.json'&fields=files(id)`,
 				});
-				if (existingFile.files && existingFile.files.length > 0) {
-					const fileId = existingFile.files[0].id;
+
+				if (existingFileQuery.files?.length > 0) {
+					existingFileId = existingFileQuery.files[0].id;
 					const fileContent = await this.fetcher({
 						method: 'GET',
 						headers: {},
-						url: `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+						url: `https://www.googleapis.com/drive/v3/files/${existingFileId}?alt=media`,
 					});
 					existingFileIds = JSON.parse(fileContent);
 				}
+				console.log('existingFileId', existingFileId);
 			} catch (error) {
-				console.log('No existing file_ids.json found, creating a new one.');
+				console.log('Creating new file_ids.json');
 			}
 
-			// Step 11: Append the new file ID to the existing list
+			// Add new file ID
 			existingFileIds.push(file.id);
 
-			// Step 12: Create a Blob for the updated file IDs
-			const appDataFileBlob = new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' });
+			// Metadata for app data file
+			const appDataFileMetadata = {
+				name: 'file_ids.json',
+				mimeType: 'application/json',
+				spaces: ['appDataFolder'],
+			};
 
-			// Step 13: Upload the updated file_ids.json to appDataFolder
-			const appDataFormData = new FormData();
-			appDataFormData.append('metadata', new Blob([JSON.stringify(appDataFileMetadata)], { type: 'application/json' }));
-			appDataFormData.append('file', appDataFileBlob);
+			// Update or create file_ids.json
+			const formDataForAppData = new FormData();
+			formDataForAppData.append('metadata', new Blob([JSON.stringify(appDataFileMetadata)], { type: 'application/json' }));
+			formDataForAppData.append('file', new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' }));
 
-			await this.fetcher({
-				method: 'POST',
-				headers: {},
-				body: appDataFormData,
-				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,
-			});
+			if (existingFileId) {
+				await this.fetcher({
+					method: 'PATCH',
+					headers: {},
+					body: formDataForAppData,
+					url: `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart`,
+				});
+			} else {
+				await this.fetcher({
+					method: 'POST',
+					headers: {},
+					body: formDataForAppData,
+					url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&spaces=appDataFolder`,
+				});
+			}
+			console.log(file);
 
-			console.log('File ID saved to appDataFolder.');
 			return file;
 		} catch (error) {
-			console.error('Error uploading file or saving file ID:', error.message);
-			return null;
+			console.error('Error:', error.message);
+			throw error;
 		}
 	}
-
 	/**
 	 * Get file from google drive by id
 	 * @param id
@@ -621,17 +627,8 @@ export class GoogleDriveStorage {
 				return [];
 			}
 
-			// Step 2: Fetch data for each file ID
-			const filesData = [];
-			for (const fileId of fileIds) {
-				const fileData = await this.retrieve(fileId);
-				if (fileData) {
-					filesData.push(fileData);
-				}
-			}
-
-			// Step 3: Return the array of file data
-			return filesData;
+			// Step 2: Return the array of file IDs
+			return fileIds;
 		} catch (error) {
 			console.error('Error fetching all files data:', error.message);
 			return [];
