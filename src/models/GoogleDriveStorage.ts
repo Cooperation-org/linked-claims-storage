@@ -42,7 +42,7 @@ export class GoogleDriveStorage {
 				const existingFile = await this.fetcher({
 					method: 'GET',
 					headers: {},
-					url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
+					url: `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='file_ids.json'&fields=files(id)`,
 				});
 
 				if (existingFile.files.length > 0) {
@@ -75,8 +75,8 @@ export class GoogleDriveStorage {
 			// ✅ Prepare the updated `file_ids.json`
 			const appDataFileMetadata = {
 				name: 'file_ids.json',
-				parents: ['appDataFolder'],
 				mimeType: 'application/json',
+				parents: ['appDataFolder'],
 			};
 
 			const appDataFileBlob = new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' });
@@ -85,15 +85,26 @@ export class GoogleDriveStorage {
 			appDataFormData.append('metadata', new Blob([JSON.stringify(appDataFileMetadata)], { type: 'application/json' }));
 			appDataFormData.append('file', appDataFileBlob);
 
-			// ✅ Upload the updated `file_ids.json`
-			await this.fetcher({
-				method: 'POST',
-				headers: {},
-				body: appDataFormData,
-				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,
-			});
+			if (this.fileIdsCache) {
+				// ✅ Upload the updated `file_ids.json`
+				await this.fetcher({
+					method: 'PATCH',
+					headers: {},
+					body: appDataFormData,
+					url: `https://www.googleapis.com/upload/drive/v3/files/${this.fileIdsCache}?uploadType=multipart&fields=id`,
+				});
+			} else {
+				const newFile = await this.fetcher({
+					method: 'POST',
+					headers: {},
+					body: appDataFormData,
+					url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,
+				});
 
-			console.log('File ID saved to appDataFolder.');
+				this.fileIdsCache = newFile.id;
+			}
+
+			console.log('File ID saved to appDataFolder.', this.fileIdsCache);
 		} catch (error) {
 			console.error('Error updating file_ids.json:', error.message);
 			throw error;
