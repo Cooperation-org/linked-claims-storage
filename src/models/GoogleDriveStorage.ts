@@ -226,7 +226,6 @@ export class GoogleDriveStorage {
 
 		return file;
 	}
-
 	/**
 	 * Get file from google drive by id
 	 * @param id
@@ -563,17 +562,8 @@ export class GoogleDriveStorage {
 				return [];
 			}
 
-			// Step 2: Fetch data for each file ID
-			const filesData = [];
-			for (const fileId of fileIds) {
-				const fileData = await this.retrieve(fileId);
-				if (fileData) {
-					filesData.push(fileData);
-				}
-			}
-
-			// Step 3: Return the array of file data
-			return filesData;
+			// Step 2: Return the array of file IDs
+			return fileIds;
 		} catch (error) {
 			console.error('Error fetching all files data:', error.message);
 			return [];
