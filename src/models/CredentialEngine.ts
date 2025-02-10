@@ -24,7 +24,6 @@ interface SignPropsI {
 /**
  * Class representing the Credential Engine.
  * @class CredentialEngine
- * @param {string} accessToken - The access token for the user.
  * @classdesc Credential Engine class to create DIDs and VCs.
  * @method createDID - Create a new DID with Digital Bazaar's Ed25519VerificationKey2020 key pair.
  * @method createWalletDID - Create a new DID with user metamask address as controller.
@@ -37,8 +36,8 @@ export class CredentialEngine {
 	private storage: GoogleDriveStorage;
 	private keyPair: KeyPair;
 
-	constructor(accessToken: string) {
-		this.storage = new GoogleDriveStorage(accessToken);
+	constructor(storage: GoogleDriveStorage) {
+		this.storage = storage;
 	}
 
 	private async getKeyPair(vc: VerifiableCredential) {

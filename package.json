@@ -10,7 +10,7 @@
 	],
 	"scripts": {
 		"build": "tsc",
-		"test": "jest",
+		"test": "vitest",
 		"version": "npm version patch"
 	},
 	"author": "cooperation",
@@ -22,26 +22,18 @@
 		"@digitalbazaar/vc": "^6.3.0",
 		"crypto-js": "^4.2.0",
 		"ethers": "^6.13.2",
+		"jest": "^29.7.0",
+		"ts-jest": "^29.2.5",
 		"ts-node": "^10.9.2",
 		"tsc": "^2.0.4",
 		"uuid": "^10.0.0"
 	},
 	"devDependencies": {
 		"@types/fs-extra": "^11.0.4",
-		"@types/jest": "^29.5.12",
+		"@types/jest": "^29.5.14",
 		"@types/uuid": "^10.0.0",
-		"typescript": "^5.6.2"
-	},
-	"jest": {
-		"preset": "ts-jest",
-		"testEnvironment": "node",
-		"moduleFileExtensions": [
-			"ts",
-			"tsx",
-			"js"
-		],
-		"roots": [
-			"<rootDir>/tests"
-		]
+		"babel-jest": "^29.7.0",
+		"typescript": "^5.6.2",
+		"vitest": "^3.0.5"
 	}
 }
