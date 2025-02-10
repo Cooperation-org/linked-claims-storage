@@ -37,7 +37,6 @@ export class GoogleDriveStorage {
 
 	private async updateFileIdsJson(newFileId: string) {
 		try {
-			// ✅ Fetch `file_ids.json` ID once per session (cached)
 			if (!this.fileIdsCache) {
 				const existingFile = await this.fetcher({
 					method: 'GET',
@@ -55,7 +54,6 @@ export class GoogleDriveStorage {
 
 			let existingFileIds = [];
 
-			// ✅ Fetch existing file IDs **only if `file_ids.json` exists**
 			if (this.fileIdsCache) {
 				try {
 					const fileContent = await this.fetcher({
@@ -69,14 +67,11 @@ export class GoogleDriveStorage {
 				}
 			}
 
-			// ✅ Append the new file ID to the list
 			existingFileIds.push(newFileId);
 
-			// ✅ Prepare the updated `file_ids.json`
 			const appDataFileMetadata = {
 				name: 'file_ids.json',
 				mimeType: 'application/json',
-				parents: ['appDataFolder'],
 			};
 
 			const appDataFileBlob = new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' });
@@ -86,7 +81,7 @@ export class GoogleDriveStorage {
 			appDataFormData.append('file', appDataFileBlob);
 
 			if (this.fileIdsCache) {
-				// ✅ Upload the updated `file_ids.json`
+				// ✅ PATCH request without "parents"
 				await this.fetcher({
 					method: 'PATCH',
 					headers: {},
@@ -94,10 +89,21 @@ export class GoogleDriveStorage {
 					url: `https://www.googleapis.com/upload/drive/v3/files/${this.fileIdsCache}?uploadType=multipart&fields=id`,
 				});
 			} else {
+				// ✅ POST request includes "parents"
+				const newFileMetadata = {
+					name: 'file_ids.json',
+					mimeType: 'application/json',
+					parents: ['appDataFolder'], // ✅ Only include this when creating a new file
+				};
+
+				const newFileFormData = new FormData();
+				newFileFormData.append('metadata', new Blob([JSON.stringify(newFileMetadata)], { type: 'application/json' }));
+				newFileFormData.append('file', appDataFileBlob);
+
 				const newFile = await this.fetcher({
 					method: 'POST',
 					headers: {},
-					body: appDataFormData,
+					body: newFileFormData,
 					url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,
 				});
 
@@ -198,20 +204,75 @@ export class GoogleDriveStorage {
 		return folder;
 	}
 
-	async uploadBinaryFile({ file, folderId }: { file: File; folderId: string }) {
-		const formData = new FormData();
-		formData.append('file', file);
+	async getMediaFolderId() {
+		if (this.folderCache['MEDIAs']) {
+			return this.folderCache['MEDIAs'];
+		}
+		const rootFolders = await this.findFolders();
 
-		// save it in subfolder
-		const url = `https://www.googleapis.com/upload/drive/v3/files/${folderId}?uploadType=multipart&fields=id,parents`;
-		const response = await this.fetcher({
-			method: 'POST',
-			headers: {},
-			body: formData,
-			url,
-		});
+		let credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
 
-		return response;
+		if (!credentialsFolder) {
+			credentialsFolder = await this.createFolder({ folderName: 'Credentials', parentFolderId: 'root' });
+		}
+		const credentialsFolderId = credentialsFolder.id;
+
+		const subfolders = await this.findFolders(credentialsFolder.id);
+
+		let mediasFolder = subfolders.find((f: any) => f.name === 'MEDIAs');
+
+		if (!mediasFolder) {
+			mediasFolder = await this.createFolder({ folderName: 'MEDIAs', parentFolderId: credentialsFolderId });
+		}
+		const mediasFolderId = mediasFolder.id;
+		this.folderCache['MEDIAs'] = mediasFolderId;
+
+		return mediasFolderId;
+	}
+	async uploadBinaryFile({ file }: { file: File }) {
+		try {
+			const accessToken = this.accessToken; // Ensure access token is available
+			if (!accessToken) {
+				throw new Error('Missing Google OAuth access token.');
+			}
+
+			const folderId = await this.getMediaFolderId(); // Ensure folderId is correct
+
+			// ✅ Correct metadata for Google Drive API
+			const metadata = {
+				name: file.name,
+				mimeType: file.type,
+				parents: [folderId], // Store in the correct folder
+			};
+
+			// ✅ Create FormData for multipart upload
+			const formData = new FormData();
+			formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+			formData.append('file', file);
+
+			// ✅ Correct Google Drive Upload URL
+			const url = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`;
+
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${accessToken}`, // ✅ Include valid OAuth token
+				},
+				body: formData,
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(`Google Drive Upload Error: ${data.error?.message || 'Unknown error'}`);
+			}
+
+			console.log('✅ File uploaded successfully:', data);
+			return data; // Returns the uploaded file ID and parents
+		} catch (error) {
+			console.error('❌ Error uploading file to Google Drive:', error);
+			throw error;
+		}
 	}
 
 	async saveFile({ data, folderId }: { data: any; folderId: string }) {

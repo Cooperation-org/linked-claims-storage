@@ -104,10 +104,13 @@ export async function uploadToGoogleDrive(
 }> {
 	try {
 		const rootFolders = await storage.findFolders();
+		console.log('🚀 ~ rootFolders:', rootFolders);
 
 		let credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
+		console.log('🚀 ~ credentialsFolder:', credentialsFolder);
 
 		if (!credentialsFolder) {
+			console.log('Creating Credentials folder...');
 			credentialsFolder = await storage.createFolder({ folderName: 'Credentials', parentFolderId: 'root' });
 		}
 		const credentialsFolderId = credentialsFolder.id;
