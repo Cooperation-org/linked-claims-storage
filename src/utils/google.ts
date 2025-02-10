@@ -88,15 +88,17 @@ export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePro
 }
 
 /**
- * Upload an image to Google Drive in the Credentials/MEDIAs folder.
+ * Upload any type of file to Google Drive in the Credentials/MEDIAs folder.
  * @param {GoogleDriveStorage} storage - The GoogleDriveStorage instance.
- * @param {File} imageFile - The image file to upload.
- * @returns {Promise<>} - The uploaded image file object.
+ * @param {File} file - The file to upload.
+ * @param {string} folderName - The name of the folder where the file will be saved (default is 'MEDIAs').
+ * @returns {Promise<{ id: string }>} - The uploaded file object.
  * @throws Will throw an error if the upload operation fails.
  */
-export async function uploadImageToGoogleDrive(
+export async function uploadToGoogleDrive(
 	storage: GoogleDriveStorage,
-	imageFile: File
+	file: File,
+	folderName: string = 'MEDIAs'
 ): Promise<{
 	id: string;
 }> {
@@ -120,15 +122,15 @@ export async function uploadImageToGoogleDrive(
 		const mediasFolderId = mediasFolder.id;
 
 		// Prepare the image file data
-		const imageData = {
-			fileName: imageFile.name,
-			mimeType: imageFile.type,
-			body: imageFile,
+		const fileMetaData = {
+			fileName: file.name,
+			mimeType: file.type,
+			body: file,
 		};
 
 		// SaveFile the image in the "MEDIAs" folder
 		const uploadedImage = await storage.saveFile({
-			data: imageData,
+			data: fileMetaData,
 			folderId: mediasFolderId,
 		});
 		console.log('🚀 ~ uploadedImage:', uploadedImage);

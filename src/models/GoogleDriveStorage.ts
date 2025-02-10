@@ -198,6 +198,22 @@ export class GoogleDriveStorage {
 		return folder;
 	}
 
+	async uploadBinaryFile({ file, folderId }: { file: File; folderId: string }) {
+		const formData = new FormData();
+		formData.append('file', file);
+
+		// save it in subfolder
+		const url = `https://www.googleapis.com/upload/drive/v3/files/${folderId}?uploadType=multipart&fields=id,parents`;
+		const response = await this.fetcher({
+			method: 'POST',
+			headers: {},
+			body: formData,
+			url,
+		});
+
+		return response;
+	}
+
 	async saveFile({ data, folderId }: { data: any; folderId: string }) {
 		if (!folderId) {
 			throw new Error('Folder ID is required to save a file.');
