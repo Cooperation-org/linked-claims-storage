@@ -37,6 +37,7 @@ export class GoogleDriveStorage {
 
 	private async updateFileIdsJson(newFileId: string) {
 		try {
+			// ✅ Fetch `file_ids.json` ID once per session (cached)
 			if (!this.fileIdsCache) {
 				const existingFile = await this.fetcher({
 					method: 'GET',
@@ -54,6 +55,7 @@ export class GoogleDriveStorage {
 
 			let existingFileIds = [];
 
+			// ✅ Fetch existing file IDs **only if `file_ids.json` exists**
 			if (this.fileIdsCache) {
 				try {
 					const fileContent = await this.fetcher({
@@ -67,11 +69,14 @@ export class GoogleDriveStorage {
 				}
 			}
 
+			// ✅ Append the new file ID to the list
 			existingFileIds.push(newFileId);
 
+			// ✅ Prepare the updated `file_ids.json`
 			const appDataFileMetadata = {
 				name: 'file_ids.json',
 				mimeType: 'application/json',
+				parents: ['appDataFolder'],
 			};
 
 			const appDataFileBlob = new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' });
@@ -81,7 +86,7 @@ export class GoogleDriveStorage {
 			appDataFormData.append('file', appDataFileBlob);
 
 			if (this.fileIdsCache) {
-				// ✅ PATCH request without "parents"
+				// ✅ Upload the updated `file_ids.json`
 				await this.fetcher({
 					method: 'PATCH',
 					headers: {},
@@ -89,21 +94,10 @@ export class GoogleDriveStorage {
 					url: `https://www.googleapis.com/upload/drive/v3/files/${this.fileIdsCache}?uploadType=multipart&fields=id`,
 				});
 			} else {
-				// ✅ POST request includes "parents"
-				const newFileMetadata = {
-					name: 'file_ids.json',
-					mimeType: 'application/json',
-					parents: ['appDataFolder'], // ✅ Only include this when creating a new file
-				};
-
-				const newFileFormData = new FormData();
-				newFileFormData.append('metadata', new Blob([JSON.stringify(newFileMetadata)], { type: 'application/json' }));
-				newFileFormData.append('file', appDataFileBlob);
-
 				const newFile = await this.fetcher({
 					method: 'POST',
 					headers: {},
-					body: newFileFormData,
+					body: appDataFormData,
 					url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,
 				});
 
@@ -276,32 +270,62 @@ export class GoogleDriveStorage {
 	}
 
 	async saveFile({ data, folderId }: { data: any; folderId: string }) {
-		if (!folderId) {
-			throw new Error('Folder ID is required to save a file.');
+		try {
+			if (!folderId) {
+				throw new Error('Folder ID is required to save a file.');
+			}
+
+			// Verify folder exists and isn't trashed
+			const folder = await this.fetcher({
+				method: 'GET',
+				headers: {},
+				url: `https://www.googleapis.com/drive/v3/files/${folderId}?fields=trashed`,
+			});
+			if (folder.trashed) {
+				throw new Error('Target folder is in trash');
+			}
+
+			const fileMetadata = {
+				name: data.fileName || 'resume.json',
+				parents: [folderId],
+				mimeType: 'application/json',
+			};
+
+			const fileBlob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+			const formData = new FormData();
+			formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+			formData.append('file', fileBlob);
+
+			const file = await this.fetcher({
+				method: 'POST',
+				headers: {},
+				body: formData,
+				url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`,
+			});
+
+			// Set public read permissions
+			await this.fetcher({
+				method: 'POST',
+				url: `https://www.googleapis.com/drive/v3/files/${file.id}/permissions`,
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					role: 'reader',
+					type: 'anyone',
+				}),
+			});
+
+			// Update file_ids.json in appDataFolder if needed
+			if (data.updateAppData !== false) {
+				// Default to updating unless explicitly set to false
+				await this.updateFileIdsJson(file.id);
+			}
+
+			console.log(`File uploaded successfully: ${file.id}`);
+			return file;
+		} catch (error) {
+			console.error('Error in saveFile:', error);
+			throw error;
 		}
-
-		const fileMetadata = {
-			name: data.fileName || 'resume.json',
-			parents: [folderId],
-			mimeType: 'application/json',
-		};
-
-		const fileBlob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-		const formData = new FormData();
-		formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-		formData.append('file', fileBlob);
-
-		const file = await this.fetcher({
-			method: 'POST',
-			headers: {},
-			body: formData,
-			url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`,
-		});
-
-		console.log(`File uploaded successfully: ${file.id}`);
-		await this.updateFileIdsJson(file.id);
-
-		return file;
 	}
 	/**
 	 * Get file from google drive by id
