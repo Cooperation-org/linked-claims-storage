@@ -275,16 +275,6 @@ export class GoogleDriveStorage {
 				throw new Error('Folder ID is required to save a file.');
 			}
 
-			// Verify folder exists and isn't trashed
-			const folder = await this.fetcher({
-				method: 'GET',
-				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files/${folderId}?fields=trashed`,
-			});
-			if (folder.trashed) {
-				throw new Error('Target folder is in trash');
-			}
-
 			const fileMetadata = {
 				name: data.fileName || 'resume.json',
 				parents: [folderId],
@@ -314,11 +304,7 @@ export class GoogleDriveStorage {
 				}),
 			});
 
-			// Update file_ids.json in appDataFolder if needed
-			if (data.updateAppData !== false) {
-				// Default to updating unless explicitly set to false
-				await this.updateFileIdsJson(file.id);
-			}
+			await this.updateFileIdsJson(file.id);
 
 			console.log(`File uploaded successfully: ${file.id}`);
 			return file;
