@@ -275,16 +275,6 @@ export class GoogleDriveStorage {
 				throw new Error('Folder ID is required to save a file.');
 			}
 
-			// Verify folder exists and isn't trashed
-			const folder = await this.fetcher({
-				method: 'GET',
-				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files/${folderId}?fields=trashed`,
-			});
-			if (folder.trashed) {
-				throw new Error('Target folder is in trash');
-			}
-
 			const fileMetadata = {
 				name: data.fileName || 'resume.json',
 				parents: [folderId],
@@ -314,11 +304,7 @@ export class GoogleDriveStorage {
 				}),
 			});
 
-			// Update file_ids.json in appDataFolder if needed
-			if (data.updateAppData !== false) {
-				// Default to updating unless explicitly set to false
-				await this.updateFileIdsJson(file.id);
-			}
+			await this.updateFileIdsJson(file.id);
 
 			console.log(`File uploaded successfully: ${file.id}`);
 			return file;
@@ -629,6 +615,7 @@ export class GoogleDriveStorage {
 				url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
 			});
 
+			console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  response', response);
 			// Step 2: Check if the file exists
 			if (!response.files || response.files.length === 0) {
 				console.log('No file_ids.json found in appDataFolder.');
@@ -637,6 +624,7 @@ export class GoogleDriveStorage {
 
 			// Step 3: Get the file ID of file_ids.json
 			const fileId = response.files[0].id;
+			console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  fileId', fileId);
 
 			// Step 4: Fetch the content of file_ids.json
 			const fileContent = await this.fetcher({
@@ -644,9 +632,11 @@ export class GoogleDriveStorage {
 				headers: {},
 				url: `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
 			});
+			console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  fileContent', fileContent);
 
 			// Step 5: Parse the file content (array of file IDs)
 			const fileIds = JSON.parse(fileContent);
+			console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  fileIds', fileIds);
 			return fileIds;
 		} catch (error) {
 			console.error('Error fetching file IDs from appDataFolder:', error.message);
