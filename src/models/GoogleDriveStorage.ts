@@ -42,7 +42,7 @@ export class GoogleDriveStorage {
 				const existingFile = await this.fetcher({
 					method: 'GET',
 					headers: {},
-					url: `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='file_ids.json'&fields=files(id)`,
+					url: `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27file_ids.json%27&fields=files(id)`,
 				});
 
 				if (existingFile.files.length > 0) {
@@ -63,7 +63,10 @@ export class GoogleDriveStorage {
 						headers: {},
 						url: `https://www.googleapis.com/drive/v3/files/${this.fileIdsCache}?alt=media`,
 					});
+					console.log('fileContent', fileContent);
+
 					existingFileIds = JSON.parse(fileContent);
+					console.log('existingFileIds', existingFileIds);
 				} catch (error) {
 					console.log('Error fetching existing file_ids.json content, creating new list.');
 				}
@@ -612,8 +615,9 @@ export class GoogleDriveStorage {
 			const response = await this.fetcher({
 				method: 'GET',
 				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
+				url: `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27file_ids.json%27&fields=files(id)`,
 			});
+			console.log('response', response);
 
 			console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  response', response);
 			// Step 2: Check if the file exists
@@ -635,7 +639,7 @@ export class GoogleDriveStorage {
 			console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  fileContent', fileContent);
 
 			// Step 5: Parse the file content (array of file IDs)
-			const fileIds = JSON.parse(fileContent);
+			const fileIds = fileContent;
 			console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  fileIds', fileIds);
 			return fileIds;
 		} catch (error) {

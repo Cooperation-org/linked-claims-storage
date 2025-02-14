@@ -19,11 +19,12 @@ export class GoogleDriveStorage {
     fileIdsCache = null;
     async updateFileIdsJson(newFileId) {
         try {
+            // ✅ Fetch `file_ids.json` ID once per session (cached)
             if (!this.fileIdsCache) {
                 const existingFile = await this.fetcher({
                     method: 'GET',
                     headers: {},
-                    url: `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='file_ids.json'&fields=files(id)`,
+                    url: `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27file_ids.json%27&fields=files(id)`,
                 });
                 if (existingFile.files.length > 0) {
                     this.fileIdsCache = existingFile.files[0].id;
@@ -34,6 +35,7 @@ export class GoogleDriveStorage {
                 }
             }
             let existingFileIds = [];
+            // ✅ Fetch existing file IDs **only if `file_ids.json` exists**
             if (this.fileIdsCache) {
                 try {
                     const fileContent = await this.fetcher({
@@ -41,23 +43,28 @@ export class GoogleDriveStorage {
                         headers: {},
                         url: `https://www.googleapis.com/drive/v3/files/${this.fileIdsCache}?alt=media`,
                     });
+                    console.log('fileContent', fileContent);
                     existingFileIds = JSON.parse(fileContent);
+                    console.log('existingFileIds', existingFileIds);
                 }
                 catch (error) {
                     console.log('Error fetching existing file_ids.json content, creating new list.');
                 }
             }
+            // ✅ Append the new file ID to the list
             existingFileIds.push(newFileId);
+            // ✅ Prepare the updated `file_ids.json`
             const appDataFileMetadata = {
                 name: 'file_ids.json',
                 mimeType: 'application/json',
+                parents: ['appDataFolder'],
             };
             const appDataFileBlob = new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' });
             const appDataFormData = new FormData();
             appDataFormData.append('metadata', new Blob([JSON.stringify(appDataFileMetadata)], { type: 'application/json' }));
             appDataFormData.append('file', appDataFileBlob);
             if (this.fileIdsCache) {
-                // ✅ PATCH request without "parents"
+                // ✅ Upload the updated `file_ids.json`
                 await this.fetcher({
                     method: 'PATCH',
                     headers: {},
@@ -66,19 +73,10 @@ export class GoogleDriveStorage {
                 });
             }
             else {
-                // ✅ POST request includes "parents"
-                const newFileMetadata = {
-                    name: 'file_ids.json',
-                    mimeType: 'application/json',
-                    parents: ['appDataFolder'], // ✅ Only include this when creating a new file
-                };
-                const newFileFormData = new FormData();
-                newFileFormData.append('metadata', new Blob([JSON.stringify(newFileMetadata)], { type: 'application/json' }));
-                newFileFormData.append('file', appDataFileBlob);
                 const newFile = await this.fetcher({
                     method: 'POST',
                     headers: {},
-                    body: newFileFormData,
+                    body: appDataFormData,
                     url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,
                 });
                 this.fileIdsCache = newFile.id;
@@ -225,27 +223,43 @@ export class GoogleDriveStorage {
         }
     }
     async saveFile({ data, folderId }) {
-        if (!folderId) {
-            throw new Error('Folder ID is required to save a file.');
+        try {
+            if (!folderId) {
+                throw new Error('Folder ID is required to save a file.');
+            }
+            const fileMetadata = {
+                name: data.fileName || 'resume.json',
+                parents: [folderId],
+                mimeType: 'application/json',
+            };
+            const fileBlob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            const formData = new FormData();
+            formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+            formData.append('file', fileBlob);
+            const file = await this.fetcher({
+                method: 'POST',
+                headers: {},
+                body: formData,
+                url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`,
+            });
+            // Set public read permissions
+            await this.fetcher({
+                method: 'POST',
+                url: `https://www.googleapis.com/drive/v3/files/${file.id}/permissions`,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    role: 'reader',
+                    type: 'anyone',
+                }),
+            });
+            await this.updateFileIdsJson(file.id);
+            console.log(`File uploaded successfully: ${file.id}`);
+            return file;
         }
-        const fileMetadata = {
-            name: data.fileName || 'resume.json',
-            parents: [folderId],
-            mimeType: 'application/json',
-        };
-        const fileBlob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-        const formData = new FormData();
-        formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-        formData.append('file', fileBlob);
-        const file = await this.fetcher({
-            method: 'POST',
-            headers: {},
-            body: formData,
-            url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`,
-        });
-        console.log(`File uploaded successfully: ${file.id}`);
-        await this.updateFileIdsJson(file.id);
-        return file;
+        catch (error) {
+            console.error('Error in saveFile:', error);
+            throw error;
+        }
     }
     /**
      * Get file from google drive by id
@@ -518,8 +532,10 @@ export class GoogleDriveStorage {
             const response = await this.fetcher({
                 method: 'GET',
                 headers: {},
-                url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
+                url: `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27file_ids.json%27&fields=files(id)`,
             });
+            console.log('response', response);
+            console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  response', response);
             // Step 2: Check if the file exists
             if (!response.files || response.files.length === 0) {
                 console.log('No file_ids.json found in appDataFolder.');
@@ -527,14 +543,17 @@ export class GoogleDriveStorage {
             }
             // Step 3: Get the file ID of file_ids.json
             const fileId = response.files[0].id;
+            console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  fileId', fileId);
             // Step 4: Fetch the content of file_ids.json
             const fileContent = await this.fetcher({
                 method: 'GET',
                 headers: {},
                 url: `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
             });
+            console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  fileContent', fileContent);
             // Step 5: Parse the file content (array of file IDs)
-            const fileIds = JSON.parse(fileContent);
+            const fileIds = fileContent;
+            console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  fileIds', fileIds);
             return fileIds;
         }
         catch (error) {
