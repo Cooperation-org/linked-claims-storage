@@ -36,13 +36,23 @@ export class GoogleDriveStorage {
 	private fileIdsCache = null;
 
 	private async updateFileIdsJson(newFileId: string) {
+		const constructUrl = () => {
+			const baseUrl = 'https://www.googleapis.com/drive/v3/files';
+			const queryParams = new URLSearchParams({
+				spaces: 'appDataFolder',
+				q: "name='file_ids.json'",
+				fields: 'files(id)',
+			});
+
+			return `${baseUrl}?${queryParams.toString()}`;
+		};
 		try {
 			// ✅ Fetch `file_ids.json` ID once per session (cached)
 			if (!this.fileIdsCache) {
 				const existingFile = await this.fetcher({
 					method: 'GET',
 					headers: {},
-					url: `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='file_ids.json'&fields=files(id)`,
+					url: constructUrl(),
 				});
 
 				if (existingFile.files.length > 0) {
@@ -63,7 +73,7 @@ export class GoogleDriveStorage {
 						headers: {},
 						url: `https://www.googleapis.com/drive/v3/files/${this.fileIdsCache}?alt=media`,
 					});
-					existingFileIds = JSON.parse(fileContent);
+					existingFileIds = fileContent;
 				} catch (error) {
 					console.log('Error fetching existing file_ids.json content, creating new list.');
 				}
@@ -76,8 +86,11 @@ export class GoogleDriveStorage {
 			const appDataFileMetadata = {
 				name: 'file_ids.json',
 				mimeType: 'application/json',
-				parents: ['appDataFolder'],
 			};
+
+			if (!this.fileIdsCache) {
+				Object.assign(appDataFileMetadata, { parents: ['appDataFolder'] });
+			}
 
 			const appDataFileBlob = new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' });
 
@@ -608,11 +621,21 @@ export class GoogleDriveStorage {
 
 	async getFileIdsFromAppDataFolder() {
 		try {
+			const constructUrl = () => {
+				const baseUrl = 'https://www.googleapis.com/drive/v3/files';
+				const queryParams = new URLSearchParams({
+					spaces: 'appDataFolder',
+					q: "name='file_ids.json'",
+					fields: 'files(id)',
+				});
+
+				return `${baseUrl}?${queryParams.toString()}`;
+			};
 			// Step 1: Search for the file_ids.json file in the appDataFolder
 			const response = await this.fetcher({
 				method: 'GET',
 				headers: {},
-				url: `https://www.googleapis.com/drive/v3/files?q=name='file_ids.json' and 'appDataFolder' in parents&fields=files(id)`,
+				url: constructUrl(),
 			});
 
 			console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  response', response);
@@ -635,7 +658,7 @@ export class GoogleDriveStorage {
 			console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  fileContent', fileContent);
 
 			// Step 5: Parse the file content (array of file IDs)
-			const fileIds = JSON.parse(fileContent);
+			const fileIds = fileContent;
 			console.log(':  GoogleDriveStorage  getFileIdsFromAppDataFolder  fileIds', fileIds);
 			return fileIds;
 		} catch (error) {
