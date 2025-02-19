@@ -3,12 +3,12 @@ export const getVCWithRecommendations = async ({ vcId, storage }) => {
     const files = await storage.findFilesUnderFolder(vcFolderId);
     const relationsFile = files.find((f) => f.name === 'RELATIONS');
     const relationsContent = await storage.retrieve(relationsFile.id);
-    const relationsData = relationsContent.data;
-    const [vcFileId, recommendationIds] = [relationsData.vc_id, relationsData.recommendations];
+    const relationsData = JSON.parse(relationsContent.data.body);
+    const [vcFileId, recommendationIds] = [relationsData.vc_id, relationsData.recommendations || []];
     const vc = await storage.retrieve(vcFileId);
     const recommendations = await Promise.all(recommendationIds.map(async (rec) => {
         const recFile = await storage.retrieve(rec);
-        return recFile;
+        return JSON.parse(recFile.data.body);
     }));
     return { vc: vc, recommendations, relationsFileId: relationsFile.id };
 };
@@ -53,7 +53,6 @@ export async function saveToGoogleDrive({ storage, data, type }) {
         }
         // Save the file in the specific subfolder
         const file = await storage.saveFile({ data: fileData, folderId: typeFolderId });
-        console.log('🚀 ~ file:', file);
         return file;
     }
     catch (error) {
@@ -72,9 +71,7 @@ export async function saveToGoogleDrive({ storage, data, type }) {
 export async function uploadToGoogleDrive(storage, file, folderName = 'MEDIAs') {
     try {
         const rootFolders = await storage.findFolders();
-        console.log('🚀 ~ rootFolders:', rootFolders);
         let credentialsFolder = rootFolders.find((f) => f.name === 'Credentials');
-        console.log('🚀 ~ credentialsFolder:', credentialsFolder);
         if (!credentialsFolder) {
             console.log('Creating Credentials folder...');
             credentialsFolder = await storage.createFolder({ folderName: 'Credentials', parentFolderId: 'root' });
@@ -97,7 +94,6 @@ export async function uploadToGoogleDrive(storage, file, folderName = 'MEDIAs') 
             data: fileMetaData,
             folderId: mediasFolderId,
         });
-        console.log('🚀 ~ uploadedImage:', uploadedImage);
         return uploadedImage;
     }
     catch (error) {

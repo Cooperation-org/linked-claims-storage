@@ -153,9 +153,7 @@ export function generateUnsignedRecommendation({
 	recommendation: RecommendationFormDataI;
 	issuerDid: string;
 }): RecommendationCredential {
-	console.log('🚀 ~ vc.id:', vc.id);
-	console.log('🚀 ~ vc:', vc);
-	console.log('🚀 ~ recommendation:', recommendation);
+	const vcBody = JSON.parse(vc.data.body);
 	const issuanceDate = new Date().toISOString();
 	if (issuanceDate > recommendation.expirationDate) throw new Error('issuanceDate cannot be after expirationDate');
 
@@ -171,7 +169,7 @@ export function generateUnsignedRecommendation({
 				portfolio: 'https://schema.org/portfolio',
 			},
 		],
-		id: '', // Will be set after hashing VC
+		id: '',
 		type: ['VerifiableCredential', 'https://schema.org/RecommendationCredential'],
 		issuer: {
 			id: issuerDid,
@@ -193,7 +191,7 @@ export function generateUnsignedRecommendation({
 	};
 
 	// Use the VC's hashed ID for the Recommendation's ID
-	unsignedRecommendation.id = vc.data.id;
+	unsignedRecommendation.id = vcBody.id;
 
 	return unsignedRecommendation;
 }

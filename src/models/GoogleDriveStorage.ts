@@ -539,7 +539,7 @@ export class GoogleDriveStorage {
 
 	async updateRelationsFile({ relationsFileId, recommendationFileId }: { relationsFileId: string; recommendationFileId: string }) {
 		const relationsFileContent = await this.retrieve(relationsFileId);
-		const relationsData = relationsFileContent.data;
+		const relationsData = JSON.parse(relationsFileContent.data.body);
 		relationsData.recommendations.push(recommendationFileId);
 		const updatedContent = JSON.stringify(relationsData);
 
@@ -550,7 +550,6 @@ export class GoogleDriveStorage {
 			url: `https://www.googleapis.com/upload/drive/v3/files/${relationsFileId}?uploadType=media`,
 		});
 
-		console.log('🚀 ~ GoogleDriveStorage ~ updateRelationsFile ~ updateResponse:', updateResponse);
 		return updateResponse;
 	}
 

@@ -14,15 +14,15 @@ export const getVCWithRecommendations = async ({ vcId, storage }: { vcId: string
 	const relationsFile = files.find((f: any) => f.name === 'RELATIONS');
 
 	const relationsContent = await storage.retrieve(relationsFile.id);
-	const relationsData = relationsContent.data;
+	const relationsData = JSON.parse(relationsContent.data.body);
 
-	const [vcFileId, recommendationIds] = [relationsData.vc_id, relationsData.recommendations];
+	const [vcFileId, recommendationIds] = [relationsData.vc_id, relationsData.recommendations || []];
 	const vc = await storage.retrieve(vcFileId);
 
 	const recommendations = await Promise.all(
 		recommendationIds.map(async (rec: any) => {
 			const recFile = await storage.retrieve(rec);
-			return recFile;
+			return JSON.parse(recFile.data.body);
 		})
 	);
 
@@ -79,7 +79,6 @@ export async function saveToGoogleDrive({ storage, data, type }: SaveToGooglePro
 
 		// Save the file in the specific subfolder
 		const file = await storage.saveFile({ data: fileData, folderId: typeFolderId });
-		console.log('🚀 ~ file:', file);
 		return file;
 	} catch (error) {
 		console.error('Error saving to Google Drive:', error);
@@ -104,10 +103,8 @@ export async function uploadToGoogleDrive(
 }> {
 	try {
 		const rootFolders = await storage.findFolders();
-		console.log('🚀 ~ rootFolders:', rootFolders);
 
 		let credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
-		console.log('🚀 ~ credentialsFolder:', credentialsFolder);
 
 		if (!credentialsFolder) {
 			console.log('Creating Credentials folder...');
@@ -136,7 +133,6 @@ export async function uploadToGoogleDrive(
 			data: fileMetaData,
 			folderId: mediasFolderId,
 		});
-		console.log('🚀 ~ uploadedImage:', uploadedImage);
 
 		return uploadedImage;
 	} catch (error) {
