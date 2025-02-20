@@ -132,7 +132,6 @@ export function generateUnsignedVC({ formData, issuerDid }) {
  * @throws Will throw an error if the recommendation creation fails or if issuance date exceeds expiration date.
  */
 export function generateUnsignedRecommendation({ vcId, recommendation, issuerDid, }) {
-    console.log('🚀 ~ vcId:', vcId);
     const issuanceDate = new Date().toISOString();
     if (issuanceDate > recommendation.expirationDate)
         throw new Error('issuanceDate cannot be after expirationDate');
