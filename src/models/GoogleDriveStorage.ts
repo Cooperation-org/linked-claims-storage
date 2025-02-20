@@ -539,8 +539,14 @@ export class GoogleDriveStorage {
 
 	async updateRelationsFile({ relationsFileId, recommendationFileId }: { relationsFileId: string; recommendationFileId: string }) {
 		const relationsFileContent = await this.retrieve(relationsFileId);
-		const relationsData = JSON.parse(relationsFileContent.data.body);
-		relationsData.recommendations.push(recommendationFileId);
+		const relationsData = relationsFileContent.data.body ? JSON.parse(relationsFileContent.data.body) : relationsFileContent.data;
+		const recContent = await this.getFileContent(recommendationFileId);
+		console.log('🚀 ~ GoogleDriveStorage ~ updateRelationsFile ~ recContent:', recContent);
+		const recToSave = {
+			fileId: recommendationFileId,
+			subject: JSON.parse(recContent.body).credentialSubject,
+		};
+		relationsData.recommendations.push(recToSave);
 		const updatedContent = JSON.stringify(relationsData);
 
 		const updateResponse = await this.fetcher({
@@ -550,24 +556,33 @@ export class GoogleDriveStorage {
 			url: `https://www.googleapis.com/upload/drive/v3/files/${relationsFileId}?uploadType=media`,
 		});
 
+		this.updateFileIdsJson(relationsFileId);
+
 		return updateResponse;
 	}
 
 	async createRelationsFile({ vcFolderId }: { vcFolderId: string }) {
 		const files = await this.findFilesUnderFolder(vcFolderId);
 		const vcFile = files.find((file: any) => file.name === 'VC');
-
+		const vcContent = await this.getFileContent(vcFile.id);
+		console.log('🚀 ~ GoogleDriveStorage ~ createRelationsFile ~ vcContent:', vcContent);
+		const subject = JSON.parse(vcContent.body).credentialSubject;
+		console.log('🚀 ~ GoogleDriveStorage ~ createRelationsFile ~ subject:', subject);
 		const relationsFile = await this.saveFile({
 			data: {
 				fileName: 'RELATIONS',
 				mimeType: 'application/json',
 				body: JSON.stringify({
-					vc_id: vcFile.id,
+					vc: {
+						fileId: vcContent.id,
+						subject,
+					},
 					recommendations: [],
 				}),
 			},
 			folderId: vcFolderId,
 		});
+		await this.updateFileIdsJson(relationsFile.id);
 
 		return relationsFile;
 	}

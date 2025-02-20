@@ -96,11 +96,11 @@ export class CredentialEngine {
 	public async createDID(): Promise<{ didDocument: DidDocument; keyPair: KeyPair }> {
 		try {
 			const keyPair = await this.generateKeyPair();
-			const keyFile = await saveToGoogleDrive({
-				storage: this.storage,
-				data: keyPair,
-				type: 'KEYPAIR',
-			});
+			// const keyFile = await saveToGoogleDrive({
+			// 	storage: this.storage,
+			// 	data: keyPair,
+			// 	type: 'KEYPAIR',
+			// });
 			const didDocument = await generateDIDSchema(keyPair);
 
 			return { didDocument, keyPair };
@@ -160,19 +160,15 @@ export class CredentialEngine {
 	 * @throws Will throw an error if VC signing fails.
 	 */
 	public async signVC({ data, type, keyPair, issuerId, vcFileId }: SignPropsI): Promise<any> {
-		console.log('🚀 ~ CredentialEngine ~ signVC ~ { data, type, keyPair, issuerId, vcFileId }:', {
-			data,
-			type,
-			keyPair,
-			issuerId,
-			vcFileId,
-		});
-		let vc;
 		let credential = generateUnsignedVC({ formData: data as FormDataI, issuerDid: issuerId }) as any;
 		if (type == 'RECOMMENDATION' && vcFileId) {
 			console.log('WOW');
-			vc = (await this.storage.retrieve(vcFileId)) as unknown as VerifiableCredential;
-			credential = generateUnsignedRecommendation({ vc, recommendation: data as unknown as RecommendationFormDataI, issuerDid: issuerId });
+
+			credential = generateUnsignedRecommendation({
+				vcId: vcFileId,
+				recommendation: data as unknown as RecommendationFormDataI,
+				issuerDid: issuerId,
+			});
 		}
 
 		try {

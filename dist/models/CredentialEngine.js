@@ -71,11 +71,11 @@ export class CredentialEngine {
     async createDID() {
         try {
             const keyPair = await this.generateKeyPair();
-            const keyFile = await saveToGoogleDrive({
-                storage: this.storage,
-                data: keyPair,
-                type: 'KEYPAIR',
-            });
+            // const keyFile = await saveToGoogleDrive({
+            // 	storage: this.storage,
+            // 	data: keyPair,
+            // 	type: 'KEYPAIR',
+            // });
             const didDocument = await generateDIDSchema(keyPair);
             return { didDocument, keyPair };
         }
@@ -130,19 +130,14 @@ export class CredentialEngine {
      * @throws Will throw an error if VC signing fails.
      */
     async signVC({ data, type, keyPair, issuerId, vcFileId }) {
-        console.log('🚀 ~ CredentialEngine ~ signVC ~ { data, type, keyPair, issuerId, vcFileId }:', {
-            data,
-            type,
-            keyPair,
-            issuerId,
-            vcFileId,
-        });
-        let vc;
         let credential = generateUnsignedVC({ formData: data, issuerDid: issuerId });
         if (type == 'RECOMMENDATION' && vcFileId) {
             console.log('WOW');
-            vc = (await this.storage.retrieve(vcFileId));
-            credential = generateUnsignedRecommendation({ vc, recommendation: data, issuerDid: issuerId });
+            credential = generateUnsignedRecommendation({
+                vcId: vcFileId,
+                recommendation: data,
+                issuerDid: issuerId,
+            });
         }
         try {
             console.log('🚀 ~ CredentialEngine ~ signVC ~ credential:', credential);

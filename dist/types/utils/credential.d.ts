@@ -29,8 +29,8 @@ export declare function generateUnsignedVC({ formData, issuerDid }: {
  * @returns {RecommendationCredential} The created unsigned Recommendation Credential.
  * @throws Will throw an error if the recommendation creation fails or if issuance date exceeds expiration date.
  */
-export declare function generateUnsignedRecommendation({ vc, recommendation, issuerDid, }: {
-    vc: any;
+export declare function generateUnsignedRecommendation({ vcId, recommendation, issuerDid, }: {
+    vcId: string;
     recommendation: RecommendationFormDataI;
     issuerDid: string;
 }): RecommendationCredential;

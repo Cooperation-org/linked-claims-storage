@@ -14,7 +14,7 @@ export const getVCWithRecommendations = async ({ vcId, storage }: { vcId: string
 	const relationsFile = files.find((f: any) => f.name === 'RELATIONS');
 
 	const relationsContent = await storage.retrieve(relationsFile.id);
-	const relationsData = JSON.parse(relationsContent.data.body);
+	const relationsData = relationsContent.data.body ? JSON.parse(relationsContent.data.body) : relationsContent.data;
 
 	const [vcFileId, recommendationIds] = [relationsData.vc_id, relationsData.recommendations || []];
 	const vc = await storage.retrieve(vcFileId);

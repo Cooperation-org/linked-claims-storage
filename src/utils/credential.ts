@@ -145,15 +145,14 @@ export function generateUnsignedVC({ formData, issuerDid }: { formData: FormData
  * @throws Will throw an error if the recommendation creation fails or if issuance date exceeds expiration date.
  */
 export function generateUnsignedRecommendation({
-	vc,
+	vcId,
 	recommendation,
 	issuerDid,
 }: {
-	vc: any;
+	vcId: string;
 	recommendation: RecommendationFormDataI;
 	issuerDid: string;
 }): RecommendationCredential {
-	const vcBody = JSON.parse(vc.data.body);
 	const issuanceDate = new Date().toISOString();
 	if (issuanceDate > recommendation.expirationDate) throw new Error('issuanceDate cannot be after expirationDate');
 
@@ -169,7 +168,7 @@ export function generateUnsignedRecommendation({
 				portfolio: 'https://schema.org/portfolio',
 			},
 		],
-		id: '',
+		id: `urn:${generateHashedId({ id: vcId })}`,
 		type: ['VerifiableCredential', 'https://schema.org/RecommendationCredential'],
 		issuer: {
 			id: issuerDid,
@@ -189,9 +188,6 @@ export function generateUnsignedRecommendation({
 			})),
 		},
 	};
-
-	// Use the VC's hashed ID for the Recommendation's ID
-	unsignedRecommendation.id = vcBody.id;
 
 	return unsignedRecommendation;
 }
