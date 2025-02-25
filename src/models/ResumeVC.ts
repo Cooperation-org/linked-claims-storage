@@ -33,32 +33,31 @@ export class ResumeVC {
 		return unsignedCredential;
 	}
 
-	private generateUnsignedCredential({ formData, issuerDid }: { formData: any; issuerDid: string }): any {
-		const unsignedCredential = {
-			'@context': [
-				'https://www.w3.org/2018/credentials/v1', // Standard VC context
-				inlineResumeContext['@context'], // Inline context
-			],
-			id: `urn:uuid:${uuidv4()}`, // Generate a dynamic UUID
-			type: ['VerifiableCredential'],
+	public generateUnsignedResumeVC({ formData, issuerDid }: { formData: any; issuerDid: string }): any {
+		const unsignedResumeVC = {
+			'@context': ['https://www.w3.org/2018/credentials/v2', 'https://schema.hropenstandards.org/4.4/context.jsonld'],
+			id: `urn:uuid:${uuidv4()}`, // Generate a unique UUID
+			type: ['VerifiableCredential', 'LERRSCredential'], // LER-RS compliant credential type
 			issuer: issuerDid,
-			issuanceDate: new Date().toISOString(),
+			issuanceDate: new Date().toISOString(), // Current date/time in ISO format
 			credentialSubject: {
 				type: 'Resume',
 				person: {
 					name: {
-						formattedName: formData.formattedName,
+						formattedName: formData.formattedName || '',
 					},
-					primaryLanguage: formData.primaryLanguage,
+					primaryLanguage: formData.primaryLanguage || 'en',
 				},
-				narrative: formData.narrative,
-				employmentHistory: formData.employmentHistory,
-				skills: formData.skills,
-				educationAndLearning: formData.educationAndLearning,
+				narrative: {
+					text: formData.narrative || 'Narrative text goes here',
+				},
+				employmentHistory: formData.employmentHistory || [],
+				skills: formData.skills || [],
+				educationAndLearning: formData.educationAndLearning || {},
 			},
 		};
 
-		return unsignedCredential;
+		return unsignedResumeVC;
 	}
 
 	public generateKeyPair = async (address?: string) => {
