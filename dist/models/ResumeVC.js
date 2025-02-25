@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from 'uuid';
 import * as dbVc from '@digitalbazaar/vc';
 import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
 import { generateDIDSchema } from '../utils/credential.js';
-import { inlineResumeContext } from '../utils/context.js';
 export class ResumeVC {
     async sign({ formData, issuerDid, keyPair }) {
         const unsignedCredential = this.generateUnsignedCredential({ formData, issuerDid });
@@ -30,30 +29,29 @@ export class ResumeVC {
         return unsignedCredential;
     }
     generateUnsignedCredential({ formData, issuerDid }) {
-        const unsignedCredential = {
-            '@context': [
-                'https://www.w3.org/2018/credentials/v1', // Standard VC context
-                inlineResumeContext['@context'], // Inline context
-            ],
-            id: `urn:uuid:${uuidv4()}`, // Generate a dynamic UUID
-            type: ['VerifiableCredential'],
+        const unsignedResumeVC = {
+            '@context': ['https://www.w3.org/2018/credentials/v2', 'https://schema.hropenstandards.org/4.4/context.jsonld'],
+            id: `urn:uuid:${uuidv4()}`, // Generate a unique UUID
+            type: ['VerifiableCredential', 'LERRSCredential'], // LER-RS compliant credential type
             issuer: issuerDid,
-            issuanceDate: new Date().toISOString(),
+            issuanceDate: new Date().toISOString(), // Current date/time in ISO format
             credentialSubject: {
                 type: 'Resume',
                 person: {
                     name: {
-                        formattedName: formData.formattedName,
+                        formattedName: formData.formattedName || '',
                     },
-                    primaryLanguage: formData.primaryLanguage,
+                    primaryLanguage: formData.primaryLanguage || 'en',
                 },
-                narrative: formData.narrative,
-                employmentHistory: formData.employmentHistory,
-                skills: formData.skills,
-                educationAndLearning: formData.educationAndLearning,
+                narrative: {
+                    text: formData.narrative || 'Narrative text goes here',
+                },
+                employmentHistory: formData.employmentHistory || [],
+                skills: formData.skills || [],
+                educationAndLearning: formData.educationAndLearning || {},
             },
         };
-        return unsignedCredential;
+        return unsignedResumeVC;
     }
     generateKeyPair = async (address) => {
         // Generate the key pair using the library's method
