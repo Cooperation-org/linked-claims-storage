@@ -33,9 +33,13 @@ export class ResumeVC {
 		return unsignedCredential;
 	}
 
-	public generateUnsignedResumeVC({ formData, issuerDid }: { formData: any; issuerDid: string }): any {
+	public generateUnsignedCredential({ formData, issuerDid }: { formData: any; issuerDid: string }): any {
 		const unsignedResumeVC = {
-			'@context': ['https://www.w3.org/2018/credentials/v2', 'https://schema.hropenstandards.org/4.4/context.jsonld'],
+			'@context': [
+				'https://www.w3.org/2018/credentials/v1',
+				'https://schema.hropenstandards.org/4.4/context.jsonld',
+				inlineResumeContext['@context'], // Inline context
+			],
 			id: `urn:uuid:${uuidv4()}`, // Generate a unique UUID
 			type: ['VerifiableCredential', 'LERRSCredential'], // LER-RS compliant credential type
 			issuer: issuerDid,
