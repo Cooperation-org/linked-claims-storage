@@ -12,8 +12,9 @@ export declare const getVCWithRecommendations: ({ vcId, storage }: {
 }) => Promise<{
     vc: {
         data: any;
+        id: string;
     };
-    recommendations: any[];
+    recommendationIds: any;
     relationsFileId: any;
 }>;
 /**

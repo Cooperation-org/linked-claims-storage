@@ -1,16 +1,18 @@
 export const getVCWithRecommendations = async ({ vcId, storage }) => {
-    const vcFolderId = await storage.getFileParents(vcId);
-    const files = await storage.findFilesUnderFolder(vcFolderId);
-    const relationsFile = files.find((f) => f.name === 'RELATIONS');
-    const relationsContent = await storage.retrieve(relationsFile.id);
-    const relationsData = relationsContent.data.body ? JSON.parse(relationsContent.data.body) : relationsContent.data;
-    const [vcFileId, recommendationIds] = [relationsData.vc_id, relationsData.recommendations || []];
-    const vc = await storage.retrieve(vcFileId);
-    const recommendations = await Promise.all(recommendationIds.map(async (rec) => {
-        const recFile = await storage.retrieve(rec);
-        return JSON.parse(recFile.data.body);
-    }));
-    return { vc: vc, recommendations, relationsFileId: relationsFile.id };
+    try {
+        const vcFolderId = await storage.getFileParents(vcId);
+        const files = await storage.findFilesUnderFolder(vcFolderId);
+        const relationsFile = files.find((f) => f.name === 'RELATIONS');
+        const relationsContent = await storage.retrieve(relationsFile.id);
+        const relationsData = relationsContent.data.body ? JSON.parse(relationsContent.data.body) : relationsContent.data;
+        const recommendationIds = relationsData.recommendations || [];
+        const vc = await storage.retrieve(vcId);
+        return { vc: vc, recommendationIds, relationsFileId: relationsFile.id };
+    }
+    catch (error) {
+        console.error('Error getting VC with recommendations:', error);
+        throw error;
+    }
 };
 /**
  * Save data to Google Drive in the specified folder type.

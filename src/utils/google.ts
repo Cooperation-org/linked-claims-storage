@@ -9,24 +9,22 @@ interface SaveToGooglePropsI {
 	vcId?: string;
 }
 export const getVCWithRecommendations = async ({ vcId, storage }: { vcId: string; storage: GoogleDriveStorage }) => {
-	const vcFolderId = await storage.getFileParents(vcId);
-	const files = await storage.findFilesUnderFolder(vcFolderId);
-	const relationsFile = files.find((f: any) => f.name === 'RELATIONS');
+	try {
+		const vcFolderId = await storage.getFileParents(vcId);
+		const files = await storage.findFilesUnderFolder(vcFolderId);
+		const relationsFile = files.find((f: any) => f.name === 'RELATIONS');
 
-	const relationsContent = await storage.retrieve(relationsFile.id);
-	const relationsData = relationsContent.data.body ? JSON.parse(relationsContent.data.body) : relationsContent.data;
+		const relationsContent = await storage.retrieve(relationsFile.id);
+		const relationsData = relationsContent.data.body ? JSON.parse(relationsContent.data.body) : relationsContent.data;
 
-	const [vcFileId, recommendationIds] = [relationsData.vc_id, relationsData.recommendations || []];
-	const vc = await storage.retrieve(vcFileId);
+		const recommendationIds = relationsData.recommendations || [];
+		const vc = await storage.retrieve(vcId);
 
-	const recommendations = await Promise.all(
-		recommendationIds.map(async (rec: any) => {
-			const recFile = await storage.retrieve(rec);
-			return JSON.parse(recFile.data.body);
-		})
-	);
-
-	return { vc: vc, recommendations, relationsFileId: relationsFile.id };
+		return { vc: vc, recommendationIds, relationsFileId: relationsFile.id };
+	} catch (error) {
+		console.error('Error getting VC with recommendations:', error);
+		throw error;
+	}
 };
 
 /**

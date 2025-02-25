@@ -4,7 +4,10 @@ export declare class ResumeVC {
         issuerDid: string;
         keyPair: any;
     }): Promise<any>;
-    private generateUnsignedCredential;
+    generateUnsignedCredential({ formData, issuerDid }: {
+        formData: any;
+        issuerDid: string;
+    }): any;
     generateKeyPair: (address?: string) => Promise<any>;
     /**
      * Create a new DID with Digital Bazaar's Ed25519VerificationKey2020 key pair.

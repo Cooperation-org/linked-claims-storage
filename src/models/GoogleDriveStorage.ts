@@ -82,41 +82,6 @@ export class GoogleDriveStorage {
 			// ✅ Append the new file ID to the list
 			existingFileIds.push(newFileId);
 
-			// ✅ Prepare the updated `file_ids.json`
-			const appDataFileMetadata = {
-				name: 'file_ids.json',
-				mimeType: 'application/json',
-			};
-
-			if (!this.fileIdsCache) {
-				Object.assign(appDataFileMetadata, { parents: ['appDataFolder'] });
-			}
-
-			const appDataFileBlob = new Blob([JSON.stringify(existingFileIds)], { type: 'application/json' });
-
-			const appDataFormData = new FormData();
-			appDataFormData.append('metadata', new Blob([JSON.stringify(appDataFileMetadata)], { type: 'application/json' }));
-			appDataFormData.append('file', appDataFileBlob);
-
-			if (this.fileIdsCache) {
-				// ✅ Upload the updated `file_ids.json`
-				await this.fetcher({
-					method: 'PATCH',
-					headers: {},
-					body: appDataFormData,
-					url: `https://www.googleapis.com/upload/drive/v3/files/${this.fileIdsCache}?uploadType=multipart&fields=id`,
-				});
-			} else {
-				const newFile = await this.fetcher({
-					method: 'POST',
-					headers: {},
-					body: appDataFormData,
-					url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,
-				});
-
-				this.fileIdsCache = newFile.id;
-			}
-
 			console.log('File ID saved to appDataFolder.', this.fileIdsCache);
 		} catch (error) {
 			console.error('Error updating file_ids.json:', error.message);
@@ -283,6 +248,7 @@ export class GoogleDriveStorage {
 	}
 
 	async saveFile({ data, folderId }: { data: any; folderId: string }) {
+		console.log('🚀 ~ GoogleDriveStorage ~ saveFile ~ data:', data);
 		try {
 			if (!folderId) {
 				throw new Error('Folder ID is required to save a file.');
@@ -291,7 +257,7 @@ export class GoogleDriveStorage {
 			const fileMetadata = {
 				name: data.fileName || 'resume.json',
 				parents: [folderId],
-				mimeType: 'application/json',
+				mimeType: data.mimeType || 'application/json',
 			};
 
 			const fileBlob = new Blob([JSON.stringify(data)], { type: 'application/json' });
@@ -317,8 +283,6 @@ export class GoogleDriveStorage {
 				}),
 			});
 
-			await this.updateFileIdsJson(file.id);
-
 			console.log(`File uploaded successfully: ${file.id}`);
 			return file;
 		} catch (error) {
@@ -331,7 +295,7 @@ export class GoogleDriveStorage {
 	 * @param id
 	 * @returns file content
 	 */
-	async retrieve(id: string): Promise<{ data: any } | null> {
+	async retrieve(id: string): Promise<{ data: any; id: string } | null> {
 		const dataUrl = `https://www.googleapis.com/drive/v3/files/${id}?alt=media`;
 
 		try {
@@ -367,7 +331,7 @@ export class GoogleDriveStorage {
 			} else {
 				fileData = await dataResponse.arrayBuffer();
 			}
-			return { data: fileData };
+			return { data: fileData, id: id };
 		} catch (error) {
 			console.error(`Error retrieving file with ID ${id}:`, error.message);
 			return null;
@@ -399,7 +363,7 @@ export class GoogleDriveStorage {
 	 * @param type
 	 * @returns
 	 */
-	async getAllFilesByType(type: FileType): Promise<FileContent[]> {
+	async getAllFilesByType(type: FileType): Promise<any[]> {
 		try {
 			if (!this.folderCache['Credentials']) {
 				const rootFolders = await this.findFolders();
@@ -414,8 +378,10 @@ export class GoogleDriveStorage {
 
 			if (type === 'VCs') {
 				if (!this.folderCache['VCs']) {
-					const vcSubfolders = await this.findFolders(credentialsFolder.id);
-					this.folderCache['VCs'] = vcSubfolders;
+					const vcSubfolder = await this.findFolders(credentialsFolder.id);
+					const vcsFolder = vcSubfolder.find((f: any) => f.name === 'VCs');
+					const vcSubFolders = await this.findFolders(vcsFolder.id);
+					this.folderCache['VCs'] = vcSubFolders.filter((folder: any) => folder.name.startsWith('VC-'));
 				}
 
 				const vcSubfolders = this.folderCache['VCs'];
@@ -424,9 +390,15 @@ export class GoogleDriveStorage {
 					return [];
 				}
 
-				const allVcFiles = await Promise.all(vcSubfolders.map(async (folder: any) => await this.findFilesUnderFolder(folder.id)));
-				const fileContents = await Promise.allSettled(allVcFiles.flat().map(async (file: any) => await this.retrieve(file.id)));
-				return fileContents.filter((res) => res.status === 'fulfilled').map((res: any) => res.value);
+				const allFilesNested = await Promise.all(vcSubfolders.map(async (folder: any) => await this.findFilesUnderFolder(folder.id)));
+
+				const allVcJsonFiles = allFilesNested.flat().filter((file: any) => file.mimeType === 'application/json');
+
+				const fileContentsResults = await Promise.allSettled(allVcJsonFiles.map((file: any) => this.retrieve(file.id)));
+
+				const validFileContents = fileContentsResults.filter((result) => result.status === 'fulfilled').map((result: any) => result.value);
+
+				return validFileContents.filter((file: any) => file.data.fileName !== 'RELATIONS');
 			}
 
 			if (!this.folderCache[type]) {
@@ -449,6 +421,7 @@ export class GoogleDriveStorage {
 
 			const files = filesResponse.files || [];
 			const fileContents = await Promise.allSettled(files.map((file: any) => this.retrieve(file.id)));
+			console.log('🚀 ~ GoogleDriveStorage ~ getAllFilesByType ~ fileContents:', fileContents);
 			return fileContents.filter((res) => res.status === 'fulfilled').map((res: any) => res.value);
 		} catch (error) {
 			console.error(`Error getting files of type ${type}:`, error);
@@ -534,19 +507,15 @@ export class GoogleDriveStorage {
 			headers: {},
 			url: `https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`,
 		});
+		console.log('FILE: ', file);
 		return file.parents;
 	}
 
 	async updateRelationsFile({ relationsFileId, recommendationFileId }: { relationsFileId: string; recommendationFileId: string }) {
 		const relationsFileContent = await this.retrieve(relationsFileId);
 		const relationsData = relationsFileContent.data.body ? JSON.parse(relationsFileContent.data.body) : relationsFileContent.data;
-		const recContent = await this.getFileContent(recommendationFileId);
-		console.log('🚀 ~ GoogleDriveStorage ~ updateRelationsFile ~ recContent:', recContent);
-		const recToSave = {
-			fileId: recommendationFileId,
-			subject: JSON.parse(recContent.body).credentialSubject,
-		};
-		relationsData.recommendations.push(recToSave);
+
+		relationsData.recommendations.push(recommendationFileId);
 		const updatedContent = JSON.stringify(relationsData);
 
 		const updateResponse = await this.fetcher({

@@ -1,8 +1,3 @@
-interface FileContent {
-    name: string;
-    content: any;
-    comments: string[];
-}
 type FileType = 'KEYPAIRs' | 'VCs' | 'SESSIONs' | 'DIDs' | 'RECOMMENDATIONs' | 'MEDIAs';
 /**
  * @class GoogleDriveStorage
@@ -47,6 +42,7 @@ export declare class GoogleDriveStorage {
      */
     retrieve(id: string): Promise<{
         data: any;
+        id: string;
     } | null>;
     /**
      * Get folder by folderId, if folderId == null you will have them all
@@ -59,7 +55,7 @@ export declare class GoogleDriveStorage {
      * @param type
      * @returns
      */
-    getAllFilesByType(type: FileType): Promise<FileContent[]>;
+    getAllFilesByType(type: FileType): Promise<any[]>;
     /**
      * Update the name of a file in Google Drive
      * @param fileId - The ID of the file to update
