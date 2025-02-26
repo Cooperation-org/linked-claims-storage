@@ -6,23 +6,97 @@ export declare const inlineResumeContext: {
         primaryLanguage: string;
         narrative: string;
         text: string;
+        contact: string;
+        email: string;
+        phone: string;
+        location: string;
+        street: string;
+        city: string;
+        state: string;
+        country: string;
+        postalCode: string;
+        socialLinks: {
+            '@id': string;
+            '@container': string;
+        };
+        linkedin: string;
+        github: string;
+        portfolio: string;
+        twitter: string;
+        experience: {
+            '@id': string;
+            '@container': string;
+        };
         employmentHistory: {
             '@id': string;
             '@container': string;
         };
         company: string;
         position: string;
+        description: string;
+        startDate: string;
+        endDate: string;
+        stillEmployed: string;
         duration: string;
         skills: {
             '@id': string;
             '@container': string;
         };
-        educationAndLearning: string;
+        educationAndLearning: {
+            '@id': string;
+            '@container': string;
+        };
         degree: string;
+        fieldOfStudy: string;
         institution: string;
         year: string;
-        issuanceDate: string;
+        awards: {
+            '@id': string;
+            '@container': string;
+        };
+        title: string;
         issuer: string;
+        date: string;
+        publications: {
+            '@id': string;
+            '@container': string;
+        };
+        publisher: string;
+        url: string;
+        certifications: {
+            '@id': string;
+            '@container': string;
+        };
+        professionalAffiliations: {
+            '@id': string;
+            '@container': string;
+        };
+        organization: string;
+        role: string;
+        volunteerWork: {
+            '@id': string;
+            '@container': string;
+        };
+        hobbiesAndInterests: {
+            '@id': string;
+            '@container': string;
+        };
+        languages: {
+            '@id': string;
+            '@container': string;
+        };
+        language: string;
+        proficiency: string;
+        testimonials: {
+            '@id': string;
+            '@container': string;
+        };
+        author: string;
+        projects: {
+            '@id': string;
+            '@container': string;
+        };
+        issuanceDate: string;
         credentialSubject: string;
         person: string;
         Resume: string;

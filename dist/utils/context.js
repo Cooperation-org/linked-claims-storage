@@ -1,31 +1,121 @@
 export const inlineResumeContext = {
     '@context': {
         '@vocab': 'https://schema.hropenstandards.org/4.4/',
+        // Basic details
         name: 'https://schema.org/name',
         formattedName: 'https://schema.org/formattedName',
         primaryLanguage: 'https://schema.org/primaryLanguage',
+        // Narrative
         narrative: 'https://schema.org/narrative',
         text: 'https://schema.org/text',
+        // Contact Information
+        contact: 'https://schema.org/ContactPoint',
+        email: 'https://schema.org/email',
+        phone: 'https://schema.org/telephone',
+        location: 'https://schema.org/address',
+        street: 'https://schema.org/streetAddress',
+        city: 'https://schema.org/addressLocality',
+        state: 'https://schema.org/addressRegion',
+        country: 'https://schema.org/addressCountry',
+        postalCode: 'https://schema.org/postalCode',
+        socialLinks: {
+            '@id': 'https://schema.org/URL',
+            '@container': '@set',
+        },
+        linkedin: 'https://schema.org/sameAs',
+        github: 'https://schema.org/sameAs',
+        portfolio: 'https://schema.org/url',
+        twitter: 'https://schema.org/sameAs',
+        // Experience & Employment History
+        experience: {
+            '@id': 'https://schema.org/WorkExperience',
+            '@container': '@list',
+        },
         employmentHistory: {
             '@id': 'https://schema.org/employmentHistory',
-            '@container': '@list', // Specify list container
+            '@container': '@list',
         },
-        company: 'https://schema.org/company',
+        company: 'https://schema.org/worksFor',
         position: 'https://schema.org/jobTitle',
+        description: 'https://schema.org/description',
+        startDate: 'https://schema.org/startDate',
+        endDate: 'https://schema.org/endDate',
+        stillEmployed: 'https://schema.org/Boolean',
         duration: 'https://schema.org/temporalCoverage',
+        // Skills
         skills: {
             '@id': 'https://schema.org/skills',
-            '@container': '@list', // Specify list container
+            '@container': '@list',
         },
-        educationAndLearning: 'https://schema.org/educationAndLearning',
-        degree: 'https://schema.org/degree',
-        institution: 'https://schema.org/institution',
+        // Education
+        educationAndLearning: {
+            '@id': 'https://schema.org/EducationalOccupationalProgram',
+            '@container': '@list',
+        },
+        degree: 'https://schema.org/educationalCredentialAwarded',
+        fieldOfStudy: 'https://schema.org/studyField',
+        institution: 'https://schema.org/educationalInstitution',
         year: 'https://schema.org/year',
-        issuanceDate: 'https://schema.org/issuanceDate',
+        // Awards
+        awards: {
+            '@id': 'https://schema.org/Achievement',
+            '@container': '@list',
+        },
+        title: 'https://schema.org/name',
         issuer: 'https://schema.org/issuer',
+        date: 'https://schema.org/dateReceived',
+        // Publications
+        publications: {
+            '@id': 'https://schema.org/CreativeWork',
+            '@container': '@list',
+        },
+        publisher: 'https://schema.org/publisher',
+        url: 'https://schema.org/url',
+        // Certifications
+        certifications: {
+            '@id': 'https://schema.org/EducationalOccupationalCredential',
+            '@container': '@list',
+        },
+        // Professional Affiliations
+        professionalAffiliations: {
+            '@id': 'https://schema.org/OrganizationRole',
+            '@container': '@list',
+        },
+        organization: 'https://schema.org/memberOf',
+        role: 'https://schema.org/jobTitle',
+        // Volunteer Work
+        volunteerWork: {
+            '@id': 'https://schema.org/VolunteerRole',
+            '@container': '@list',
+        },
+        // Hobbies and Interests
+        hobbiesAndInterests: {
+            '@id': 'https://schema.org/knowsAbout',
+            '@container': '@set',
+        },
+        // Languages
+        languages: {
+            '@id': 'https://schema.org/knowsLanguage',
+            '@container': '@list',
+        },
+        language: 'https://schema.org/inLanguage',
+        proficiency: 'https://schema.org/proficiencyLevel',
+        // Testimonials
+        testimonials: {
+            '@id': 'https://schema.org/Review',
+            '@container': '@list',
+        },
+        author: 'https://schema.org/author',
+        // Projects
+        projects: {
+            '@id': 'https://schema.org/Project',
+            '@container': '@list',
+        },
+        // Issuance Information
+        issuanceDate: 'https://schema.org/issuanceDate',
         credentialSubject: 'https://schema.org/credentialSubject',
-        person: 'https://schema.org/Person', // Added person
-        Resume: 'https://schema.hropenstandards.org/4.4#Resume', // Map Resume to an absolute IRI
+        person: 'https://schema.org/Person', // Map to Person schema
+        Resume: 'https://schema.hropenstandards.org/4.4#Resume',
     },
 };
 let localOBContext = {

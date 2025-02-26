@@ -33,7 +33,6 @@ export class ResumeVC {
         const unsignedResumeVC = {
             '@context': [
                 'https://www.w3.org/2018/credentials/v1',
-                'https://schema.hropenstandards.org/4.4/context.jsonld',
                 inlineResumeContext['@context'], // Inline context
             ],
             id: `urn:uuid:${uuidv4()}`, // Generate a unique UUID
@@ -44,16 +43,120 @@ export class ResumeVC {
                 type: 'Resume',
                 person: {
                     name: {
-                        formattedName: formData.formattedName || '',
+                        formattedName: formData.name || '',
                     },
-                    primaryLanguage: formData.primaryLanguage || 'en',
+                    primaryLanguage: 'en',
+                    contact: {
+                        fullName: formData.contact.fullName || '',
+                        email: formData.contact.email || '',
+                        phone: formData.contact.phone || '',
+                        location: {
+                            street: formData.contact.location.street || '',
+                            city: formData.contact.location.city || '',
+                            state: formData.contact.location.state || '',
+                            country: formData.contact.location.country || '',
+                            postalCode: formData.contact.location.postalCode || '',
+                        },
+                        socialLinks: {
+                            linkedin: formData.contact.socialLinks.linkedin || '',
+                            github: formData.contact.socialLinks.github || '',
+                            portfolio: formData.contact.socialLinks.portfolio || '',
+                            twitter: formData.contact.socialLinks.twitter || '',
+                        },
+                    },
                 },
                 narrative: {
-                    text: formData.narrative || 'Narrative text goes here',
+                    text: formData.summary || '',
                 },
-                employmentHistory: formData.employmentHistory || [],
-                skills: formData.skills || [],
-                educationAndLearning: formData.educationAndLearning || {},
+                // Employment History
+                employmentHistory: formData.experience.items.map((exp) => ({
+                    organization: {
+                        tradeName: exp.company || '',
+                    },
+                    title: exp.title || '',
+                    description: exp.description || '',
+                    startDate: exp.startDate || '',
+                    endDate: exp.endDate || '',
+                    stillEmployed: exp.stillEmployed || false,
+                })),
+                // Duplicated Experience (Raw)
+                experience: formData.experience.items.map((exp) => ({
+                    company: exp.company || '',
+                    title: exp.title || '',
+                    description: exp.description || '',
+                    startDate: exp.startDate || '',
+                    endDate: exp.endDate || '',
+                    stillEmployed: exp.stillEmployed || false,
+                })),
+                // Skills
+                skills: formData.skills.items.map((skill) => ({
+                    name: skill.name || '',
+                })),
+                // Education
+                educationAndLearning: formData.education.items.map((edu) => ({
+                    institution: edu.institution || '',
+                    degree: edu.degree || '',
+                    fieldOfStudy: edu.fieldOfStudy || '',
+                    startDate: edu.startDate || '',
+                    endDate: edu.endDate || '',
+                })),
+                // Awards
+                awards: formData.awards.items.map((award) => ({
+                    title: award.title || '',
+                    issuer: award.issuer || '',
+                    date: award.date || '',
+                    description: award.description || '',
+                })),
+                // Publications
+                publications: formData.publications.items.map((pub) => ({
+                    title: pub.title || '',
+                    publisher: pub.publisher || '',
+                    date: pub.date || '',
+                    url: pub.url || '',
+                })),
+                // Certifications
+                certifications: formData.certifications.items.map((cert) => ({
+                    name: cert.name || '',
+                    issuer: cert.issuer || '',
+                    date: cert.date || '',
+                    url: cert.url || '',
+                })),
+                // Professional Affiliations
+                professionalAffiliations: formData.professionalAffiliations.items.map((aff) => ({
+                    organization: aff.organization || '',
+                    role: aff.role || '',
+                    startDate: aff.startDate || '',
+                    endDate: aff.endDate || '',
+                })),
+                // Volunteer Work
+                volunteerWork: formData.volunteerWork.items.map((vol) => ({
+                    organization: vol.organization || '',
+                    role: vol.role || '',
+                    description: vol.description || '',
+                    startDate: vol.startDate || '',
+                    endDate: vol.endDate || '',
+                })),
+                // Hobbies and Interests
+                hobbiesAndInterests: formData.hobbiesAndInterests || [],
+                // Languages
+                languages: formData.languages.items.map((lang) => ({
+                    language: lang.language || '',
+                    proficiency: lang.proficiency || '',
+                })),
+                // Testimonials
+                testimonials: formData.testimonials.items.map((testi) => ({
+                    author: testi.author || '',
+                    text: testi.text || '',
+                    date: testi.date || '',
+                })),
+                // Projects
+                projects: formData.projects.items.map((proj) => ({
+                    name: proj.name || '',
+                    description: proj.description || '',
+                    url: proj.url || '',
+                    startDate: proj.startDate || '',
+                    endDate: proj.endDate || '',
+                })),
             },
         };
         return unsignedResumeVC;
