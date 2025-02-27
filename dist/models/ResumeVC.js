@@ -31,14 +31,11 @@ export class ResumeVC {
     }
     generateUnsignedCredential({ formData, issuerDid }) {
         const unsignedResumeVC = {
-            '@context': [
-                'https://www.w3.org/2018/credentials/v1',
-                inlineResumeContext['@context'], // Inline context
-            ],
-            id: `urn:uuid:${uuidv4()}`, // Generate a unique UUID
-            type: ['VerifiableCredential', 'LERRSCredential'], // LER-RS compliant credential type
+            '@context': ['https://www.w3.org/2018/credentials/v1', inlineResumeContext['@context']],
+            id: `urn:uuid:${uuidv4()}`,
+            type: ['VerifiableCredential', 'LERRSCredential'],
             issuer: issuerDid,
-            issuanceDate: new Date().toISOString(), // Current date/time in ISO format
+            issuanceDate: new Date().toISOString(),
             credentialSubject: {
                 type: 'Resume',
                 person: {
@@ -68,8 +65,8 @@ export class ResumeVC {
                 narrative: {
                     text: formData.summary || '',
                 },
-                // Employment History
                 employmentHistory: formData.experience.items.map((exp) => ({
+                    id: exp.id || `urn:uuid:${uuidv4()}`, // Ensure each entry has an ID
                     organization: {
                         tradeName: exp.company || '',
                     },
@@ -78,87 +75,52 @@ export class ResumeVC {
                     startDate: exp.startDate || '',
                     endDate: exp.endDate || '',
                     stillEmployed: exp.stillEmployed || false,
+                    verificationStatus: exp.verificationStatus || 'unverified',
+                    credentialLink: exp.credentialLink || null,
+                    verifiedCredentials: exp.verifiedCredentials || [],
                 })),
-                // Duplicated Experience (Raw)
-                experience: formData.experience.items.map((exp) => ({
-                    company: exp.company || '',
-                    title: exp.title || '',
-                    description: exp.description || '',
-                    startDate: exp.startDate || '',
-                    endDate: exp.endDate || '',
-                    stillEmployed: exp.stillEmployed || false,
-                })),
-                // Skills
-                skills: formData.skills.items.map((skill) => ({
-                    name: skill.name || '',
-                })),
-                // Education
                 educationAndLearning: formData.education.items.map((edu) => ({
+                    id: edu.id || `urn:uuid:${uuidv4()}`,
                     institution: edu.institution || '',
                     degree: edu.degree || '',
                     fieldOfStudy: edu.fieldOfStudy || '',
                     startDate: edu.startDate || '',
                     endDate: edu.endDate || '',
+                    verificationStatus: edu.verificationStatus || 'unverified',
+                    credentialLink: edu.credentialLink || null,
+                    verifiedCredentials: edu.verifiedCredentials || [],
                 })),
-                // Awards
-                awards: formData.awards.items.map((award) => ({
-                    title: award.title || '',
-                    issuer: award.issuer || '',
-                    date: award.date || '',
-                    description: award.description || '',
+                skills: formData.skills.items.map((skill) => ({
+                    id: skill.id || `urn:uuid:${uuidv4()}`,
+                    name: skill.name || '',
+                    verificationStatus: skill.verificationStatus || 'unverified',
+                    credentialLink: skill.credentialLink || null,
+                    verifiedCredentials: skill.verifiedCredentials || [],
                 })),
-                // Publications
-                publications: formData.publications.items.map((pub) => ({
-                    title: pub.title || '',
-                    publisher: pub.publisher || '',
-                    date: pub.date || '',
-                    url: pub.url || '',
-                })),
-                // Certifications
                 certifications: formData.certifications.items.map((cert) => ({
+                    id: cert.id || `urn:uuid:${uuidv4()}`,
                     name: cert.name || '',
                     issuer: cert.issuer || '',
                     date: cert.date || '',
                     url: cert.url || '',
+                    verificationStatus: cert.verificationStatus || 'unverified',
+                    credentialLink: cert.credentialLink || null,
+                    verifiedCredentials: cert.verifiedCredentials || [],
                 })),
-                // Professional Affiliations
-                professionalAffiliations: formData.professionalAffiliations.items.map((aff) => ({
-                    organization: aff.organization || '',
-                    role: aff.role || '',
-                    startDate: aff.startDate || '',
-                    endDate: aff.endDate || '',
-                })),
-                // Volunteer Work
-                volunteerWork: formData.volunteerWork.items.map((vol) => ({
-                    organization: vol.organization || '',
-                    role: vol.role || '',
-                    description: vol.description || '',
-                    startDate: vol.startDate || '',
-                    endDate: vol.endDate || '',
-                })),
-                // Hobbies and Interests
-                hobbiesAndInterests: formData.hobbiesAndInterests || [],
-                // Languages
-                languages: formData.languages.items.map((lang) => ({
-                    language: lang.language || '',
-                    proficiency: lang.proficiency || '',
-                })),
-                // Testimonials
-                testimonials: formData.testimonials.items.map((testi) => ({
-                    author: testi.author || '',
-                    text: testi.text || '',
-                    date: testi.date || '',
-                })),
-                // Projects
                 projects: formData.projects.items.map((proj) => ({
+                    id: proj.id || `urn:uuid:${uuidv4()}`,
                     name: proj.name || '',
                     description: proj.description || '',
                     url: proj.url || '',
                     startDate: proj.startDate || '',
                     endDate: proj.endDate || '',
+                    verificationStatus: proj.verificationStatus || 'unverified',
+                    credentialLink: proj.credentialLink || null,
+                    verifiedCredentials: proj.verifiedCredentials || [],
                 })),
             },
         };
+        console.log('🚀 ~ ResumeVC ~ generateUnsignedCredential ~ unsignedResumeVC:', JSON.stringify(unsignedResumeVC));
         return unsignedResumeVC;
     }
     generateKeyPair = async (address) => {
