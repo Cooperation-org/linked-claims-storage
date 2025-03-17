@@ -135,7 +135,7 @@ export const inlineResumeContext = {
 	},
 };
 
-let localOBContext = {
+const localOBContext = {
 	'@context': {
 		'@protected': true,
 		id: '@id',
@@ -579,7 +579,7 @@ let localOBContext = {
 		},
 	},
 };
-let localED25519Context = {
+const localED25519Context = {
 	'@context': {
 		id: '@id',
 		type: '@type',

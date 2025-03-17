@@ -72,7 +72,7 @@ export class ResumeVC {
 				},
 
 				employmentHistory: formData.experience.items.map((exp: any) => ({
-					id: exp.id || `urn:uuid:${uuidv4()}`, // Ensure each entry has an ID
+					id: exp.id ? `urn:uuid${exp.id}` : `urn:uuid:${uuidv4()}`, // Ensure each entry has an ID
 					organization: {
 						tradeName: exp.company || '',
 					},
@@ -87,7 +87,7 @@ export class ResumeVC {
 				})),
 
 				educationAndLearning: formData.education.items.map((edu: any) => ({
-					id: edu.id || `urn:uuid:${uuidv4()}`,
+					id: edu.id ? `urn:uuid${edu.id}` : `urn:uuid:${uuidv4()}`,
 					institution: edu.institution || '',
 					degree: edu.degree || '',
 					fieldOfStudy: edu.fieldOfStudy || '',
@@ -99,7 +99,7 @@ export class ResumeVC {
 				})),
 
 				skills: formData.skills.items.map((skill: any) => ({
-					id: skill.id || `urn:uuid:${uuidv4()}`,
+					id: skill.id ? `urn:uuid${skill.id}` : `urn:uuid:${uuidv4()}`,
 					name: skill.name || '',
 					verificationStatus: skill.verificationStatus || 'unverified',
 					credentialLink: skill.credentialLink || null,
@@ -107,7 +107,7 @@ export class ResumeVC {
 				})),
 
 				certifications: formData.certifications.items.map((cert: any) => ({
-					id: cert.id || `urn:uuid:${uuidv4()}`,
+					id: cert.id ? `urn:uuid:${cert.id}` : `urn:uuid:${uuidv4()}`,
 					name: cert.name || '',
 					issuer: cert.issuer || '',
 					date: cert.date || '',
@@ -118,7 +118,7 @@ export class ResumeVC {
 				})),
 
 				projects: formData.projects.items.map((proj: any) => ({
-					id: proj.id || `urn:uuid:${uuidv4()}`,
+					id: proj.id ? `urn:uuid${proj.id}` : `urn:uuid:${uuidv4()}`,
 					name: proj.name || '',
 					description: proj.description || '',
 					url: proj.url || '',

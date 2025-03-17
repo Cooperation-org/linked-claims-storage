@@ -18,7 +18,8 @@ export class ResumeVC {
                 suite,
                 documentLoader: customDocumentLoader,
             });
-            console.log('Signed VC:', signedVC);
+            console.log('🚀 ~ ResumeVC ~ sign ~ signedVC:', JSON.stringify(signedVC));
+            console.log('Signed VC:', JSON.stringify(signedVC));
         }
         catch (error) {
             console.error('Error signing VC:', error.message);
@@ -66,7 +67,7 @@ export class ResumeVC {
                     text: formData.summary || '',
                 },
                 employmentHistory: formData.experience.items.map((exp) => ({
-                    id: exp.id || `urn:uuid:${uuidv4()}`, // Ensure each entry has an ID
+                    id: exp.id ? `urn:uuid${exp.id}` : `urn:uuid:${uuidv4()}`, // Ensure each entry has an ID
                     organization: {
                         tradeName: exp.company || '',
                     },
@@ -80,7 +81,7 @@ export class ResumeVC {
                     verifiedCredentials: exp.verifiedCredentials || [],
                 })),
                 educationAndLearning: formData.education.items.map((edu) => ({
-                    id: edu.id || `urn:uuid:${uuidv4()}`,
+                    id: edu.id ? `urn:uuid${edu.id}` : `urn:uuid:${uuidv4()}`,
                     institution: edu.institution || '',
                     degree: edu.degree || '',
                     fieldOfStudy: edu.fieldOfStudy || '',
@@ -91,14 +92,14 @@ export class ResumeVC {
                     verifiedCredentials: edu.verifiedCredentials || [],
                 })),
                 skills: formData.skills.items.map((skill) => ({
-                    id: skill.id || `urn:uuid:${uuidv4()}`,
+                    id: skill.id ? `urn:uuid${skill.id}` : `urn:uuid:${uuidv4()}`,
                     name: skill.name || '',
                     verificationStatus: skill.verificationStatus || 'unverified',
                     credentialLink: skill.credentialLink || null,
                     verifiedCredentials: skill.verifiedCredentials || [],
                 })),
                 certifications: formData.certifications.items.map((cert) => ({
-                    id: cert.id || `urn:uuid:${uuidv4()}`,
+                    id: cert.id ? `urn:uuid:${cert.id}` : `urn:uuid:${uuidv4()}`,
                     name: cert.name || '',
                     issuer: cert.issuer || '',
                     date: cert.date || '',
@@ -108,7 +109,7 @@ export class ResumeVC {
                     verifiedCredentials: cert.verifiedCredentials || [],
                 })),
                 projects: formData.projects.items.map((proj) => ({
-                    id: proj.id || `urn:uuid:${uuidv4()}`,
+                    id: proj.id ? `urn:uuid${proj.id}` : `urn:uuid:${uuidv4()}`,
                     name: proj.name || '',
                     description: proj.description || '',
                     url: proj.url || '',
