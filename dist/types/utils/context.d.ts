@@ -102,7 +102,7 @@ export declare const inlineResumeContext: {
         Resume: string;
     };
 };
-declare let localOBContext: {
+declare const localOBContext: {
     '@context': {
         '@protected': boolean;
         id: string;
@@ -546,7 +546,7 @@ declare let localOBContext: {
         };
     };
 };
-declare let localED25519Context: {
+declare const localED25519Context: {
     '@context': {
         id: string;
         type: string;
