@@ -556,6 +556,75 @@ export class GoogleDriveStorage {
 		return relationsFile;
 	}
 
+	async updateResumeRelation({
+		authorFolderId,
+		draftFileId,
+		signedFileId,
+	}: {
+		authorFolderId: string;
+		draftFileId: string;
+		signedFileId: string;
+	}) {
+		try {
+			const relationFileName = 'relations.json';
+
+			// Step 1: Check if `relations.json` exists in RESUMES_AUTHOR/
+			const existingRelationFiles = await this.searchFiles(`name='${relationFileName}' and '${authorFolderId}' in parents`);
+
+			let relationFileId: string | null = null;
+			let existingRelations: Record<string, string> = {};
+
+			if (existingRelationFiles.length > 0) {
+				relationFileId = existingRelationFiles[0].id;
+				existingRelations = await this.getFileContent(relationFileId);
+			} else {
+				console.log('relations.json does not exist. Will create a new one.');
+			}
+
+			// Step 2: Update relations object
+			existingRelations[draftFileId] = signedFileId;
+
+			// Step 3: Create or update the file on Drive
+			const fileBlob = new Blob([JSON.stringify(existingRelations, null, 2)], {
+				type: 'application/json',
+			});
+			const formData = new FormData();
+			const metadata = {
+				name: relationFileName,
+				parents: [authorFolderId],
+				mimeType: 'application/json',
+			};
+			formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+			formData.append('file', fileBlob);
+
+			let uploadedFile;
+
+			if (relationFileId) {
+				// Update existing file
+				uploadedFile = await this.fetcher({
+					method: 'PATCH',
+					headers: {},
+					body: formData,
+					url: `https://www.googleapis.com/upload/drive/v3/files/${relationFileId}?uploadType=multipart&fields=id,parents`,
+				});
+			} else {
+				// Create new file
+				uploadedFile = await this.fetcher({
+					method: 'POST',
+					headers: {},
+					body: formData,
+					url: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,parents`,
+				});
+			}
+
+			console.log(`✅ Resume relation updated. File ID: ${uploadedFile.id}`);
+			return uploadedFile;
+		} catch (error) {
+			console.error('❌ Failed to update resume relation:', error);
+			throw error;
+		}
+	}
+
 	/**
 	 * Delete file by id
 	 * @param id

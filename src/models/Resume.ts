@@ -48,6 +48,7 @@ export class Resume extends StorageHandler {
 
 			const rootFolders = await this.storage.findFolders();
 			let rootFolder = rootFolders.find((folder) => folder.name === resumeFolderTypes.root);
+			console.log('🚀 ~ Resume ~ saveResume ~ rootFolder:', rootFolder);
 			if (!rootFolder) {
 				rootFolder = await this.storage.createFolder({ folderName: resumeFolderTypes.root, parentFolderId: 'root' });
 			}
@@ -118,13 +119,40 @@ export class Resume extends StorageHandler {
 
 	private async findRootFolder() {
 		const rootFolders = await this.storage.findFolders(); // Fetch all root-level folders
-		const rootFolder = rootFolders.find((folder) => folder.name === resumeFolderTypes.root);
+		let rootFolder = rootFolders.find((folder) => folder.name === resumeFolderTypes.root);
 
 		if (!rootFolder) {
-			throw new Error(`Root folder "${resumeFolderTypes.root}" not found in the root directory.`);
+			rootFolder = await this.storage.createFolder({ folderName: resumeFolderTypes.root, parentFolderId: 'root' });
 		}
 
 		return rootFolder;
+	}
+
+	public async saveResumeDraft(data: any, signedResumeId: string) {
+		try {
+			const fileName = `FinalDraft_${signedResumeId}.json`;
+
+			// 1. Find or create root and NON_SIGNED_RESUMES folder
+			const rootFolder = await this.findRootFolder();
+			const nonSignedFolder = await this.getOrCreateFolder(resumeFolderTypes.nonSigned, rootFolder.id);
+
+			const dataWithFileName = {
+				...data,
+				fileName: `FinalDraft_${signedResumeId}.json`,
+			};
+
+			// Save the file
+			const savedDraft = await this.storage.saveFile({
+				data: dataWithFileName,
+				folderId: nonSignedFolder.id,
+			});
+
+			console.log(`✅ Draft saved as ${fileName}`);
+			return savedDraft;
+		} catch (error) {
+			console.error('❌ Error saving resume draft:', error);
+			throw new Error('Failed to save resume draft: ' + error.message);
+		}
 	}
 
 	private isResumeFolderExist() {}

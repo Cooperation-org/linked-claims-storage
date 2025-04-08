@@ -76,6 +76,11 @@ export declare class GoogleDriveStorage {
     createRelationsFile({ vcFolderId }: {
         vcFolderId: string;
     }): Promise<any>;
+    updateResumeRelation({ authorFolderId, draftFileId, signedFileId, }: {
+        authorFolderId: string;
+        draftFileId: string;
+        signedFileId: string;
+    }): Promise<any>;
     /**
      * Delete file by id
      * @param id

@@ -5,28 +5,75 @@ export const resumeFolderTypes = {
 };
 export class StorageHandler {
     storage;
+    rootFolderId = null;
+    folderCache = new Map();
+    folderCreationLock = Promise.resolve();
     constructor(storage) {
         this.storage = storage;
     }
-    async getOrCreateFolder(folderName, parentId) {
-        const folders = await this.storage.findFolders(parentId); // Fetch all child folders of the parent
-        let folder = folders.find((folder) => {
-            return folder.name === folderName;
+    async findRootFolder() {
+        // If we already have the root folder ID, return it
+        if (this.rootFolderId) {
+            return this.rootFolderId;
+        }
+        // Use a lock to prevent concurrent creation
+        await this.folderCreationLock;
+        let releaseLock;
+        this.folderCreationLock = new Promise((resolve) => {
+            releaseLock = resolve;
         });
+        try {
+            // Check again in case another call set it while we were waiting
+            if (this.rootFolderId) {
+                return this.rootFolderId;
+            }
+            const rootFolders = await this.storage.findFolders('root'); // Explicitly look in root
+            let rootFolder = rootFolders.find((folder) => folder.name === resumeFolderTypes.root && folder.parents?.includes('root'));
+            if (!rootFolder) {
+                rootFolder = await this.storage.createFolder({
+                    folderName: resumeFolderTypes.root,
+                    parentFolderId: 'root', // Explicitly set to root
+                });
+            }
+            this.rootFolderId = rootFolder.id;
+            return this.rootFolderId;
+        }
+        finally {
+            releaseLock();
+        }
+    }
+    async getOrCreateFolder(folderName, parentName) {
+        const cacheKey = parentName ? `${parentName}/${folderName}` : folderName;
+        // Check cache first
+        if (this.folderCache.has(cacheKey)) {
+            const folderId = this.folderCache.get(cacheKey);
+            return { id: folderId, name: folderName };
+        }
+        // Determine parent folder
+        let parentId = 'root';
+        if (parentName) {
+            const parentFolder = await this.getOrCreateFolder(parentName);
+            parentId = parentFolder.id;
+        }
+        else {
+            parentId = await this.findRootFolder();
+        }
+        // Search for existing folder
+        const folders = await this.storage.findFolders(parentId);
+        let folder = folders.find((f) => f.name === folderName);
+        // Create if not found
         if (!folder) {
             folder = await this.storage.createFolder({
                 folderName,
                 parentFolderId: parentId,
             });
         }
+        // Cache the result
+        this.folderCache.set(cacheKey, folder.id);
         return folder;
     }
-    async findFilesInFolder(folderName) {
-        const folders = await this.storage.findFolders();
-        const folder = folders.find((folder) => folder.name === folderName);
-        if (!folder) {
-            throw new Error(`${folderName} folder not found`);
-        }
+    async findFilesInFolder(folderName, parentName) {
+        const folder = await this.getOrCreateFolder(folderName, parentName);
         return this.storage.findFilesUnderFolder(folder.id);
     }
 }
@@ -36,18 +83,10 @@ export class Resume extends StorageHandler {
     }
     async saveResume({ resume, type }) {
         try {
-            // Get or create the root folder
-            const rootFolders = await this.storage.findFolders();
-            let rootFolder = rootFolders.find((folder) => folder.name === resumeFolderTypes.root);
-            if (!rootFolder) {
-                rootFolder = await this.storage.createFolder({ folderName: resumeFolderTypes.root, parentFolderId: 'root' });
-            }
-            // Get or create the subfolder
             const subFolderName = type === 'sign' ? resumeFolderTypes.signed : resumeFolderTypes.nonSigned;
-            const subFolder = await this.getOrCreateFolder(subFolderName, rootFolder.id);
-            // Save the file in the subfolder
+            const subFolder = await this.getOrCreateFolder(subFolderName, resumeFolderTypes.root);
             const savedResume = await this.storage.saveFile({
-                folderId: subFolder.id, // Ensure this points to the subfolder
+                folderId: subFolder.id,
                 data: resume,
             });
             return savedResume;
@@ -58,8 +97,7 @@ export class Resume extends StorageHandler {
     }
     async find() {
         try {
-            const signedResumes = await this.getSignedResumes();
-            const nonSignedResumes = await this.getNonSignedResumes();
+            const [signedResumes, nonSignedResumes] = await Promise.all([this.getSignedResumes(), this.getNonSignedResumes()]);
             return {
                 signed: signedResumes,
                 nonSigned: nonSignedResumes,
@@ -71,13 +109,8 @@ export class Resume extends StorageHandler {
     }
     async getSignedResumes() {
         try {
-            // Find the root folder first
-            const rootFolder = await this.findRootFolder();
-            // Find or create the signed resumes folder
-            const signedFolder = await this.getOrCreateFolder(resumeFolderTypes.signed, rootFolder.id);
-            // Retrieve all files from the signed folder
-            const files = await this.storage.findFilesUnderFolder(signedFolder.id);
-            return files;
+            const signedFolder = await this.getOrCreateFolder(resumeFolderTypes.signed, resumeFolderTypes.root);
+            return this.storage.findFilesUnderFolder(signedFolder.id);
         }
         catch (error) {
             throw new Error('Error while fetching signed resumes: ' + error.message);
@@ -85,26 +118,32 @@ export class Resume extends StorageHandler {
     }
     async getNonSignedResumes() {
         try {
-            // Find the root folder first
-            const rootFolder = await this.findRootFolder();
-            // Find or create the non-signed resumes folder
-            const nonSignedFolder = await this.getOrCreateFolder(resumeFolderTypes.nonSigned, rootFolder.id);
-            // Retrieve all files from the non-signed folder
-            const files = await this.storage.findFilesUnderFolder(nonSignedFolder.id);
-            return files;
+            const nonSignedFolder = await this.getOrCreateFolder(resumeFolderTypes.nonSigned, resumeFolderTypes.root);
+            return this.storage.findFilesUnderFolder(nonSignedFolder.id);
         }
         catch (error) {
             throw new Error('Error while fetching non-signed resumes: ' + error.message);
         }
     }
-    async findRootFolder() {
-        const rootFolders = await this.storage.findFolders(); // Fetch all root-level folders
-        const rootFolder = rootFolders.find((folder) => folder.name === resumeFolderTypes.root);
-        if (!rootFolder) {
-            throw new Error(`Root folder "${resumeFolderTypes.root}" not found in the root directory.`);
+    async saveResumeDraft(data, signedResumeId) {
+        try {
+            const fileName = `FinalDraft_${signedResumeId}.json`;
+            const nonSignedFolder = await this.getOrCreateFolder(resumeFolderTypes.nonSigned, resumeFolderTypes.root);
+            const dataWithFileName = {
+                ...data,
+                fileName,
+            };
+            const savedDraft = await this.storage.saveFile({
+                data: dataWithFileName,
+                folderId: nonSignedFolder.id,
+            });
+            console.log(`✅ Draft saved as ${fileName}`);
+            return savedDraft;
         }
-        return rootFolder;
+        catch (error) {
+            console.error('❌ Error saving resume draft:', error);
+            throw new Error('Failed to save resume draft: ' + error.message);
+        }
     }
-    isResumeFolderExist() { }
 }
 export default Resume;
