@@ -255,7 +255,7 @@ export class GoogleDriveStorage {
 			}
 
 			const fileMetadata = {
-				name: data.fileName || 'resume.json',
+				name: data.fileName || data.name + '.json' || data.credentialSubject.person.name.formattedName + '.json' || 'Untitled file.json',
 				parents: [folderId],
 				mimeType: data.mimeType || 'application/json',
 			};

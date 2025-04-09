@@ -6,13 +6,11 @@ export declare const resumeFolderTypes: {
 };
 export declare class StorageHandler {
     protected storage: GoogleDriveStorage;
-    protected rootFolderId: string | null;
-    protected folderCache: Map<string, string>;
-    private folderCreationLock;
+    private folderCreationPromises;
+    private createdFolders;
     constructor(storage: GoogleDriveStorage);
-    protected findRootFolder(): Promise<string>;
-    getOrCreateFolder(folderName: string, parentName?: string): Promise<any>;
-    protected findFilesInFolder(folderName: string, parentName?: string): Promise<any[]>;
+    getOrCreateFolder(folderName: string, parentId: string): Promise<any>;
+    protected findFilesInFolder(folderName: string): Promise<any[]>;
 }
 export declare class Resume extends StorageHandler {
     constructor(storage: GoogleDriveStorage);
@@ -27,5 +25,6 @@ export declare class Resume extends StorageHandler {
     getSignedResumes(): Promise<any[]>;
     getNonSignedResumes(): Promise<any[]>;
     saveResumeDraft(data: any, signedResumeId: string): Promise<any>;
+    private isResumeFolderExist;
 }
 export default Resume;

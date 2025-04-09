@@ -7,24 +7,60 @@ export const resumeFolderTypes = {
 };
 export class StorageHandler {
 	protected storage: GoogleDriveStorage;
+	private folderCreationPromises: Record<string, Promise<any>> = {};
+	private createdFolders: Record<string, any> = {};
 
 	constructor(storage: GoogleDriveStorage) {
 		this.storage = storage;
 	}
 
 	public async getOrCreateFolder(folderName: string, parentId: string): Promise<any> {
-		const folders = await this.storage.findFolders(parentId); // Fetch all child folders of the parent
-		let folder = folders.find((folder) => {
-			return folder.name === folderName;
-		});
-		if (!folder) {
-			folder = await this.storage.createFolder({
-				folderName,
-				parentFolderId: parentId,
-			});
+		const cacheKey = `${parentId}_${folderName}`;
+
+		// Check our local cache first (this is separate from the storage's cache)
+		if (this.createdFolders[cacheKey]) {
+			console.log(`Using cached folder ${folderName} (${this.createdFolders[cacheKey].id}) under ${parentId}`);
+			return this.createdFolders[cacheKey];
 		}
 
-		return folder;
+		// If there's an existing promise for this folder, wait for it
+		if (this.folderCreationPromises[cacheKey]) {
+			console.log(`Waiting for existing folder creation: ${folderName} under ${parentId}`);
+			return this.folderCreationPromises[cacheKey];
+		}
+
+		// Create a new promise for this folder operation
+		this.folderCreationPromises[cacheKey] = (async () => {
+			try {
+				// Double-check if folder exists
+				console.log(`Searching for folder ${folderName} under ${parentId}`);
+				const folders = await this.storage.findFolders(parentId);
+				let folder = folders.find((f) => f.name === folderName);
+
+				if (folder) {
+					console.log(`Found existing folder ${folderName} (${folder.id}) under ${parentId}`);
+				} else {
+					console.log(`Creating folder ${folderName} under ${parentId} (no existing folder found)`);
+					folder = await this.storage.createFolder({
+						folderName,
+						parentFolderId: parentId,
+					});
+					console.log(`Created folder ${folderName} (${folder.id}) under ${parentId}`);
+				}
+
+				// Store in our local cache
+				this.createdFolders[cacheKey] = folder;
+				return folder;
+			} catch (error) {
+				console.error(`Error in getOrCreateFolder(${folderName}, ${parentId}):`, error);
+				throw error;
+			} finally {
+				// Clean up the promise after completion
+				delete this.folderCreationPromises[cacheKey];
+			}
+		})();
+
+		return this.folderCreationPromises[cacheKey];
 	}
 
 	protected async findFilesInFolder(folderName: string) {
@@ -44,14 +80,8 @@ export class Resume extends StorageHandler {
 
 	public async saveResume({ resume, type }: { resume: any; type: 'sign' | 'unsigned' }) {
 		try {
-			// Get or create the root folder
-
-			const rootFolders = await this.storage.findFolders();
-			let rootFolder = rootFolders.find((folder) => folder.name === resumeFolderTypes.root);
+			let rootFolder = await this.getOrCreateFolder(resumeFolderTypes.root, 'root');
 			console.log('🚀 ~ Resume ~ saveResume ~ rootFolder:', rootFolder);
-			if (!rootFolder) {
-				rootFolder = await this.storage.createFolder({ folderName: resumeFolderTypes.root, parentFolderId: 'root' });
-			}
 
 			// Get or create the subfolder
 			const subFolderName = type === 'sign' ? resumeFolderTypes.signed : resumeFolderTypes.nonSigned;
@@ -86,7 +116,7 @@ export class Resume extends StorageHandler {
 	public async getSignedResumes() {
 		try {
 			// Find the root folder first
-			const rootFolder = await this.findRootFolder();
+			const rootFolder = await this.getOrCreateFolder(resumeFolderTypes.root, 'root');
 
 			// Find or create the signed resumes folder
 			const signedFolder = await this.getOrCreateFolder(resumeFolderTypes.signed, rootFolder.id);
@@ -103,7 +133,7 @@ export class Resume extends StorageHandler {
 	public async getNonSignedResumes() {
 		try {
 			// Find the root folder first
-			const rootFolder = await this.findRootFolder();
+			const rootFolder = await this.getOrCreateFolder(resumeFolderTypes.root, 'root');
 
 			// Find or create the non-signed resumes folder
 			const nonSignedFolder = await this.getOrCreateFolder(resumeFolderTypes.nonSigned, rootFolder.id);
@@ -117,23 +147,12 @@ export class Resume extends StorageHandler {
 		}
 	}
 
-	private async findRootFolder() {
-		const rootFolders = await this.storage.findFolders(); // Fetch all root-level folders
-		let rootFolder = rootFolders.find((folder) => folder.name === resumeFolderTypes.root);
-
-		if (!rootFolder) {
-			rootFolder = await this.storage.createFolder({ folderName: resumeFolderTypes.root, parentFolderId: 'root' });
-		}
-
-		return rootFolder;
-	}
-
 	public async saveResumeDraft(data: any, signedResumeId: string) {
 		try {
 			const fileName = `FinalDraft_${signedResumeId}.json`;
 
 			// 1. Find or create root and NON_SIGNED_RESUMES folder
-			const rootFolder = await this.findRootFolder();
+			const rootFolder = await this.getOrCreateFolder(resumeFolderTypes.root, 'root');
 			const nonSignedFolder = await this.getOrCreateFolder(resumeFolderTypes.nonSigned, rootFolder.id);
 
 			const dataWithFileName = {
