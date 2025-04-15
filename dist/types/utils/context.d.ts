@@ -73,10 +73,12 @@ export declare const inlineResumeContext: {
         };
         organization: string;
         role: string;
+        activeAffiliation: string;
         volunteerWork: {
             '@id': string;
             '@container': string;
         };
+        currentlyVolunteering: string;
         hobbiesAndInterests: {
             '@id': string;
             '@container': string;

@@ -83,11 +83,13 @@ export const inlineResumeContext = {
         },
         organization: 'https://schema.org/memberOf',
         role: 'https://schema.org/jobTitle',
+        activeAffiliation: 'https://schema.org/Boolean',
         // Volunteer Work
         volunteerWork: {
             '@id': 'https://schema.org/VolunteerRole',
             '@container': '@list',
         },
+        currentlyVolunteering: 'https://schema.org/Boolean',
         // Hobbies and Interests
         hobbiesAndInterests: {
             '@id': 'https://schema.org/knowsAbout',
@@ -114,7 +116,7 @@ export const inlineResumeContext = {
         // Issuance Information
         issuanceDate: 'https://schema.org/issuanceDate',
         credentialSubject: 'https://schema.org/credentialSubject',
-        person: 'https://schema.org/Person', // Map to Person schema
+        person: 'https://schema.org/Person',
         Resume: 'https://schema.hropenstandards.org/4.4#Resume',
     },
 };
