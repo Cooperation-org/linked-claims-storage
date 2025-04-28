@@ -1,0 +1,307 @@
+{
+	"@context": [
+		"https://www.w3.org/2018/credentials/v1",
+		{
+			"@vocab": "https://schema.hropenstandards.org/4.4/",
+			"name": "https://schema.org/name",
+			"formattedName": "https://schema.org/formattedName",
+			"primaryLanguage": "https://schema.org/primaryLanguage",
+			"professionalSummary": "https://schema.org/professionalSummary",
+			"text": "https://schema.org/text",
+			"contact": "https://schema.org/ContactPoint",
+			"email": "https://schema.org/email",
+			"phone": "https://schema.org/telephone",
+			"location": "https://schema.org/address",
+			"street": "https://schema.org/streetAddress",
+			"city": "https://schema.org/addressLocality",
+			"state": "https://schema.org/addressRegion",
+			"country": "https://schema.org/addressCountry",
+			"postalCode": "https://schema.org/postalCode",
+			"socialLinks": {
+				"@id": "https://schema.org/URL",
+				"@container": "@set"
+			},
+			"linkedin": "https://schema.org/sameAs",
+			"github": "https://schema.org/sameAs",
+			"portfolio": "https://schema.org/url",
+			"twitter": "https://schema.org/sameAs",
+			"experience": {
+				"@id": "https://schema.org/WorkExperience",
+				"@container": "@list"
+			},
+			"employmentHistory": {
+				"@id": "https://schema.org/employmentHistory",
+				"@container": "@list"
+			},
+			"company": "https://schema.org/worksFor",
+			"position": "https://schema.org/jobTitle",
+			"description": "https://schema.org/description",
+			"startDate": "https://schema.org/startDate",
+			"endDate": "https://schema.org/endDate",
+			"stillEmployed": "https://schema.org/Boolean",
+			"duration": "https://schema.org/temporalCoverage",
+			"skills": {
+				"@id": "https://schema.org/skills",
+				"@container": "@list"
+			},
+			"educationAndLearning": {
+				"@id": "https://schema.org/EducationalOccupationalProgram",
+				"@container": "@list"
+			},
+			"degree": "https://schema.org/educationalCredentialAwarded",
+			"fieldOfStudy": "https://schema.org/studyField",
+			"institution": "https://schema.org/educationalInstitution",
+			"year": "https://schema.org/year",
+			"awards": {
+				"@id": "https://schema.org/Achievement",
+				"@container": "@list"
+			},
+			"title": "https://schema.org/name",
+			"issuer": "https://schema.org/issuer",
+			"date": "https://schema.org/dateReceived",
+			"publications": {
+				"@id": "https://schema.org/CreativeWork",
+				"@container": "@list"
+			},
+			"publisher": "https://schema.org/publisher",
+			"url": "https://schema.org/url",
+			"certifications": {
+				"@id": "https://schema.org/EducationalOccupationalCredential",
+				"@container": "@list"
+			},
+			"professionalAffiliations": {
+				"@id": "https://schema.org/OrganizationRole",
+				"@container": "@list"
+			},
+			"organization": "https://schema.org/memberOf",
+			"role": "https://schema.org/jobTitle",
+			"activeAffiliation": "https://schema.org/Boolean",
+			"volunteerWork": {
+				"@id": "https://schema.org/VolunteerRole",
+				"@container": "@list"
+			},
+			"currentlyVolunteering": "https://schema.org/Boolean",
+			"hobbiesAndInterests": {
+				"@id": "https://schema.org/knowsAbout",
+				"@container": "@set"
+			},
+			"languages": {
+				"@id": "https://schema.org/knowsLanguage",
+				"@container": "@list"
+			},
+			"language": "https://schema.org/inLanguage",
+			"proficiency": "https://schema.org/proficiencyLevel",
+			"testimonials": {
+				"@id": "https://schema.org/Review",
+				"@container": "@list"
+			},
+			"author": "https://schema.org/author",
+			"projects": {
+				"@id": "https://schema.org/Project",
+				"@container": "@list"
+			},
+			"issuanceDate": "https://schema.org/issuanceDate",
+			"credentialSubject": "https://schema.org/credentialSubject",
+			"person": "https://schema.org/Person",
+			"Resume": "https://schema.hropenstandards.org/4.4#Resume"
+		},
+		"https://w3id.org/security/suites/ed25519-2020/v1"
+	],
+	"id": "urn:uuid:2653d320-f388-47bc-9711-031f3906f660",
+	"type": ["VerifiableCredential", "LERRSCredential"],
+	"issuer": "did:key:z6MkeTG3bFFSLYVU7VqhgZxqr6YzpaGrQtFMh1uvqGy1vDnP",
+	"issuanceDate": "2025-04-28T15:36:33.806Z",
+	"credentialSubject": {
+		"type": "Resume",
+		"person": {
+			"name": {
+				"formattedName": "John Doe"
+			},
+			"primaryLanguage": "en",
+			"contact": {
+				"fullName": "John Doe",
+				"email": "johndoe@example.com",
+				"phone": "+1 555-1234",
+				"location": {
+					"street": "123 Main Street",
+					"city": "New York",
+					"state": "NY",
+					"country": "USA",
+					"postalCode": "10001"
+				},
+				"socialLinks": {
+					"linkedin": "https://linkedin.com/in/johndoe",
+					"github": "https://github.com/johndoe",
+					"portfolio": "https://johndoe.dev",
+					"twitter": "https://twitter.com/johndoe"
+				}
+			}
+		},
+		"professionalSummary": {
+			"@context": [
+				"https://www.w3.org/2018/credentials/v1",
+				{
+					"@vocab": "https://schema.hropenstandards.org/4.4/",
+					"narrative": "https://schema.org/narrative"
+				},
+				"https://w3id.org/security/suites/ed25519-2020/v1"
+			],
+			"type": ["VerifiableCredential", "NarrativeCredential"],
+			"issuer": "did:key:z6MkeTG3bFFSLYVU7VqhgZxqr6YzpaGrQtFMh1uvqGy1vDnP",
+			"issuanceDate": "2025-04-28T15:36:33.806Z",
+			"credentialSubject": {
+				"narrative": "<p>Experienced software engineer specializing in full-stack development, AI, and blockchain technologies.</p>"
+			},
+			"proof": {
+				"type": "Ed25519Signature2020",
+				"created": "2025-04-28T15:36:33Z",
+				"verificationMethod": "did:key:z6MkeTG3bFFSLYVU7VqhgZxqr6YzpaGrQtFMh1uvqGy1vDnP#z6MkeTG3bFFSLYVU7VqhgZxqr6YzpaGrQtFMh1uvqGy1vDnP",
+				"proofPurpose": "assertionMethod",
+				"proofValue": "z5Kq5Z5zBs36cUGZLQ4JzNjhtNdb9PeD77osuGAQpUYurP8BKBaiEtowTD94RogNuuehK1fY1jtc4KphJUX955mXe"
+			}
+		},
+		"employmentHistory": [
+			{
+				"id": "urn:uuidexp-12345",
+				"organization": {
+					"tradeName": "Tech Innovators Inc."
+				},
+				"title": "Senior Software Engineer",
+				"description": "<p>Developed high-performance applications using Node.js, React, and Web3 technologies.</p>",
+				"duration": "3 years",
+				"startDate": "2022-01-15",
+				"endDate": "",
+				"stillEmployed": false,
+				"verificationStatus": "verified",
+				"credentialLink": "https://example.com/credentials/exp-12345",
+				"verifiedCredentials": []
+			},
+			{
+				"id": "urn:uuidexp-67890",
+				"organization": {
+					"tradeName": "CloudTech Solutions"
+				},
+				"title": "Software Engineer",
+				"description": "<p>Worked on cloud-native applications and serverless computing.</p>",
+				"duration": "2 years",
+				"startDate": "2020-06-01",
+				"endDate": "2022-01-01",
+				"stillEmployed": false,
+				"verificationStatus": "unverified",
+				"credentialLink": null,
+				"verifiedCredentials": []
+			}
+		],
+		"educationAndLearning": [
+			{
+				"id": "urn:uuidedu-123",
+				"institution": "MIT",
+				"degree": "Master's in Computer Science",
+				"fieldOfStudy": "Artificial Intelligence",
+				"duration": "",
+				"startDate": "2018-09-01",
+				"endDate": "2020-06-01",
+				"verificationStatus": "verified",
+				"credentialLink": "https://example.com/credentials/edu-123",
+				"verifiedCredentials": []
+			}
+		],
+		"skills": [
+			{
+				"id": "urn:uuidskill-001",
+				"name": "JavaScript, Python, Solidity",
+				"verificationStatus": "unverified",
+				"credentialLink": null,
+				"verifiedCredentials": []
+			},
+			{
+				"id": "urn:uuidskill-002",
+				"name": "Machine Learning, Blockchain Development",
+				"verificationStatus": "verified",
+				"credentialLink": "https://example.com/credentials/skill-002",
+				"verifiedCredentials": []
+			}
+		],
+		"certifications": [
+			{
+				"id": "urn:uuid:cert-001",
+				"name": "AWS Certified Solutions Architect",
+				"issuer": "Amazon Web Services",
+				"date": "",
+				"url": "",
+				"verificationStatus": "verified",
+				"credentialLink": "https://example.com/credentials/aws-98765",
+				"verifiedCredentials": []
+			}
+		],
+		"projects": [
+			{
+				"id": "urn:uuidproj-001",
+				"name": "AI-Powered Chatbot",
+				"description": "Built an AI chatbot using GPT-4 and deployed it on AWS.",
+				"url": "https://github.com/johndoe/ai-chatbot",
+				"duration": "",
+				"startDate": "2023-02-01",
+				"endDate": "2023-08-01",
+				"verificationStatus": "verified",
+				"credentialLink": "https://example.com/credentials/proj-001",
+				"verifiedCredentials": []
+			}
+		],
+		"professionalAffiliations": [
+			{
+				"id": "urn:uuid:aff-001",
+				"name": "Professional Affiliations name",
+				"organization": "IEEE",
+				"startDate": "2021-03-01",
+				"endDate": "",
+				"activeAffiliation": true,
+				"duration": "4 years",
+				"verificationStatus": "unverified",
+				"credentialLink": "",
+				"selectedCredentials": []
+			}
+		],
+		"volunteerWork": [
+			{
+				"id": "urn:uuid:vol-001",
+				"role": "Mentor",
+				"organization": "Code for Good",
+				"location": "Virtual",
+				"startDate": "2021-06-01",
+				"endDate": "",
+				"currentlyVolunteering": true,
+				"description": "<p>Mentoring young developers in open-source projects</p>",
+				"duration": "2 years",
+				"verificationStatus": "unverified",
+				"credentialLink": "",
+				"selectedCredentials": []
+			}
+		],
+		"hobbiesAndInterests": ["Open-source contributions", "AI research", "Blockchain development"],
+		"languages": [
+			{
+				"id": "urn:uuid:lang-001",
+				"name": "English",
+				"proficiency": "Native"
+			},
+			{
+				"id": "urn:uuid:lang-002",
+				"name": "Spanish",
+				"proficiency": "Intermediate"
+			},
+			{
+				"id": "urn:uuid:lang-003",
+				"name": "Arabic",
+				"proficiency": "Beginner"
+			}
+		]
+	},
+	"proof": {
+		"type": "Ed25519Signature2020",
+		"created": "2025-04-28T15:36:33Z",
+		"verificationMethod": "did:key:z6MkeTG3bFFSLYVU7VqhgZxqr6YzpaGrQtFMh1uvqGy1vDnP#z6MkeTG3bFFSLYVU7VqhgZxqr6YzpaGrQtFMh1uvqGy1vDnP",
+		"proofPurpose": "assertionMethod",
+		"proofValue": "z2sqM4e2Tu5mvVtvnCk1txJRxx3jBBSoj4fP5ArKsnA5WsYV8T8XjQSPwhqnBy57Dgv8zup5cGiYNYmmzjrmxAMot"
+	}
+}

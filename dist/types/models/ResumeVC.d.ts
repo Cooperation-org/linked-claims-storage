@@ -4,6 +4,18 @@ export declare class ResumeVC {
         issuerDid: string;
         keyPair: any;
     }): Promise<any>;
+    generateProfessionalSummary: (aff: any) => {
+        '@context': (string | {
+            '@vocab': string;
+            narrative: string;
+        })[];
+        type: string[];
+        issuer: any;
+        issuanceDate: string;
+        credentialSubject: {
+            narrative: any;
+        };
+    };
     generateUnsignedCredential({ formData, issuerDid }: {
         formData: any;
         issuerDid: string;

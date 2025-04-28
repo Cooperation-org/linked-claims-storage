@@ -6,7 +6,7 @@ export const inlineResumeContext = {
         formattedName: 'https://schema.org/formattedName',
         primaryLanguage: 'https://schema.org/primaryLanguage',
         // Narrative
-        narrative: 'https://schema.org/narrative',
+        professionalSummary: 'https://schema.org/professionalSummary',
         text: 'https://schema.org/text',
         // Contact Information
         contact: 'https://schema.org/ContactPoint',

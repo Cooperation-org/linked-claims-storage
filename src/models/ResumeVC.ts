@@ -48,6 +48,16 @@ export class ResumeVC {
 	}
 
 	public generateProfessionalSummary = (aff: any) => {
+		// Remove HTML <p> tags if they exist
+		let cleanNarrative = aff.narrative || '';
+		if (cleanNarrative.startsWith('<p>') && cleanNarrative.endsWith('</p>')) {
+			// Remove the opening and closing p tags
+			cleanNarrative = cleanNarrative.substring(3, cleanNarrative.length - 4);
+		}
+
+		// removing all <p> tags
+		cleanNarrative = cleanNarrative.replace(/<\/?p>/g, '');
+
 		return {
 			'@context': [
 				'https://www.w3.org/2018/credentials/v1',
@@ -60,7 +70,7 @@ export class ResumeVC {
 			issuer: aff.issuer, // same DID as the issuer of the resume
 			issuanceDate: new Date().toISOString(),
 			credentialSubject: {
-				narrative: aff.narrative,
+				narrative: cleanNarrative,
 			},
 		};
 	};

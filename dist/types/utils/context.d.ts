@@ -4,7 +4,7 @@ export declare const inlineResumeContext: {
         name: string;
         formattedName: string;
         primaryLanguage: string;
-        narrative: string;
+        professionalSummary: string;
         text: string;
         contact: string;
         email: string;
