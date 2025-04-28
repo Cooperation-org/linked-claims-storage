@@ -8,20 +8,36 @@ import { inlineResumeContext } from '../utils/context.js';
 
 export class ResumeVC {
 	public async sign({ formData, issuerDid, keyPair }: { formData: any; issuerDid: string; keyPair: any }): Promise<any> {
+		// First, generate the unsigned credential with the professional summary
 		const unsignedCredential = this.generateUnsignedCredential({ formData, issuerDid });
 
+		// Create the signature suite for signing
 		const suite = new Ed25519Signature2020({
-			key: new Ed25519VerificationKey2020(keyPair), // Ensure proper initialization
+			key: new Ed25519VerificationKey2020(keyPair),
 			verificationMethod: keyPair.id,
 		});
 
 		try {
-			const signedVC = await dbVc.issue({
+			// 1: Sign the professional summary VC first
+			const professionalSummaryVC = unsignedCredential.credentialSubject.professionalSummary;
+			const signedProfessionalSummaryVC = await dbVc.issue({
+				credential: professionalSummaryVC,
+				suite,
+				documentLoader: customDocumentLoader,
+			});
+
+			// Replace the unsigned professional summary with the signed one
+			unsignedCredential.credentialSubject.professionalSummary = signedProfessionalSummaryVC;
+
+			// 2: Now sign the entire resume VC (which includes the signed professional summary)
+			const signedResumeVC = await dbVc.issue({
 				credential: unsignedCredential,
 				suite,
 				documentLoader: customDocumentLoader,
 			});
-			console.log('Signed VC:', signedVC);
+
+			console.log('Signed Resume VC:', signedResumeVC);
+			return signedResumeVC;
 		} catch (error) {
 			console.error('Error signing VC:', error.message);
 			if (error.details) {
@@ -29,9 +45,25 @@ export class ResumeVC {
 			}
 			throw error;
 		}
-
-		return unsignedCredential;
 	}
+
+	public generateProfessionalSummary = (aff: any) => {
+		return {
+			'@context': [
+				'https://www.w3.org/2018/credentials/v1',
+				{
+					'@vocab': 'https://schema.hropenstandards.org/4.4/',
+					narrative: 'https://schema.org/narrative',
+				},
+			],
+			type: ['VerifiableCredential', 'NarrativeCredential'],
+			issuer: aff.issuer, // same DID as the issuer of the resume
+			issuanceDate: new Date().toISOString(),
+			credentialSubject: {
+				narrative: aff.narrative,
+			},
+		};
+	};
 
 	public generateUnsignedCredential({ formData, issuerDid }: { formData: any; issuerDid: string }): any {
 		const unsignedResumeVC = {
@@ -67,9 +99,10 @@ export class ResumeVC {
 					},
 				},
 
-				narrative: {
-					text: formData.summary || '',
-				},
+				professionalSummary: this.generateProfessionalSummary({
+					issuer: issuerDid,
+					narrative: formData.summary || '',
+				}),
 
 				employmentHistory: formData.experience.items.map((exp: any) => ({
 					id: exp.id ? `urn:uuid${exp.id}` : `urn:uuid:${uuidv4()}`, // Ensure each entry has an ID
