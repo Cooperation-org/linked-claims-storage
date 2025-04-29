@@ -42,7 +42,6 @@ export class ResumeVC {
         }
     }
     generateProfessionalSummary = (aff) => {
-        // Remove HTML <p> tags if they exist
         let cleanNarrative = aff.narrative || '';
         if (cleanNarrative.startsWith('<p>') && cleanNarrative.endsWith('</p>')) {
             // Remove the opening and closing p tags
@@ -50,6 +49,9 @@ export class ResumeVC {
         }
         // removing all <p> tags
         cleanNarrative = cleanNarrative.replace(/<\/?p>/g, '');
+        // Replace <b> or <strong> tags with markdown bold syntax (**word**)
+        cleanNarrative = cleanNarrative.replace(/<b>(.*?)<\/b>/g, '**$1**');
+        cleanNarrative = cleanNarrative.replace(/<strong>(.*?)<\/strong>/g, '**$1**');
         return {
             '@context': [
                 'https://www.w3.org/2018/credentials/v1',
