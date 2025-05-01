@@ -2,7 +2,7 @@ import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
 import { customDocumentLoader } from '../utils/digitalbazaar.js';
 import { v4 as uuidv4 } from 'uuid';
 import * as dbVc from '@digitalbazaar/vc';
-import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
+import { Ed25519VerificationKey2020 } from '@digitalcredentials/ed25519-verification-key-2020';
 import { generateDIDSchema } from '../utils/credential.js';
 import { inlineResumeContext } from '../utils/context.js';
 

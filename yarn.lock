@@ -339,14 +339,14 @@
   integrity sha512-dHjOv41wiKLoPaE1S9g4NCMKNnelYtBa5fCJKwrqo+cPlLuKcEhtD7w/uuc5non7bf/GX5sa5YfDI/sRUOS6iw==
   dependencies:
     "@digitalbazaar/ed25519-multikey" "^1.1.0"
-    "@digitalbazaar/ed25519-verification-key-2020" "^4.1.0"
+    "@digitalcredentials/ed25519-verification-key-2020" "^4.1.0"
     base58-universal "^2.0.0"
     ed25519-signature-2020-context "^1.1.0"
     jsonld-signatures "^11.3.0"
 
-"@digitalbazaar/ed25519-verification-key-2020@^4.1.0":
+"@digitalcredentials/ed25519-verification-key-2020@^4.1.0":
   version "4.1.0"
-  resolved "https://registry.yarnpkg.com/@digitalbazaar/ed25519-verification-key-2020/-/ed25519-verification-key-2020-4.1.0.tgz#0d1e65b978df8b871b7269f4faf765fbec17d976"
+  resolved "https://registry.yarnpkg.com/@digitalcredentials/ed25519-verification-key-2020/-/ed25519-verification-key-2020-4.1.0.tgz#0d1e65b978df8b871b7269f4faf765fbec17d976"
   integrity sha512-8Dr8rVfX9v6ADIgTsfmXy4uSi2f9b4i8/kV1u35i0617T05TcPqZLYp+aAN7xhwt1JX3oYywC87UJbN8dWkfLA==
   dependencies:
     "@noble/ed25519" "^1.6.0"
@@ -404,6 +404,28 @@
     base58-universal "^2.0.0"
     crypto-ld "^7.0.0"
     tweetnacl "^1.0.3"
+
+"@digitalcredentials/ed25519-verification-key-2020@5.0.0-beta.1":
+  version "5.0.0-beta.1"
+  resolved "https://registry.yarnpkg.com/@digitalcredentials/ed25519-verification-key-2020/-/ed25519-verification-key-2020-5.0.0-beta.1.tgz#91f638d3ec1a182d3d709cefc9c6039c2f8907c3"
+  integrity sha512-yK0FzTKgndUtfyO38rj9dkugYvNzb5vK1Z4/MD5RQ5dPwtw742Irly29D2BH+H8nAMXtYhteMiOXeQJCWMw1sQ==
+  dependencies:
+    "@digitalcredentials/keypair" "^2.0.5"
+    "@digitalcredentials/ssi" "^3.0.4"
+    "@noble/ed25519" "^1.7.5"
+    base-x "^5.0.1"
+
+"@digitalcredentials/keypair@^2.0.5":
+  version "2.0.5"
+  resolved "https://registry.yarnpkg.com/@digitalcredentials/keypair/-/keypair-2.0.5.tgz#398b2123ab7d1e5bcdb74ab67559e7ad22eaeb73"
+  integrity sha512-mCjhmYUZi3sbSpr0mCxQpj6Mp/0Cgzbg7jPLUtUsowf3B6+fMIqxxJ6s2a5kQEKeVBb6qrDnQnesAnPCdpid4A==
+  dependencies:
+    "@digitalcredentials/ssi" "^3.0.4"
+
+"@digitalcredentials/ssi@^3.0.4":
+  version "3.0.5"
+  resolved "https://registry.yarnpkg.com/@digitalcredentials/ssi/-/ssi-3.0.5.tgz#a214fe4544b786bf85860851c635fc65575d108c"
+  integrity sha512-V8Xuz3yWS2+EOwsfuJkpai+rIEs7Nvvl4r7FPcJYbmumB8DWefTCvATqRTMbF2CrT4It0Izs843qHdjWuPQIkg==
 
 "@esbuild/aix-ppc64@0.24.2":
   version "0.24.2"
@@ -794,6 +816,11 @@
   version "1.7.3"
   resolved "https://registry.yarnpkg.com/@noble/ed25519/-/ed25519-1.7.3.tgz#57e1677bf6885354b466c38e2b620c62f45a7123"
   integrity sha512-iR8GBkDt0Q3GyaVcIu7mSsVIqnFbkbRzGLWlvhwunacoLwt4J3swfKhfaM6rN6WY+TBGoYT1GtT1mIh2/jGbRQ==
+
+"@noble/ed25519@^1.7.5":
+  version "1.7.5"
+  resolved "https://registry.yarnpkg.com/@noble/ed25519/-/ed25519-1.7.5.tgz#94df8bdb9fec9c4644a56007eecb57b0e9fbd0d7"
+  integrity sha512-xuS0nwRMQBvSxDa7UxMb61xTiH3MxTgUfhyPUALVIe0FlOAz4sjELwyDRyUvqeEYfRSG9qNjFIycqLZppg4RSA==
 
 "@noble/hashes@1.3.2":
   version "1.3.2"
@@ -1266,6 +1293,11 @@ balanced-match@^1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.2.tgz#e83e3a7e3f300b34cb9d87f615fa0cbf357690ee"
   integrity sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==
+
+base-x@^5.0.1:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/base-x/-/base-x-5.0.1.tgz#16bf35254be1df8aca15e36b7c1dda74b2aa6b03"
+  integrity sha512-M7uio8Zt++eg3jPj+rHMfCC+IuygQHHCOU+IYsVtik6FWjuYpVt/+MRKcgsAMHh8mMFAwnB+Bs+mTrFiXjMzKg==
 
 base58-universal@^2.0.0:
   version "2.0.0"

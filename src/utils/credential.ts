@@ -1,4 +1,4 @@
-import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
+import { Ed25519VerificationKey2020 } from '@digitalcredentials/ed25519-verification-key-2020';
 import {
 	KeyPair,
 	DidDocument,
