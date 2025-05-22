@@ -21,6 +21,15 @@ interface SignPropsI {
 	issuerId: string;
 	vcFileId?: string;
 }
+
+interface EmailVCData {
+	email: string;
+}
+
+function delay(ms: number) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /**
  * Class representing the Credential Engine.
  * @class CredentialEngine
@@ -266,6 +275,123 @@ export class CredentialEngine {
 			return signedVP;
 		} catch (error) {
 			console.error('Error signing presentation:', error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Generate and sign an email Verifiable Credential (VC)
+	 * @param {string} email - The email address to create the VC for
+	 * @returns {Promise<{signedVC: any, fileId: string}>} The signed VC and its Google Drive file ID
+	 */
+	public async generateAndSignEmailVC(email: string): Promise<{ signedVC: any; fileId: string }> {
+		try {
+			// Try to find existing keys and DIDs
+			const existingKeys = await this.findKeysAndDIDs();
+			let keyPair: KeyPair;
+			let didDocument: DidDocument;
+
+			if (existingKeys) {
+				// Use existing keys and DID
+				keyPair = existingKeys.keyPair;
+				didDocument = existingKeys.didDocument;
+			} else {
+				// Generate new key pair and DID if none exist
+				keyPair = await this.generateKeyPair();
+				const result = await this.createDID();
+				didDocument = result.didDocument;
+			}
+
+			// Generate unsigned email VC
+			const unsignedCredential = {
+				'@context': [
+					'https://www.w3.org/2018/credentials/v1',
+					{
+						'email': 'https://schema.org/email',
+						'EmailCredential': {
+							'@id': 'https://example.com/EmailCredential'
+						}
+					}
+				],
+				'id': `urn:uuid:${uuidv4()}`,
+				'type': ['VerifiableCredential', 'EmailCredential'],
+				'issuer': {
+					'id': didDocument.id
+				},
+				'issuanceDate': new Date().toISOString(),
+				'expirationDate': new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+				'credentialSubject': {
+					'id': `did:email:${email}`,
+					'email': email
+				}
+			};
+
+			// Sign the VC
+			const suite = new Ed25519Signature2020({
+				key: keyPair,
+				verificationMethod: keyPair.id,
+			});
+
+			const signedVC = await dbVc.issue({
+				credential: unsignedCredential,
+				suite,
+				documentLoader: customDocumentLoader,
+			});
+
+			// Get root folders
+			const rootFolders = await this.storage.findFolders();
+			
+			// Find or create Credentials folder
+			let credentialsFolder = rootFolders.find((f) => f.name === 'Credentials');
+			if (!credentialsFolder) {
+				credentialsFolder = await this.storage.createFolder({ 
+					folderName: 'Credentials', 
+					parentFolderId: 'root' 
+				});
+				// Wait and re-check to avoid duplicates
+				await delay(1500);
+				const refreshedFolders = await this.storage.findFolders();
+				const foundAgain = refreshedFolders.find((f) => f.name === 'Credentials');
+				if (foundAgain) credentialsFolder = foundAgain;
+			}
+
+			// Find or create EMAIL_VC folder
+			const subfolders = await this.storage.findFolders(credentialsFolder.id);
+			let emailVcFolder = subfolders.find((f) => f.name === 'EMAIL_VC');
+			if (!emailVcFolder) {
+				emailVcFolder = await this.storage.createFolder({ 
+					folderName: 'EMAIL_VC', 
+					parentFolderId: credentialsFolder.id 
+				});
+				// Wait and re-check to avoid duplicates
+				await delay(1500);
+				const refreshedSubfolders = await this.storage.findFolders(credentialsFolder.id);
+				const foundAgain = refreshedSubfolders.find((f) => f.name === 'EMAIL_VC');
+				if (foundAgain) emailVcFolder = foundAgain;
+			}
+
+			// Save the VC in the EMAIL_VC folder
+			const file = await this.storage.saveFile({
+				data: {
+					fileName: `${email}.vc`,
+					mimeType: 'application/json',
+					body: signedVC
+				},
+				folderId: emailVcFolder.id
+			});
+
+			// Only save key pair if it's new
+			if (!existingKeys) {
+				await saveToGoogleDrive({
+					storage: this.storage,
+					data: keyPair,
+					type: 'KEYPAIR',
+				});
+			}
+
+			return { signedVC, fileId: file.id };
+		} catch (error) {
+			console.error('Error generating and signing email VC:', error);
 			throw error;
 		}
 	}
