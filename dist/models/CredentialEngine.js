@@ -6,7 +6,7 @@ import { extractKeyPairFromCredential, generateDIDSchema, generateUnsignedRecomm
 import { customDocumentLoader } from '../utils/digitalbazaar.js';
 import { saveToGoogleDrive } from '../utils/google.js';
 function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 /**
  * Class representing the Credential Engine.
@@ -50,12 +50,19 @@ export class CredentialEngine {
         this.keyPair = key;
         return key;
     }
-    generateKeyPair = async (address) => {
-        const keyPair = await Ed25519VerificationKey2020.generate();
+    generateKeyPair = async (address, seed) => {
+        // Generate the key pair using the library's method
+        const keyPair = seed
+            ? await Ed25519VerificationKey2020.generate({
+                seed: Buffer.from(seed).toString('hex'),
+            })
+            : await Ed25519VerificationKey2020.generate();
+        // Configure key pair attributes
         const a = address || keyPair.publicKeyMultibase;
         keyPair.controller = `did:key:${a}`;
         keyPair.id = `${keyPair.controller}#${a}`;
         keyPair.revoked = false;
+        // The `signer` is already provided by the `Ed25519VerificationKey2020` instance
         return keyPair;
     };
     async verifyCreds(creds) {
@@ -74,11 +81,6 @@ export class CredentialEngine {
     async createDID() {
         try {
             const keyPair = await this.generateKeyPair();
-            // const keyFile = await saveToGoogleDrive({
-            // 	storage: this.storage,
-            // 	data: keyPair,
-            // 	type: 'KEYPAIR',
-            // });
             const didDocument = await generateDIDSchema(keyPair);
             return { didDocument, keyPair };
         }
@@ -244,43 +246,50 @@ export class CredentialEngine {
      */
     async generateAndSignEmailVC(email) {
         try {
-            // Try to find existing keys and DIDs
-            const existingKeys = await this.findKeysAndDIDs();
             let keyPair;
             let didDocument;
-            if (existingKeys) {
-                // Use existing keys and DID
-                keyPair = existingKeys.keyPair;
-                didDocument = existingKeys.didDocument;
+            // Require SEED from environment
+            const encodedSeed = process.env.SEED;
+            if (!encodedSeed) {
+                throw new Error('SEED environment variable not set. Cannot generate or use any DID.');
             }
-            else {
-                // Generate new key pair and DID if none exist
-                keyPair = await this.generateKeyPair();
-                const result = await this.createDID();
-                didDocument = result.didDocument;
+            // Use deterministic keys from environment seed
+            const { getDidFromEnvSeed } = await import('../utils/decodedSeed');
+            const result = await getDidFromEnvSeed();
+            keyPair = result.keyPair;
+            didDocument = result.didDocument;
+            console.log('Using DID from environment seed:', didDocument.id);
+            // Ensure the key has proper ID and controller
+            if (!keyPair.id || !keyPair.controller) {
+                const verificationMethod = didDocument.verificationMethod?.[0] || didDocument.authentication?.[0];
+                if (verificationMethod) {
+                    keyPair.id = typeof verificationMethod === 'string' ? verificationMethod : verificationMethod.id;
+                    keyPair.controller = didDocument.id;
+                }
             }
+            console.log('Creating email VC with DID:', didDocument.id);
             // Generate unsigned email VC
             const unsignedCredential = {
                 '@context': [
                     'https://www.w3.org/2018/credentials/v1',
                     {
-                        'email': 'https://schema.org/email',
-                        'EmailCredential': {
-                            '@id': 'https://example.com/EmailCredential'
-                        }
-                    }
+                        email: 'https://schema.org/email',
+                        EmailCredential: {
+                            '@id': 'https://example.com/EmailCredential',
+                        },
+                    },
                 ],
-                'id': `urn:uuid:${uuidv4()}`,
-                'type': ['VerifiableCredential', 'EmailCredential'],
-                'issuer': {
-                    'id': didDocument.id
+                id: `urn:uuid:${uuidv4()}`,
+                type: ['VerifiableCredential', 'EmailCredential'],
+                issuer: {
+                    id: didDocument.id,
                 },
-                'issuanceDate': new Date().toISOString(),
-                'expirationDate': new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
-                'credentialSubject': {
-                    'id': `did:email:${email}`,
-                    'email': email
-                }
+                issuanceDate: new Date().toISOString(),
+                expirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+                credentialSubject: {
+                    id: `did:email:${email}`,
+                    email: email,
+                },
             };
             // Sign the VC
             const suite = new Ed25519Signature2020({
@@ -292,14 +301,13 @@ export class CredentialEngine {
                 suite,
                 documentLoader: customDocumentLoader,
             });
-            // Get root folders
             const rootFolders = await this.storage.findFolders();
             // Find or create Credentials folder
             let credentialsFolder = rootFolders.find((f) => f.name === 'Credentials');
             if (!credentialsFolder) {
                 credentialsFolder = await this.storage.createFolder({
                     folderName: 'Credentials',
-                    parentFolderId: 'root'
+                    parentFolderId: 'root',
                 });
                 // Wait and re-check to avoid duplicates
                 await delay(1500);
@@ -314,7 +322,7 @@ export class CredentialEngine {
             if (!emailVcFolder) {
                 emailVcFolder = await this.storage.createFolder({
                     folderName: 'EMAIL_VC',
-                    parentFolderId: credentialsFolder.id
+                    parentFolderId: credentialsFolder.id,
                 });
                 // Wait and re-check to avoid duplicates
                 await delay(1500);
@@ -326,20 +334,12 @@ export class CredentialEngine {
             // Save the VC in the EMAIL_VC folder
             const file = await this.storage.saveFile({
                 data: {
-                    fileName: `${email}.vc`,
+                    fileName: `${email}`,
                     mimeType: 'application/json',
-                    body: signedVC
+                    body: signedVC,
                 },
-                folderId: emailVcFolder.id
+                folderId: emailVcFolder.id,
             });
-            // Only save key pair if it's new
-            if (!existingKeys) {
-                await saveToGoogleDrive({
-                    storage: this.storage,
-                    data: keyPair,
-                    type: 'KEYPAIR',
-                });
-            }
             return { signedVC, fileId: file.id };
         }
         catch (error) {
