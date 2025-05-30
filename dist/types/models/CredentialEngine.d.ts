@@ -83,7 +83,7 @@ export declare class CredentialEngine {
      * @param {string} email - The email address to create the VC for
      * @returns {Promise<{signedVC: any, fileId: string}>} The signed VC and its Google Drive file ID
      */
-    generateAndSignEmailVC(email: string): Promise<{
+    generateAndSignEmailVC(email: string, encodedSeed: string): Promise<{
         signedVC: any;
         fileId: string;
     }>;

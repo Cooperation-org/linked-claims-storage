@@ -31,9 +31,8 @@ export async function decodeSeed(encodedSeed: string): Promise<Uint8Array> {
 	}
 }
 
-export const getDidFromEnvSeed = async () => {
+export const getDidFromEnvSeed = async (encodedSeed: string) => {
 	// Get seed from environment variable
-	const encodedSeed = process.env.SEED;
 	if (!encodedSeed) {
 		throw new Error('SEED environment variable not set');
 	}

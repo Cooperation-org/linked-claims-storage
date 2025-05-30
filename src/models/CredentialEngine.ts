@@ -287,20 +287,19 @@ export class CredentialEngine {
 	 * @param {string} email - The email address to create the VC for
 	 * @returns {Promise<{signedVC: any, fileId: string}>} The signed VC and its Google Drive file ID
 	 */
-	public async generateAndSignEmailVC(email: string): Promise<{ signedVC: any; fileId: string }> {
+	public async generateAndSignEmailVC(email: string, encodedSeed: string): Promise<{ signedVC: any; fileId: string }> {
 		try {
 			let keyPair: any;
 			let didDocument: any;
 
 			// Require SEED from environment
-			const encodedSeed = process.env.SEED;
 			if (!encodedSeed) {
 				throw new Error('SEED environment variable not set. Cannot generate or use any DID.');
 			}
 
 			// Use deterministic keys from environment seed
 			const { getDidFromEnvSeed } = await import('../utils/decodedSeed');
-			const result = await getDidFromEnvSeed();
+			const result = await getDidFromEnvSeed(encodedSeed);
 			keyPair = result.keyPair;
 			didDocument = result.didDocument;
 			console.log('Using DID from environment seed:', didDocument.id);

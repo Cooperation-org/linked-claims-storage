@@ -1,5 +1,5 @@
 export declare function decodeSeed(encodedSeed: string): Promise<Uint8Array>;
-export declare const getDidFromEnvSeed: () => Promise<{
+export declare const getDidFromEnvSeed: (encodedSeed: string) => Promise<{
     keyPair: any;
     didDocument: {
         '@context': string[];

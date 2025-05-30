@@ -16,8 +16,9 @@ async function testEmailVC() {
 		console.log('Starting email VC generation test...');
 		console.log('Test email:', testEmail);
 
+		const encodedSeed = 'your encoded seed'; // Replace with your actual encoded seed
 		// Generate and sign the email VC
-		const result = await engine.generateAndSignEmailVC(testEmail);
+		const result = await engine.generateAndSignEmailVC(testEmail, encodedSeed);
 
 		console.log('\nTest Results:');
 		console.log('-------------');
