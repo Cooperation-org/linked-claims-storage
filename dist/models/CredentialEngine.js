@@ -5,6 +5,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { extractKeyPairFromCredential, generateDIDSchema, generateUnsignedRecommendation, generateUnsignedVC, } from '../utils/credential.js';
 import { customDocumentLoader } from '../utils/digitalbazaar.js';
 import { saveToGoogleDrive } from '../utils/google.js';
+function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
 /**
  * Class representing the Credential Engine.
  * @class CredentialEngine
@@ -47,12 +50,19 @@ export class CredentialEngine {
         this.keyPair = key;
         return key;
     }
-    generateKeyPair = async (address) => {
-        const keyPair = await Ed25519VerificationKey2020.generate();
+    generateKeyPair = async (address, seed) => {
+        // Generate the key pair using the library's method
+        const keyPair = seed
+            ? await Ed25519VerificationKey2020.generate({
+                seed: Buffer.from(seed).toString('hex'),
+            })
+            : await Ed25519VerificationKey2020.generate();
+        // Configure key pair attributes
         const a = address || keyPair.publicKeyMultibase;
         keyPair.controller = `did:key:${a}`;
         keyPair.id = `${keyPair.controller}#${a}`;
         keyPair.revoked = false;
+        // The `signer` is already provided by the `Ed25519VerificationKey2020` instance
         return keyPair;
     };
     async verifyCreds(creds) {
@@ -71,11 +81,6 @@ export class CredentialEngine {
     async createDID() {
         try {
             const keyPair = await this.generateKeyPair();
-            // const keyFile = await saveToGoogleDrive({
-            // 	storage: this.storage,
-            // 	data: keyPair,
-            // 	type: 'KEYPAIR',
-            // });
             const didDocument = await generateDIDSchema(keyPair);
             return { didDocument, keyPair };
         }
@@ -231,6 +236,113 @@ export class CredentialEngine {
         }
         catch (error) {
             console.error('Error signing presentation:', error);
+            throw error;
+        }
+    }
+    /**
+     * Generate and sign an email Verifiable Credential (VC)
+     * @param {string} email - The email address to create the VC for
+     * @returns {Promise<{signedVC: any, fileId: string}>} The signed VC and its Google Drive file ID
+     */
+    async generateAndSignEmailVC(email, encodedSeed) {
+        try {
+            let keyPair;
+            let didDocument;
+            // Require SEED from environment
+            if (!encodedSeed) {
+                throw new Error('SEED environment variable not set. Cannot generate or use any DID.');
+            }
+            // Use deterministic keys from environment seed
+            const { getDidFromEnvSeed } = await import('../utils/decodedSeed');
+            const result = await getDidFromEnvSeed(encodedSeed);
+            keyPair = result.keyPair;
+            didDocument = result.didDocument;
+            console.log('Using DID from environment seed:', didDocument.id);
+            // Ensure the key has proper ID and controller
+            if (!keyPair.id || !keyPair.controller) {
+                const verificationMethod = didDocument.verificationMethod?.[0] || didDocument.authentication?.[0];
+                if (verificationMethod) {
+                    keyPair.id = typeof verificationMethod === 'string' ? verificationMethod : verificationMethod.id;
+                    keyPair.controller = didDocument.id;
+                }
+            }
+            console.log('Creating email VC with DID:', didDocument.id);
+            // Generate unsigned email VC
+            const unsignedCredential = {
+                '@context': [
+                    'https://www.w3.org/2018/credentials/v1',
+                    {
+                        email: 'https://schema.org/email',
+                        EmailCredential: {
+                            '@id': 'https://example.com/EmailCredential',
+                        },
+                    },
+                ],
+                id: `urn:uuid:${uuidv4()}`,
+                type: ['VerifiableCredential', 'EmailCredential'],
+                issuer: {
+                    id: didDocument.id,
+                },
+                issuanceDate: new Date().toISOString(),
+                expirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+                credentialSubject: {
+                    id: `did:email:${email}`,
+                    email: email,
+                },
+            };
+            // Sign the VC
+            const suite = new Ed25519Signature2020({
+                key: keyPair,
+                verificationMethod: keyPair.id,
+            });
+            const signedVC = await dbVc.issue({
+                credential: unsignedCredential,
+                suite,
+                documentLoader: customDocumentLoader,
+            });
+            const rootFolders = await this.storage.findFolders();
+            // Find or create Credentials folder
+            let credentialsFolder = rootFolders.find((f) => f.name === 'Credentials');
+            if (!credentialsFolder) {
+                credentialsFolder = await this.storage.createFolder({
+                    folderName: 'Credentials',
+                    parentFolderId: 'root',
+                });
+                // Wait and re-check to avoid duplicates
+                await delay(1500);
+                const refreshedFolders = await this.storage.findFolders();
+                const foundAgain = refreshedFolders.find((f) => f.name === 'Credentials');
+                if (foundAgain)
+                    credentialsFolder = foundAgain;
+            }
+            // Find or create EMAIL_VC folder
+            const subfolders = await this.storage.findFolders(credentialsFolder.id);
+            let emailVcFolder = subfolders.find((f) => f.name === 'EMAIL_VC');
+            if (!emailVcFolder) {
+                emailVcFolder = await this.storage.createFolder({
+                    folderName: 'EMAIL_VC',
+                    parentFolderId: credentialsFolder.id,
+                });
+                // Wait and re-check to avoid duplicates
+                await delay(1500);
+                const refreshedSubfolders = await this.storage.findFolders(credentialsFolder.id);
+                const foundAgain = refreshedSubfolders.find((f) => f.name === 'EMAIL_VC');
+                if (foundAgain)
+                    emailVcFolder = foundAgain;
+            }
+            // Save the VC in the EMAIL_VC folder
+            const file = await this.storage.saveFile({
+                data: {
+                    fileName: `${email}`,
+                    mimeType: 'application/json',
+                    body: signedVC,
+                },
+                folderId: emailVcFolder.id,
+            });
+            return { signedVC, fileId: file.id };
+        }
+        catch (error) {
+            console.error('Error generating and signing email VC:', error);
             throw error;
         }
     }

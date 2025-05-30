@@ -1,4 +1,4 @@
-import { saveToGoogleDrive, CredentialEngine, StorageContext, StorageFactory } from './dist/index.js';
+import { saveToGoogleDrive, CredentialEngine, StorageContext, StorageFactory } from '../../dist/index.js';
 import { ethers } from 'ethers';
 
 const accessToken = 'your-google-drive-access-token';

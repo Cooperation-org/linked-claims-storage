@@ -142,6 +142,14 @@ export class GoogleDriveStorage {
             headers: {},
             body: JSON.stringify({ role: 'reader', type: 'anyone' }),
         });
+        // Invalidate cache for this parent folder
+        if (this.folderCache[parentFolderId]) {
+            delete this.folderCache[parentFolderId];
+        }
+        // Also clear 'root' cache if parent is root
+        if (parentFolderId === 'root' && this.folderCache['root']) {
+            delete this.folderCache['root'];
+        }
         return folder;
     }
     async getMediaFolderId() {
