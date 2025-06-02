@@ -248,6 +248,11 @@ export class CredentialEngine {
         try {
             let keyPair;
             let didDocument;
+            // Check if VC already exists
+            const existing = await this.storage.checkEmailExists(email);
+            if (existing) {
+                return { signedVC: existing.data, fileId: existing.id };
+            }
             // Require SEED from environment
             if (!encodedSeed) {
                 throw new Error('SEED environment variable not set. Cannot generate or use any DID.');

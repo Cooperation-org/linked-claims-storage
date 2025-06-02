@@ -11,7 +11,12 @@ async function testEmailVC() {
         const testEmail = 'test@example.com';
         console.log('Starting email VC generation test...');
         console.log('Test email:', testEmail);
-        const encodedSeed = 'your encoded seed'; // Replace with your actual encoded seed
+        // First check if email VC exists
+        console.log('\nChecking if email VC exists...');
+        const existingVC = await storage.checkEmailExists(testEmail);
+        console.log('🚀 ~ testEmailVC ~ existingVC:', existingVC);
+        console.log('Existing VC check:', existingVC ? 'Found' : 'Not found');
+        const encodedSeed = 'z1AdiEjvNdC18HdruehySWKe4HnsXdUqCXMYPEs1fQ8cY2S'; // Replace with your actual encoded seed
         // Generate and sign the email VC
         const result = await engine.generateAndSignEmailVC(testEmail, encodedSeed);
         console.log('\nTest Results:');
@@ -22,6 +27,19 @@ async function testEmailVC() {
         console.log('\nRetrieving VC from storage...');
         const retrievedVC = await storage.retrieve(result.fileId);
         console.log('Retrieved VC:', retrievedVC ? 'Success' : 'Failed');
+        // Test checkEmailExists again after creation
+        console.log('\nChecking if email VC exists after creation...');
+        const newExistingVC = await storage.checkEmailExists(testEmail);
+        console.log('Existing VC check after creation:', newExistingVC ? 'Found' : 'Not found');
+        if (newExistingVC) {
+            console.log('VC Content:', JSON.stringify(newExistingVC.data, null, 2));
+            console.log('VC ID:', newExistingVC.id);
+        }
+        // Test with non-existent email
+        console.log('\nTesting with non-existent email...');
+        const nonExistentEmail = 'nonexistent@example.com';
+        const nonExistentVC = await storage.checkEmailExists(nonExistentEmail);
+        console.log('Non-existent email check:', nonExistentVC ? 'Found (unexpected)' : 'Not found (expected)');
         console.log('\nTest completed successfully!');
     }
     catch (error) {

@@ -90,5 +90,14 @@ export declare class GoogleDriveStorage {
     update(fileId: string, data: any): Promise<any>;
     getFileIdsFromAppDataFolder(): Promise<any>;
     getAllFilesData(): Promise<any>;
+    /**
+     * Check if an email VC exists and return its content
+     * @param email - The email address to check
+     * @returns {Promise<{data: any, id: string} | null>} - The email VC content and ID if exists, null otherwise
+     */
+    checkEmailExists(email: string): Promise<{
+        data: any;
+        id: string;
+    } | null>;
 }
 export {};

@@ -744,4 +744,45 @@ export class GoogleDriveStorage {
 			return [];
 		}
 	}
+
+	/**
+	 * Check if an email VC exists and return its content
+	 * @param email - The email address to check
+	 * @returns {Promise<{data: any, id: string} | null>} - The email VC content and ID if exists, null otherwise
+	 */
+	async checkEmailExists(email: string): Promise<{ data: any; id: string } | null> {
+		try {
+			// Get root folders
+			const rootFolders = await this.findFolders();
+
+			// Find Credentials folder
+			const credentialsFolder = rootFolders.find((f: any) => f.name === 'Credentials');
+			if (!credentialsFolder) {
+				console.log('Credentials folder not found');
+				return null;
+			}
+
+			// Find EMAIL_VC subfolder
+			const subfolders = await this.findFolders(credentialsFolder.id);
+			const emailVcFolder = subfolders.find((f: any) => f.name === 'EMAIL_VC');
+			if (!emailVcFolder) {
+				console.log('EMAIL_VC folder not found');
+				return null;
+			}
+
+			// Search for file with exact email name (no extension)
+			const files = await this.searchFiles(`'${emailVcFolder.id}' in parents and name='${email}' and mimeType='application/json'`);
+
+			if (files.length === 0) {
+				return null;
+			}
+
+			// Get the content of the email VC
+			const emailVC = await this.retrieve(files[0].id);
+			return emailVC;
+		} catch (error) {
+			console.error('Error checking email existence:', error);
+			return null;
+		}
+	}
 }
