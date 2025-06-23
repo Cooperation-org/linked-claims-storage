@@ -104,6 +104,79 @@ export declare const inlineResumeContext: {
         Resume: string;
     };
 };
+export declare const employmentCredentialContext: {
+    '@context': {
+        '@vocab': string;
+        fullName: string;
+        persons: string;
+        credentialName: string;
+        credentialDuration: string;
+        credentialDescription: string;
+        portfolio: {
+            '@id': string;
+            '@container': string;
+        };
+        name: string;
+        url: string;
+        evidenceLink: string;
+        evidenceDescription: string;
+        company: string;
+        role: string;
+    };
+};
+export declare const volunteeringCredentialContext: {
+    '@context': {
+        '@vocab': string;
+        fullName: string;
+        persons: string;
+        volunteerWork: string;
+        volunteerOrg: string;
+        volunteerDescription: string;
+        skillsGained: {
+            '@id': string;
+            '@container': string;
+        };
+        duration: string;
+        volunteerDates: string;
+        portfolio: {
+            '@id': string;
+            '@container': string;
+        };
+        name: string;
+        url: string;
+        evidenceLink: string;
+        evidenceDescription: string;
+    };
+};
+export declare const performanceReviewCredentialContext: {
+    '@context': {
+        '@vocab': string;
+        fullName: string;
+        persons: string;
+        employeeName: string;
+        employeeJobTitle: string;
+        company: string;
+        role: string;
+        reviewStartDate: string;
+        reviewEndDate: string;
+        reviewDuration: string;
+        jobKnowledgeRating: string;
+        teamworkRating: string;
+        initiativeRating: string;
+        communicationRating: string;
+        overallRating: string;
+        reviewComments: string;
+        goalsNext: string;
+        portfolio: {
+            '@id': string;
+            '@container': string;
+        };
+        name: string;
+        url: string;
+        evidenceLink: string;
+        evidenceDescription: string;
+    };
+};
 declare const localOBContext: {
     '@context': {
         '@protected': boolean;

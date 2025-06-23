@@ -7,18 +7,21 @@ import { driver as keyDriver } from '@digitalbazaar/did-method-key';
 import {
 	extractKeyPairFromCredential,
 	generateDIDSchema,
+	generateUnsignedEmployment,
+	generateUnsignedPerformanceReview,
 	generateUnsignedRecommendation,
 	generateUnsignedVC,
+	generateUnsignedVolunteering,
 } from '../utils/credential.js';
 import { customDocumentLoader } from '../utils/digitalbazaar.js';
-import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI, VerifiableCredential } from '../../types/credential.js';
+import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI, VerifiableCredential, EmploymentFormDataI, PerformanceReviewFormDataI, VolunteeringFormDataI } from '../../types/credential.js';
 import { saveToGoogleDrive } from '../utils/google.js';
 import { GoogleDriveStorage } from './GoogleDriveStorage.js';
 import { decodeSeed, getDidFromEnvSeed } from '../utils/decodedSeed.js';
 
 interface SignPropsI {
-	data: FormDataI | RecommendationFormDataI;
-	type: 'VC' | 'RECOMMENDATION';
+	data: FormDataI | RecommendationFormDataI | EmploymentFormDataI | VolunteeringFormDataI | PerformanceReviewFormDataI;
+	type: 'VC' | 'RECOMMENDATION' | 'EMPLOYMENT' | 'VOLUNTEERING' | 'PERFORMANCE_REVIEW';
 	keyPair: KeyPair;
 	issuerId: string;
 	vcFileId?: string;
@@ -172,29 +175,44 @@ export class CredentialEngine {
 	 * @throws Will throw an error if VC signing fails.
 	 */
 	public async signVC({ data, type, keyPair, issuerId, vcFileId }: SignPropsI): Promise<any> {
-		let credential = generateUnsignedVC({ formData: data as FormDataI, issuerDid: issuerId }) as any;
-		if (type == 'RECOMMENDATION' && vcFileId) {
-			console.log('WOW');
+    let credential;
 
-			credential = generateUnsignedRecommendation({
-				vcId: vcFileId,
-				recommendation: data as unknown as RecommendationFormDataI,
-				issuerDid: issuerId,
-			});
-		}
+    switch (type) {
+      case 'VC':
+        credential = generateUnsignedVC({ formData: data as FormDataI, issuerDid: issuerId });
+        break;
+      case 'RECOMMENDATION':
+        if (!vcFileId) throw new Error('vcFileId is required for recommendation');
+        credential = generateUnsignedRecommendation({ vcId: vcFileId, recommendation: data as RecommendationFormDataI, issuerDid: issuerId });
+        break;
+      case 'EMPLOYMENT':
+        credential = generateUnsignedEmployment({ formData: data as EmploymentFormDataI, issuerDid: issuerId });
+        break;
+      case 'VOLUNTEERING':
+        credential = generateUnsignedVolunteering({ formData: data as VolunteeringFormDataI, issuerDid: issuerId });
+        break;
+      case 'PERFORMANCE_REVIEW':
+        credential = generateUnsignedPerformanceReview({ formData: data as PerformanceReviewFormDataI, issuerDid: issuerId });
+        break;
+      default:
+        throw new Error(`Unsupported credential type: ${type}`);
+    }
 
-		try {
-			console.log('🚀 ~ CredentialEngine ~ signVC ~ credential:', credential);
-			if (!credential) throw new Error('Invalid credential type');
-			const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
-			console.log('before');
-			const signedVC = await dbVc.issue({ credential, suite, documentLoader: customDocumentLoader });
-			return signedVC;
-		} catch (error) {
-			console.error('Error signing VC:', error);
-			throw error;
-		}
-	}
+    const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
+    return dbVc.issue({ credential, suite, documentLoader: customDocumentLoader });
+  }
+	public async signEmploymentCredential(data: EmploymentFormDataI, keyPair: KeyPair, issuerId: string) {
+    return this.signVC({ data, type: 'EMPLOYMENT', keyPair, issuerId });
+  }
+
+  public async signVolunteeringCredential(data: VolunteeringFormDataI, keyPair: KeyPair, issuerId: string) {
+    return this.signVC({ data, type: 'VOLUNTEERING', keyPair, issuerId });
+  }
+
+  public async signPerformanceReviewCredential(data: PerformanceReviewFormDataI, keyPair: KeyPair, issuerId: string) {
+    return this.signVC({ data, type: 'PERFORMANCE_REVIEW', keyPair, issuerId });
+  }
+
 
 	/**
 	 * Verify a Verifiable Credential (VC)

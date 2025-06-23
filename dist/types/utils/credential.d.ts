@@ -1,4 +1,4 @@
-import { KeyPair, DidDocument, FormDataI, RecommendationCredential, Credential, RecommendationFormDataI, VerifiableCredential } from '../../types/credential';
+import { KeyPair, DidDocument, FormDataI, RecommendationCredential, Credential, RecommendationFormDataI, VerifiableCredential, EmploymentFormDataI, VolunteeringFormDataI, PerformanceReviewFormDataI } from '../../types/credential';
 /**
  * Create a DID document using the provided key pair.
  * @param {KeyPair} keyPair - The key pair used to create the DID document.
@@ -34,6 +34,176 @@ export declare function generateUnsignedRecommendation({ vcId, recommendation, i
     recommendation: RecommendationFormDataI;
     issuerDid: string;
 }): RecommendationCredential;
+/**
+ * Generate an unsigned Employment Credential.
+ */
+export declare function generateUnsignedEmployment({ formData, issuerDid }: {
+    formData: EmploymentFormDataI;
+    issuerDid: string;
+}): {
+    '@context': (string | {
+        '@vocab': string;
+        fullName: string;
+        persons: string;
+        credentialName: string;
+        credentialDuration: string;
+        credentialDescription: string;
+        portfolio: {
+            '@id': string;
+            '@container': string;
+        };
+        name: string;
+        url: string;
+        evidenceLink: string;
+        evidenceDescription: string;
+        company: string;
+        role: string;
+    })[];
+    id: string;
+    type: string[];
+    issuer: {
+        id: string;
+        type: string[];
+    };
+    issuanceDate: string;
+    credentialSubject: {
+        type: string[];
+        fullName: string;
+        persons: string;
+        credentialName: string;
+        credentialDuration: string;
+        credentialDescription: string;
+        portfolio: {
+            name: string;
+            url: string;
+        }[];
+        evidenceLink: string;
+        evidenceDescription: string;
+        company: string;
+        role: string;
+    };
+};
+/**
+ * Generate an unsigned Volunteering Credential.
+ */
+export declare function generateUnsignedVolunteering({ formData, issuerDid }: {
+    formData: VolunteeringFormDataI;
+    issuerDid: string;
+}): {
+    '@context': (string | {
+        '@vocab': string;
+        fullName: string;
+        persons: string;
+        volunteerWork: string;
+        volunteerOrg: string;
+        volunteerDescription: string;
+        skillsGained: {
+            '@id': string;
+            '@container': string;
+        };
+        duration: string;
+        volunteerDates: string;
+        portfolio: {
+            '@id': string;
+            '@container': string;
+        };
+        name: string;
+        url: string;
+        evidenceLink: string;
+        evidenceDescription: string;
+    })[];
+    id: string;
+    type: string[];
+    issuer: {
+        id: string;
+        type: string[];
+    };
+    issuanceDate: string;
+    credentialSubject: {
+        type: string[];
+        fullName: string;
+        persons: string;
+        volunteerWork: string;
+        volunteerOrg: string;
+        volunteerDescription: string;
+        skillsGained: string[];
+        duration: string;
+        volunteerDates: string;
+        portfolio: {
+            name: string;
+            url: string;
+        }[];
+        evidenceLink: string;
+        evidenceDescription: string;
+    };
+};
+/**
+ * Generate an unsigned Performance Review Credential.
+ */
+export declare function generateUnsignedPerformanceReview({ formData, issuerDid }: {
+    formData: PerformanceReviewFormDataI;
+    issuerDid: string;
+}): {
+    '@context': (string | {
+        '@vocab': string;
+        fullName: string;
+        persons: string;
+        employeeName: string;
+        employeeJobTitle: string;
+        company: string;
+        role: string;
+        reviewStartDate: string;
+        reviewEndDate: string;
+        reviewDuration: string;
+        jobKnowledgeRating: string;
+        teamworkRating: string;
+        initiativeRating: string;
+        communicationRating: string;
+        overallRating: string;
+        reviewComments: string;
+        goalsNext: string;
+        portfolio: {
+            '@id': string;
+            '@container': string;
+        };
+        name: string;
+        url: string;
+        evidenceLink: string;
+        evidenceDescription: string;
+    })[];
+    id: string;
+    type: string[];
+    issuer: {
+        id: string;
+        type: string[];
+    };
+    issuanceDate: string;
+    credentialSubject: {
+        type: string[];
+        fullName: string;
+        persons: string;
+        employeeName: string;
+        employeeJobTitle: string;
+        company: string;
+        role: string;
+        reviewStartDate: string;
+        reviewEndDate: string;
+        reviewDuration: string;
+        jobKnowledgeRating: string;
+        teamworkRating: string;
+        initiativeRating: string;
+        communicationRating: string;
+        overallRating: string;
+        reviewComments: string;
+        goalsNext: string;
+        portfolio: {
+            name: string;
+            url: string;
+        }[];
+        evidenceLink: string;
+        evidenceDescription: string;
+    };
+};
 /**
  * Extracts the keypair from a Verifiable Credential
  * @param {Object} credential - The signed Verifiable Credential

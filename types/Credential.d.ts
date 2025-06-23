@@ -77,6 +77,7 @@ export interface Credential {
 		duration: string;
 		name: string;
 		achievement: Achievement[];
+		fullName?: string;
 	};
 }
 
@@ -128,4 +129,63 @@ export interface VerifiableCredential {
 	expirationDate: string;
 	credentialSubject: { [key: string]: any };
 	proof: Proof;
+}
+
+
+/**
+ * Employment form data
+ */
+export interface EmploymentFormDataI {
+  fullName: string;
+  persons: string;
+  credentialName: string;
+  credentialDuration: string;
+  credentialDescription: string;
+  portfolio: PortfolioItem[];
+  evidenceLink: string;
+  evidenceDescription: string;
+  company: string;
+  role: string;
+}
+
+/**
+ * Volunteering form data
+ */
+export interface VolunteeringFormDataI {
+  fullName: string;
+  persons: string;
+  volunteerWork: string;
+  volunteerOrg: string;
+  volunteerDescription?: string;
+  skillsGained?: string;
+  duration?: string;
+  volunteerDates?: string;
+  portfolio: PortfolioItem[];
+  evidenceLink: string;
+  evidenceDescription: string;
+}
+
+/**
+ * Performance Review form data
+ */
+export interface PerformanceReviewFormDataI {
+  fullName: string;
+  persons: string;
+  employeeName: string;
+  employeeJobTitle: string;
+  company: string;
+  role: string;
+  reviewStartDate: string;
+  reviewEndDate: string;
+  reviewDuration?: string;
+  jobKnowledgeRating?: string;
+  teamworkRating?: string;
+  initiativeRating?: string;
+  communicationRating?: string;
+  overallRating?: string;
+  reviewComments?: string;
+  goalsNext?: string;
+  portfolio: PortfolioItem[];
+  evidenceLink: string;
+  evidenceDescription: string;
 }
