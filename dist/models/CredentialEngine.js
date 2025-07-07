@@ -2,7 +2,7 @@ import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-
 import { Ed25519Signature2020 } from '@digitalbazaar/ed25519-signature-2020';
 import * as dbVc from '@digitalbazaar/vc';
 import { v4 as uuidv4 } from 'uuid';
-import { extractKeyPairFromCredential, generateDIDSchema, generateUnsignedRecommendation, generateUnsignedVC, } from '../utils/credential.js';
+import { extractKeyPairFromCredential, generateDIDSchema, generateUnsignedEmployment, generateUnsignedPerformanceReview, generateUnsignedRecommendation, generateUnsignedVC, generateUnsignedVolunteering, } from '../utils/credential.js';
 import { customDocumentLoader } from '../utils/digitalbazaar.js';
 import { saveToGoogleDrive } from '../utils/google.js';
 function delay(ms) {
@@ -135,28 +135,39 @@ export class CredentialEngine {
      * @throws Will throw an error if VC signing fails.
      */
     async signVC({ data, type, keyPair, issuerId, vcFileId }) {
-        let credential = generateUnsignedVC({ formData: data, issuerDid: issuerId });
-        if (type == 'RECOMMENDATION' && vcFileId) {
-            console.log('WOW');
-            credential = generateUnsignedRecommendation({
-                vcId: vcFileId,
-                recommendation: data,
-                issuerDid: issuerId,
-            });
+        let credential;
+        switch (type) {
+            case 'VC':
+                credential = generateUnsignedVC({ formData: data, issuerDid: issuerId });
+                break;
+            case 'RECOMMENDATION':
+                if (!vcFileId)
+                    throw new Error('vcFileId is required for recommendation');
+                credential = generateUnsignedRecommendation({ vcId: vcFileId, recommendation: data, issuerDid: issuerId });
+                break;
+            case 'EMPLOYMENT':
+                credential = generateUnsignedEmployment({ formData: data, issuerDid: issuerId });
+                break;
+            case 'VOLUNTEERING':
+                credential = generateUnsignedVolunteering({ formData: data, issuerDid: issuerId });
+                break;
+            case 'PERFORMANCE_REVIEW':
+                credential = generateUnsignedPerformanceReview({ formData: data, issuerDid: issuerId });
+                break;
+            default:
+                throw new Error(`Unsupported credential type: ${type}`);
         }
-        try {
-            console.log('🚀 ~ CredentialEngine ~ signVC ~ credential:', credential);
-            if (!credential)
-                throw new Error('Invalid credential type');
-            const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
-            console.log('before');
-            const signedVC = await dbVc.issue({ credential, suite, documentLoader: customDocumentLoader });
-            return signedVC;
-        }
-        catch (error) {
-            console.error('Error signing VC:', error);
-            throw error;
-        }
+        const suite = new Ed25519Signature2020({ key: keyPair, verificationMethod: keyPair.id });
+        return dbVc.issue({ credential, suite, documentLoader: customDocumentLoader });
+    }
+    async signEmploymentCredential(data, keyPair, issuerId) {
+        return this.signVC({ data, type: 'EMPLOYMENT', keyPair, issuerId });
+    }
+    async signVolunteeringCredential(data, keyPair, issuerId) {
+        return this.signVC({ data, type: 'VOLUNTEERING', keyPair, issuerId });
+    }
+    async signPerformanceReviewCredential(data, keyPair, issuerId) {
+        return this.signVC({ data, type: 'PERFORMANCE_REVIEW', keyPair, issuerId });
     }
     /**
      * Verify a Verifiable Credential (VC)

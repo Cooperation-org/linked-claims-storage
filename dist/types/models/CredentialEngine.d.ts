@@ -1,8 +1,8 @@
-import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI, VerifiableCredential } from '../../types/credential.js';
+import { DidDocument, KeyPair, FormDataI, RecommendationFormDataI, VerifiableCredential, EmploymentFormDataI, PerformanceReviewFormDataI, VolunteeringFormDataI } from '../../types/credential.js';
 import { GoogleDriveStorage } from './GoogleDriveStorage.js';
 interface SignPropsI {
-    data: FormDataI | RecommendationFormDataI;
-    type: 'VC' | 'RECOMMENDATION';
+    data: FormDataI | RecommendationFormDataI | EmploymentFormDataI | VolunteeringFormDataI | PerformanceReviewFormDataI;
+    type: 'VC' | 'RECOMMENDATION' | 'EMPLOYMENT' | 'VOLUNTEERING' | 'PERFORMANCE_REVIEW';
     keyPair: KeyPair;
     issuerId: string;
     vcFileId?: string;
@@ -59,6 +59,9 @@ export declare class CredentialEngine {
      * @throws Will throw an error if VC signing fails.
      */
     signVC({ data, type, keyPair, issuerId, vcFileId }: SignPropsI): Promise<any>;
+    signEmploymentCredential(data: EmploymentFormDataI, keyPair: KeyPair, issuerId: string): Promise<any>;
+    signVolunteeringCredential(data: VolunteeringFormDataI, keyPair: KeyPair, issuerId: string): Promise<any>;
+    signPerformanceReviewCredential(data: PerformanceReviewFormDataI, keyPair: KeyPair, issuerId: string): Promise<any>;
     /**
      * Verify a Verifiable Credential (VC)
      * @param {object} credential - The Verifiable Credential to verify.

@@ -7,11 +7,20 @@ import {
 	Credential,
 	RecommendationFormDataI,
 	VerifiableCredential,
+	EmploymentFormDataI,
+	VolunteeringFormDataI,
+	PerformanceReviewFormDataI,
 } from '../../types/credential';
 import { v4 as uuidv4 } from 'uuid';
 import CryptoJS from 'crypto-js';
+import {
+	employmentCredentialContext,
+	volunteeringCredentialContext,
+	performanceReviewCredentialContext
+} from './context.js';
 
 /**
+ * 
  * Utility function to generate a hashed ID for a credential.
  * Excludes the `id` field when hashing.
  * @param {object} credential - The credential object to hash.
@@ -191,6 +200,122 @@ export function generateUnsignedRecommendation({
 
 	return unsignedRecommendation;
 }
+
+/**
+ * Generate an unsigned Employment Credential.
+ */
+export function generateUnsignedEmployment({ formData, issuerDid }: {
+	formData: EmploymentFormDataI;
+	issuerDid: string;
+}) {
+	const issuanceDate = new Date().toISOString();
+	const unsignedCredential = {
+		'@context': [
+			'https://www.w3.org/2018/credentials/v1',
+			employmentCredentialContext['@context'],
+		],
+		id: '',
+		type: ['VerifiableCredential', 'EmploymentCredential'],
+		issuer: { id: issuerDid, type: ['Profile'] },
+		issuanceDate,
+		credentialSubject: {
+			type: ['WorkExperience'],
+			fullName: formData.fullName,
+			persons: formData.persons,
+			credentialName: formData.credentialName,
+			credentialDuration: formData.credentialDuration,
+			credentialDescription: formData.credentialDescription,
+			portfolio: formData.portfolio.map(item => ({ name: item.name, url: item.url })),
+			evidenceLink: formData.evidenceLink,
+			evidenceDescription: formData.evidenceDescription,
+			company: formData.company,
+			role: formData.role,
+		},
+	};
+	unsignedCredential.id = 'urn:' + generateHashedId(unsignedCredential);
+	return unsignedCredential;
+}
+
+/**
+ * Generate an unsigned Volunteering Credential.
+ */
+export function generateUnsignedVolunteering({ formData, issuerDid }: {
+	formData: VolunteeringFormDataI;
+	issuerDid: string;
+}) {
+	const issuanceDate = new Date().toISOString();
+	const unsignedCredential = {
+		'@context': [
+			'https://www.w3.org/2018/credentials/v1',
+			volunteeringCredentialContext['@context'],
+		],
+		id: '',
+		type: ['VerifiableCredential', 'VolunteeringCredential'],
+		issuer: { id: issuerDid, type: ['Profile'] },
+		issuanceDate,
+		credentialSubject: {
+			type: ['VolunteerRole'],
+			fullName: formData.fullName,
+			persons: formData.persons,
+			volunteerWork: formData.volunteerWork,
+			volunteerOrg: formData.volunteerOrg,
+			volunteerDescription: formData.volunteerDescription,
+			skillsGained: formData.skillsGained ? formData.skillsGained.split(',').map(s => s.trim()) : undefined,
+			duration: formData.duration,
+			volunteerDates: formData.volunteerDates,
+			portfolio: formData.portfolio.map(item => ({ name: item.name, url: item.url })),
+			evidenceLink: formData.evidenceLink,
+			evidenceDescription: formData.evidenceDescription,
+		},
+	};
+	unsignedCredential.id = 'urn:' + generateHashedId(unsignedCredential);
+	return unsignedCredential;
+}
+
+/**
+ * Generate an unsigned Performance Review Credential.
+ */
+export function generateUnsignedPerformanceReview({ formData, issuerDid }: {
+	formData: PerformanceReviewFormDataI;
+	issuerDid: string;
+}) {
+	const issuanceDate = new Date().toISOString();
+	const unsignedCredential = {
+		'@context': [
+			'https://www.w3.org/2018/credentials/v1',
+			performanceReviewCredentialContext['@context'],
+		],
+		id: '',
+		type: ['VerifiableCredential', 'PerformanceReviewCredential'],
+		issuer: { id: issuerDid, type: ['Profile'] },
+		issuanceDate,
+		credentialSubject: {
+			type: ['EndorsementSubject'],
+			fullName: formData.fullName,
+			persons: formData.persons,
+			employeeName: formData.employeeName,
+			employeeJobTitle: formData.employeeJobTitle,
+			company: formData.company,
+			role: formData.role,
+			reviewStartDate: formData.reviewStartDate,
+			reviewEndDate: formData.reviewEndDate,
+			reviewDuration: formData.reviewDuration,
+			jobKnowledgeRating: formData.jobKnowledgeRating,
+			teamworkRating: formData.teamworkRating,
+			initiativeRating: formData.initiativeRating,
+			communicationRating: formData.communicationRating,
+			overallRating: formData.overallRating,
+			reviewComments: formData.reviewComments,
+			goalsNext: formData.goalsNext,
+			portfolio: formData.portfolio.map(item => ({ name: item.name, url: item.url })),
+			evidenceLink: formData.evidenceLink,
+			evidenceDescription: formData.evidenceDescription,
+		},
+	};
+	unsignedCredential.id = 'urn:' + generateHashedId(unsignedCredential);
+	return unsignedCredential;
+}
+
 /**
  * Extracts the keypair from a Verifiable Credential
  * @param {Object} credential - The signed Verifiable Credential

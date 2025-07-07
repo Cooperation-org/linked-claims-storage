@@ -120,6 +120,82 @@ export const inlineResumeContext = {
         Resume: 'https://schema.hropenstandards.org/4.4#Resume',
     },
 };
+// 1. Employment Credential Context
+export const employmentCredentialContext = {
+    '@context': {
+        '@vocab': 'https://schema.hropenstandards.org/4.4/',
+        fullName: 'https://schema.org/name',
+        persons: 'https://schema.org/name',
+        credentialName: 'https://schema.org/jobTitle',
+        credentialDuration: 'https://schema.org/duration',
+        credentialDescription: 'https://schema.org/description',
+        portfolio: {
+            '@id': 'https://schema.org/hasPart',
+            '@container': '@list'
+        },
+        name: 'https://schema.org/name',
+        url: 'https://schema.org/url',
+        evidenceLink: 'https://schema.org/url',
+        evidenceDescription: 'https://schema.org/description',
+        company: 'https://schema.org/worksFor',
+        role: 'https://schema.org/jobTitle'
+    }
+};
+// 2. Volunteering Credential Context
+export const volunteeringCredentialContext = {
+    '@context': {
+        '@vocab': 'https://schema.hropenstandards.org/4.4/',
+        fullName: 'https://schema.org/name',
+        persons: 'https://schema.org/name',
+        volunteerWork: 'https://schema.org/roleName',
+        volunteerOrg: 'https://schema.org/organization',
+        volunteerDescription: 'https://schema.org/description',
+        skillsGained: {
+            '@id': 'https://schema.org/skills',
+            '@container': '@list'
+        },
+        duration: 'https://schema.org/duration',
+        volunteerDates: 'https://schema.org/temporalCoverage',
+        portfolio: {
+            '@id': 'https://schema.org/hasPart',
+            '@container': '@list'
+        },
+        name: 'https://schema.org/name',
+        url: 'https://schema.org/url',
+        evidenceLink: 'https://schema.org/url',
+        evidenceDescription: 'https://schema.org/description'
+    }
+};
+// 3. Performance Review Credential Context
+export const performanceReviewCredentialContext = {
+    '@context': {
+        '@vocab': 'https://schema.hropenstandards.org/4.4/',
+        fullName: 'https://schema.org/name',
+        persons: 'https://schema.org/name',
+        employeeName: 'https://schema.org/name',
+        employeeJobTitle: 'https://schema.org/jobTitle',
+        company: 'https://schema.org/worksFor',
+        role: 'https://schema.org/jobTitle',
+        reviewStartDate: 'https://schema.org/startDate',
+        reviewEndDate: 'https://schema.org/endDate',
+        reviewDuration: 'https://schema.org/duration',
+        jobKnowledgeRating: 'https://schema.org/assessmentScore',
+        teamworkRating: 'https://schema.org/assessmentScore',
+        initiativeRating: 'https://schema.org/assessmentScore',
+        communicationRating: 'https://schema.org/assessmentScore',
+        overallRating: 'https://schema.org/aggregateRating',
+        reviewComments: 'https://schema.org/comment',
+        goalsNext: 'https://schema.hropenstandards.org/4.4/goalsNext',
+        portfolio: {
+            '@id': 'https://schema.org/hasPart',
+            '@container': '@list'
+        },
+        name: 'https://schema.org/name',
+        url: 'https://schema.org/url',
+        evidenceLink: 'https://schema.org/url',
+        evidenceDescription: 'https://schema.org/description'
+    }
+};
 const localOBContext = {
     '@context': {
         '@protected': true,
