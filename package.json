@@ -1,7 +1,7 @@
 {
 	"name": "@cooperation/vc-storage",
 	"type": "module",
-	"version": "1.0.33",
+	"version": "1.0.34",
 	"description": "Sign and store your verifiable credentials.",
 	"main": "dist/index.js",
 	"types": "dist/types/index.d.ts",
@@ -16,10 +16,12 @@
 	"author": "cooperation",
 	"license": "ISC",
 	"dependencies": {
+		"@did.coop/did-key-ed25519": "^0.0.13",
 		"@digitalbazaar/did-method-key": "^5.2.0",
 		"@digitalbazaar/ed25519-signature-2020": "^5.4.0",
 		"@digitalbazaar/ed25519-verification-key-2020": "^4.1.0",
 		"@digitalbazaar/vc": "^6.3.0",
+		"@wallet.storage/fetch-client": "^1.2.0",
 		"add": "^2.0.6",
 		"bnid": "^3.0.0",
 		"crypto-js": "^4.2.0",
@@ -37,7 +39,7 @@
 		"@types/jest": "^29.5.14",
 		"@types/uuid": "^10.0.0",
 		"babel-jest": "^29.7.0",
-		"typescript": "^5.8.2",
+		"typescript": "^5.8.3",
 		"vitest": "^3.0.5"
 	}
 }

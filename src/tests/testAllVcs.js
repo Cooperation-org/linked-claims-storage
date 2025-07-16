@@ -82,7 +82,6 @@ async function main() {
       keyPair,
       didDocument.id
     );
-
     console.log('\nEmployment VC saved:', employmentVC);
     const retrievedEmployment = await storage.retrieve(employmentVC.id);
     console.log('Retrieved Employment VC:', JSON.stringify(retrievedEmployment, null, 2));
