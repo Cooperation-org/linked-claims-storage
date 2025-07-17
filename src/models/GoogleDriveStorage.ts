@@ -25,8 +25,8 @@ type FileType = 'KEYPAIRs' | 'VCs' | 'SESSIONs' | 'DIDs' | 'RECOMMENDATIONs' | '
  */
 export class GoogleDriveStorage {
 	private accessToken: string;
-	public folderCache: any = {};
-	private fileIdsCache = null;
+	public static folderCache: any = {};
+	private static fileIdsCache = null;
 
 	constructor(accessToken: string) {
 		this.accessToken = accessToken;
@@ -45,7 +45,7 @@ export class GoogleDriveStorage {
 		};
 		try {
 			// ✅ Fetch `file_ids.json` ID once per session (cached)
-			if (!this.fileIdsCache) {
+			if (!GoogleDriveStorage.fileIdsCache) {
 				const existingFile = await this.fetcher({
 					method: 'GET',
 					headers: {},
@@ -53,22 +53,22 @@ export class GoogleDriveStorage {
 				});
 
 				if (existingFile.files.length > 0) {
-					this.fileIdsCache = existingFile.files[0].id;
+					GoogleDriveStorage.fileIdsCache = existingFile.files[0].id;
 				} else {
 					console.log('No existing file_ids.json found, creating a new one.');
-					this.fileIdsCache = null;
+					GoogleDriveStorage.fileIdsCache = null;
 				}
 			}
 
 			let existingFileIds = [];
 
 			// ✅ Fetch existing file IDs **only if `file_ids.json` exists**
-			if (this.fileIdsCache) {
+			if (GoogleDriveStorage.fileIdsCache) {
 				try {
 					const fileContent = await this.fetcher({
 						method: 'GET',
 						headers: {},
-						url: `https://www.googleapis.com/drive/v3/files/${this.fileIdsCache}?alt=media`,
+						url: `https://www.googleapis.com/drive/v3/files/${GoogleDriveStorage.fileIdsCache}?alt=media`,
 					});
 					existingFileIds = fileContent;
 				} catch (error) {
@@ -79,7 +79,7 @@ export class GoogleDriveStorage {
 			// ✅ Append the new file ID to the list
 			existingFileIds.push(newFileId);
 
-			console.log('File ID saved to appDataFolder.', this.fileIdsCache);
+			console.log('File ID saved to appDataFolder.', GoogleDriveStorage.fileIdsCache);
 		} catch (error) {
 			console.error('Error updating file_ids.json:', error.message);
 			throw error;
@@ -140,8 +140,8 @@ export class GoogleDriveStorage {
 	}
 
 	private async getOrCreateMediaFolder() {
-		if (this.folderCache['MEDIAs']) {
-			return this.folderCache['MEDIAs'];
+		if (GoogleDriveStorage.folderCache['MEDIAs']) {
+			return GoogleDriveStorage.folderCache['MEDIAs'];
 		}
 		const rootFolders = await this.findFolders();
 
@@ -158,7 +158,7 @@ export class GoogleDriveStorage {
 			mediasFolder = await this.createFolder({ folderName: 'MEDIAs', parentFolderId: credentialsFolder.id });
 		}
 
-		this.folderCache['MEDIAs'] = mediasFolder.id;
+		GoogleDriveStorage.folderCache['MEDIAs'] = mediasFolder.id;
 
 		return mediasFolder.id;
 	}
@@ -215,12 +215,12 @@ export class GoogleDriveStorage {
 		});
 
 		// Invalidate cache for this parent folder
-		if (this.folderCache[parentFolderId]) {
-			delete this.folderCache[parentFolderId];
+		if (GoogleDriveStorage.folderCache[parentFolderId]) {
+			delete GoogleDriveStorage.folderCache[parentFolderId];
 		}
 		// Also clear 'root' cache if parent is root
-		if (parentFolderId === 'root' && this.folderCache['root']) {
-			delete this.folderCache['root'];
+		if (parentFolderId === 'root' && GoogleDriveStorage.folderCache['root']) {
+			delete GoogleDriveStorage.folderCache['root'];
 		}
 
 		return folder;
@@ -358,8 +358,8 @@ export class GoogleDriveStorage {
 
 	public async findFolders(folderId?: string): Promise<any[]> {
 		const cacheKey = folderId || 'root';
-		if (this.folderCache[cacheKey]) {
-			return this.folderCache[cacheKey];
+		if (GoogleDriveStorage.folderCache[cacheKey]) {
+			return GoogleDriveStorage.folderCache[cacheKey];
 		}
 
 		const query = folderId
@@ -367,32 +367,32 @@ export class GoogleDriveStorage {
 			: `'root' in parents and mimeType='application/vnd.google-apps.folder'`;
 
 		const folders = await this.searchFiles(query);
-		this.folderCache[cacheKey] = folders;
+		GoogleDriveStorage.folderCache[cacheKey] = folders;
 		return folders;
 	}
 
 	public async getAllFilesByType(type: FileType): Promise<any[]> {
 		try {
-			if (!this.folderCache['Credentials']) {
+			if (!GoogleDriveStorage.folderCache['Credentials']) {
 				const rootFolders = await this.findFolders();
-				this.folderCache['Credentials'] = rootFolders;
+				GoogleDriveStorage.folderCache['Credentials'] = rootFolders;
 			}
 
-			const credentialsFolder = this.folderCache['Credentials'].find((f: any) => f.name === 'Credentials');
+			const credentialsFolder = GoogleDriveStorage.folderCache['Credentials'].find((f: any) => f.name === 'Credentials');
 			if (!credentialsFolder) {
 				console.error('Credentials folder not found.');
 				return [];
 			}
 
 			if (type === 'VCs') {
-				if (!this.folderCache['VCs']) {
+				if (!GoogleDriveStorage.folderCache['VCs']) {
 					const vcSubfolder = await this.findFolders(credentialsFolder.id);
 					const vcsFolder = vcSubfolder.find((f: any) => f.name === 'VCs');
 					const vcSubFolders = await this.findFolders(vcsFolder.id);
-					this.folderCache['VCs'] = vcSubFolders.filter((folder: any) => folder.name.startsWith('VC-'));
+					GoogleDriveStorage.folderCache['VCs'] = vcSubFolders.filter((folder: any) => folder.name.startsWith('VC-'));
 				}
 
-				const vcSubfolders = this.folderCache['VCs'];
+				const vcSubfolders = GoogleDriveStorage.folderCache['VCs'];
 				if (!vcSubfolders.length) {
 					console.error(`No subfolders found for type: ${type}`);
 					return [];
@@ -409,13 +409,13 @@ export class GoogleDriveStorage {
 				return validFileContents.filter((file: any) => file.data.fileName !== 'RELATIONS');
 			}
 
-			if (!this.folderCache[type]) {
+			if (!GoogleDriveStorage.folderCache[type]) {
 				const subfolders = await this.findFolders(credentialsFolder.id);
 				const targetFolder = subfolders.find((f: any) => f.name === type);
-				this.folderCache[type] = targetFolder ? targetFolder.id : null;
+				GoogleDriveStorage.folderCache[type] = targetFolder ? targetFolder.id : null;
 			}
 
-			const targetFolderId = this.folderCache[type];
+			const targetFolderId = GoogleDriveStorage.folderCache[type];
 			if (!targetFolderId) {
 				console.error(`Folder for type ${type} not found.`);
 				return [];
