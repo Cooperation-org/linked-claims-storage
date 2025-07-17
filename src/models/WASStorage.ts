@@ -1,24 +1,16 @@
 import { StorageClient } from '@wallet.storage/fetch-client';
 import { WAS_BASE_URL } from '../../app.config.js';
 
-let storageClientInstance: InstanceType<typeof StorageClient> | null = null;
-
 export class LCWStorage {
-	signer: any;
-	zcap: any;
-	spaceId: string;
+	private static storageClient: InstanceType<typeof StorageClient>;
 
-	constructor({ signer, zcap, spaceId }: { signer: any; zcap: any; spaceId: string }) {
-		this.signer = signer;
-		this.zcap = zcap;
-		this.spaceId = spaceId;
-	}
+	constructor(private readonly signer: any, private readonly zcap: any, private readonly spaceId: string) {}
 
-	private getStorageClient() {
-		if (!storageClientInstance) {
-			storageClientInstance = new StorageClient(new URL(WAS_BASE_URL));
+	private getStorageClient(): InstanceType<typeof StorageClient> {
+		if (!LCWStorage.storageClient) {
+			LCWStorage.storageClient = new StorageClient(new URL(WAS_BASE_URL));
 		}
-		return storageClientInstance;
+		return LCWStorage.storageClient;
 	}
 
 	private getResource(key: string) {
