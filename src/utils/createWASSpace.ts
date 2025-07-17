@@ -1,7 +1,7 @@
 import { StorageClient } from '@wallet.storage/fetch-client';
 import { Ed25519Signer } from '@did.coop/did-key-ed25519';
 import { v4 as uuidv4 } from 'uuid';
-import { WAS_BASE_URL } from '../../app.config.js';
+import { WAS_BASE_URL } from '../../app.config';
 
 /**
  * Create a new WAS space

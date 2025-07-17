@@ -10,17 +10,13 @@ import {
 	EmploymentFormDataI,
 	VolunteeringFormDataI,
 	PerformanceReviewFormDataI,
-} from '../../types/credential';
+} from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import CryptoJS from 'crypto-js';
-import {
-	employmentCredentialContext,
-	volunteeringCredentialContext,
-	performanceReviewCredentialContext
-} from './context.js';
+import { employmentCredentialContext, volunteeringCredentialContext, performanceReviewCredentialContext } from './context';
 
 /**
- * 
+ *
  * Utility function to generate a hashed ID for a credential.
  * Excludes the `id` field when hashing.
  * @param {object} credential - The credential object to hash.
@@ -204,16 +200,10 @@ export function generateUnsignedRecommendation({
 /**
  * Generate an unsigned Employment Credential.
  */
-export function generateUnsignedEmployment({ formData, issuerDid }: {
-	formData: EmploymentFormDataI;
-	issuerDid: string;
-}) {
+export function generateUnsignedEmployment({ formData, issuerDid }: { formData: EmploymentFormDataI; issuerDid: string }) {
 	const issuanceDate = new Date().toISOString();
 	const unsignedCredential = {
-		'@context': [
-			'https://www.w3.org/2018/credentials/v1',
-			employmentCredentialContext['@context'],
-		],
+		'@context': ['https://www.w3.org/2018/credentials/v1', employmentCredentialContext['@context']],
 		id: '',
 		type: ['VerifiableCredential', 'EmploymentCredential'],
 		issuer: { id: issuerDid, type: ['Profile'] },
@@ -225,7 +215,7 @@ export function generateUnsignedEmployment({ formData, issuerDid }: {
 			credentialName: formData.credentialName,
 			credentialDuration: formData.credentialDuration,
 			credentialDescription: formData.credentialDescription,
-			portfolio: formData.portfolio.map(item => ({ name: item.name, url: item.url })),
+			portfolio: formData.portfolio.map((item) => ({ name: item.name, url: item.url })),
 			evidenceLink: formData.evidenceLink,
 			evidenceDescription: formData.evidenceDescription,
 			company: formData.company,
@@ -239,16 +229,10 @@ export function generateUnsignedEmployment({ formData, issuerDid }: {
 /**
  * Generate an unsigned Volunteering Credential.
  */
-export function generateUnsignedVolunteering({ formData, issuerDid }: {
-	formData: VolunteeringFormDataI;
-	issuerDid: string;
-}) {
+export function generateUnsignedVolunteering({ formData, issuerDid }: { formData: VolunteeringFormDataI; issuerDid: string }) {
 	const issuanceDate = new Date().toISOString();
 	const unsignedCredential = {
-		'@context': [
-			'https://www.w3.org/2018/credentials/v1',
-			volunteeringCredentialContext['@context'],
-		],
+		'@context': ['https://www.w3.org/2018/credentials/v1', volunteeringCredentialContext['@context']],
 		id: '',
 		type: ['VerifiableCredential', 'VolunteeringCredential'],
 		issuer: { id: issuerDid, type: ['Profile'] },
@@ -260,10 +244,10 @@ export function generateUnsignedVolunteering({ formData, issuerDid }: {
 			volunteerWork: formData.volunteerWork,
 			volunteerOrg: formData.volunteerOrg,
 			volunteerDescription: formData.volunteerDescription,
-			skillsGained: formData.skillsGained ? formData.skillsGained.split(',').map(s => s.trim()) : undefined,
+			skillsGained: formData.skillsGained ? formData.skillsGained.split(',').map((s) => s.trim()) : undefined,
 			duration: formData.duration,
 			volunteerDates: formData.volunteerDates,
-			portfolio: formData.portfolio.map(item => ({ name: item.name, url: item.url })),
+			portfolio: formData.portfolio.map((item) => ({ name: item.name, url: item.url })),
 			evidenceLink: formData.evidenceLink,
 			evidenceDescription: formData.evidenceDescription,
 		},
@@ -275,16 +259,10 @@ export function generateUnsignedVolunteering({ formData, issuerDid }: {
 /**
  * Generate an unsigned Performance Review Credential.
  */
-export function generateUnsignedPerformanceReview({ formData, issuerDid }: {
-	formData: PerformanceReviewFormDataI;
-	issuerDid: string;
-}) {
+export function generateUnsignedPerformanceReview({ formData, issuerDid }: { formData: PerformanceReviewFormDataI; issuerDid: string }) {
 	const issuanceDate = new Date().toISOString();
 	const unsignedCredential = {
-		'@context': [
-			'https://www.w3.org/2018/credentials/v1',
-			performanceReviewCredentialContext['@context'],
-		],
+		'@context': ['https://www.w3.org/2018/credentials/v1', performanceReviewCredentialContext['@context']],
 		id: '',
 		type: ['VerifiableCredential', 'PerformanceReviewCredential'],
 		issuer: { id: issuerDid, type: ['Profile'] },
@@ -307,7 +285,7 @@ export function generateUnsignedPerformanceReview({ formData, issuerDid }: {
 			overallRating: formData.overallRating,
 			reviewComments: formData.reviewComments,
 			goalsNext: formData.goalsNext,
-			portfolio: formData.portfolio.map(item => ({ name: item.name, url: item.url })),
+			portfolio: formData.portfolio.map((item) => ({ name: item.name, url: item.url })),
 			evidenceLink: formData.evidenceLink,
 			evidenceDescription: formData.evidenceDescription,
 		},

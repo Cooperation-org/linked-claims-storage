@@ -1,4 +1,4 @@
-import { GoogleDriveStorage } from './GoogleDriveStorage.js';
+import { GoogleDriveStorage } from './GoogleDriveStorage';
 
 export const resumeFolderTypes = {
 	root: 'RESUMES_AUTHOR',
@@ -69,7 +69,7 @@ export class StorageHandler {
 		if (!folder) {
 			throw new Error(`${folderName} folder not found`);
 		}
-		return this.storage.findFilesUnderFolder(folder.id);
+		return this.storage.findFolderFiles(folder.id);
 	}
 }
 
@@ -122,7 +122,7 @@ export class Resume extends StorageHandler {
 			const signedFolder = await this.getOrCreateFolder(resumeFolderTypes.signed, rootFolder.id);
 
 			// Retrieve all files from the signed folder
-			const files = await this.storage.findFilesUnderFolder(signedFolder.id);
+			const files = await this.storage.findFolderFiles(signedFolder.id);
 
 			return files;
 		} catch (error) {
@@ -139,7 +139,7 @@ export class Resume extends StorageHandler {
 			const nonSignedFolder = await this.getOrCreateFolder(resumeFolderTypes.nonSigned, rootFolder.id);
 
 			// Retrieve all files from the non-signed folder
-			const files = await this.storage.findFilesUnderFolder(nonSignedFolder.id);
+			const files = await this.storage.findFolderFiles(nonSignedFolder.id);
 
 			return files;
 		} catch (error) {

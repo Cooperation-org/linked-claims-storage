@@ -1,4 +1,4 @@
-import { GoogleDriveStorage } from '../models/GoogleDriveStorage.js';
+import { GoogleDriveStorage } from '../models/GoogleDriveStorage';
 
 export type FileType = 'VC' | 'DID' | 'SESSION' | 'RECOMMENDATION' | 'KEYPAIR';
 
@@ -11,7 +11,7 @@ interface SaveToGooglePropsI {
 export const getVCWithRecommendations = async ({ vcId, storage }: { vcId: string; storage: GoogleDriveStorage }) => {
 	try {
 		const vcFolderId = await storage.getFileParents(vcId);
-		const files = await storage.findFilesUnderFolder(vcFolderId);
+		const files = await storage.findFolderFiles(vcFolderId);
 		const relationsFile = files.find((f: any) => f.name === 'RELATIONS');
 
 		const relationsContent = await storage.retrieve(relationsFile.id);
