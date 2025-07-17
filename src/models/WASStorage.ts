@@ -3,8 +3,15 @@ import { WAS_BASE_URL } from '../../app.config.js';
 
 export class LCWStorage {
 	private static storageClient: InstanceType<typeof StorageClient>;
+	private signer: any;
+	private zcap: any;
+	private spaceId: string;
 
-	constructor(private readonly signer: any, private readonly zcap: any, private readonly spaceId: string) {}
+	constructor({ signer, zcap, spaceId }: { signer: any; zcap: any; spaceId: string }) {
+		this.signer = signer;
+		this.zcap = zcap;
+		this.spaceId = spaceId as `urn:uuid:${string}`;
+	}
 
 	private getStorageClient(): InstanceType<typeof StorageClient> {
 		if (!LCWStorage.storageClient) {
