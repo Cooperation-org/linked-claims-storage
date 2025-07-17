@@ -166,7 +166,7 @@ export class CredentialEngine {
 
 	/**
 	 * Sign a Verifiable Credential (VC)
-	 * @param {'VC' | 'RECOMMENDATION'} type - The signature type.
+	 * @param {'VC' | 'RECOMMENDATION' | 'EMPLOYMENT' | 'VOLUNTEERING' | 'PERFORMANCE_REVIEW'} type - The signature type.
 	 * @param {string} issuerId - The ID of the issuer [currently we put it as the did id]
 	 * @param {KeyPair} keyPair - The key pair to use for signing.
 	 * @param {FormDataI | RecommendationFormDataI} formData - The form data to include in the VC.

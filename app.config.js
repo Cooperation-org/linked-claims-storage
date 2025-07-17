@@ -1,0 +1,1 @@
+export const WAS_BASE_URL = 'http://localhost:4444';
