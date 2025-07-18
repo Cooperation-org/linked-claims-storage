@@ -5,3 +5,4 @@ export * from './models/Resume';
 export * from './models/ResumeVC';
 export * from './models/WASStorage';
 export * from './utils/createWASSpace';
+export * from './utils/getOrCreateAppDID';
