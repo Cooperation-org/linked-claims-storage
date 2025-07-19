@@ -13,7 +13,7 @@ import {
 } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import CryptoJS from 'crypto-js';
-import { employmentCredentialContext, volunteeringCredentialContext, performanceReviewCredentialContext } from './context';
+import { employmentCredentialContext, volunteeringCredentialContext, performanceReviewCredentialContext } from './context.js';
 
 /**
  *

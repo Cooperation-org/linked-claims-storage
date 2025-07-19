@@ -1,7 +1,7 @@
 import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020';
 import { driver as didKeyDriver } from '@digitalbazaar/did-method-key';
 import { defaultDocumentLoader } from '@digitalbazaar/vc';
-import { localOBContext, localED25519Context } from '../utils/context';
+import { localOBContext, localED25519Context } from '../utils/context.js';
 
 // Initialize the DID method key driver
 const didKeyDriverInstance = didKeyDriver();
