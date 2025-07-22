@@ -1,13 +1,13 @@
 {
 	"name": "@linked-claims/vc-storage",
 	"type": "module",
-	"version": "1.0.38",
+	"version": "1.0.39",
 	"description": "Sign and store your verifiable credentials.",
 	"main": "dist/index.js",
 	"types": "dist/types/index.d.ts",
 	"files": [
 		"dist",
-        "app.config.js"
+		"app.config.js"
 	],
 	"scripts": {
 		"build": "tsc",
