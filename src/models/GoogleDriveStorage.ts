@@ -225,6 +225,14 @@ export class GoogleDriveStorage {
 
 		return folder;
 	}
+	/**
+	 * Get the ID of the MEDIAs folder (public wrapper for getOrCreateMediaFolder)
+	 * @returns The folder ID for the MEDIAs folder
+	 */
+	public async getMediaFolderId(): Promise<string> {
+		return await this.getOrCreateMediaFolder();
+	}
+
 	public async uploadBinaryFile({ file }: { file: File }) {
 		try {
 			const accessToken = this.accessToken;
