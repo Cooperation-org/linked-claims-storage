@@ -269,15 +269,22 @@ export class GoogleDriveStorage {
 		}
 	}
 
-	public async saveFile({ data, folderId }: { data: any; folderId: string }) {
+	public async saveFile({ data, folderId, fileId }: { data: any; folderId?: string; fileId?: string }) {
 		console.log('🚀 ~ GoogleDriveStorage ~ saveFile ~ data:', data);
 		try {
+			// If fileId is provided, update the existing file instead of creating a new one
+			if (fileId) {
+				console.log(`Updating existing file with ID: ${fileId}`);
+				return await this.updateFileContent({ fileId, data });
+			}
+
+			// For new files, folderId is required
 			if (!folderId) {
-				throw new Error('Folder ID is required to save a file.');
+				throw new Error('Folder ID is required to save a new file.');
 			}
 
 			const fileMetadata = {
-				name: data.fileName || data.name + '.json' || data.credentialSubject.person.name.formattedName + '.json' || 'Untitled file.json',
+				name: data.fileName || data.name + '.json' || data.credentialSubject?.person?.name?.formattedName + '.json' || 'Untitled file.json',
 				parents: [folderId],
 				mimeType: data.mimeType || 'application/json',
 			};
@@ -449,6 +456,43 @@ export class GoogleDriveStorage {
 			console.log('✅ File renamed successfully:', updatedFile);
 			return updatedFile;
 		} catch (error) {
+			throw error;
+		}
+	}
+
+	/**
+	 * Update the content of an existing file in Google Drive
+	 * @param fileId - The ID of the file to update
+	 * @param data - The new content for the file
+	 * @returns The updated file metadata
+	 */
+	public async updateFileContent({ fileId, data }: { fileId: string; data: any }) {
+		try {
+			if (!fileId) {
+				throw new Error('File ID is required to update a file.');
+			}
+
+			// Convert data to JSON blob
+			const fileBlob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+			
+			// Update the file content using media upload
+			// Note: When using uploadType=media, the response is the updated file resource
+			const response = await this.fetcher({
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: fileBlob,
+				url: `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+			});
+			
+			console.log(`✅ File content updated successfully: ${fileId}`);
+			
+			// Return a consistent response format with id and data
+			// The response from media upload might be the file metadata or empty
+			return { id: fileId, data, ...response };
+		} catch (error) {
+			console.error('Error updating file content:', error);
 			throw error;
 		}
 	}
