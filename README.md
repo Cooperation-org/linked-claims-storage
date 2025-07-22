@@ -1,6 +1,6 @@
 # @cooperation/vc-storage
 
-**Version**: 1.0.0
+**Version**: 1.0.35
 
 ## Overview
 
