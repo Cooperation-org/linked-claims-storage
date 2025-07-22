@@ -78,8 +78,23 @@ export class Resume extends StorageHandler {
 		super(storage);
 	}
 
-	public async saveResume({ resume, type }: { resume: any; type: 'sign' | 'unsigned' }) {
+	public async saveResume({ resume, type, id }: { resume: any; type: 'sign' | 'unsigned'; id?: string }) {
 		try {
+			// If an ID is provided, update the existing resume
+			if (id) {
+				console.log(`🔄 Updating existing ${type} resume with ID: ${id}`);
+				
+				// Update the file content directly
+				const updatedResume = await this.storage.updateFileContent({
+					fileId: id,
+					data: resume
+				});
+				
+				// Return the updated resume with its ID
+				return { ...updatedResume, id };
+			}
+
+			// For new resumes, create folders and save as before
 			let rootFolder = await this.getOrCreateFolder(resumeFolderTypes.root, 'root');
 			console.log('🚀 ~ Resume ~ saveResume ~ rootFolder:', rootFolder);
 
