@@ -322,7 +322,7 @@ export class CredentialEngine {
 			}
 
 			// Use deterministic keys from environment seed
-			const { getDidFromEnvSeed } = await import('../utils/decodedSeed');
+			const { getDidFromEnvSeed } = await import('../utils/decodedSeed.js');
 			const result = await getDidFromEnvSeed(encodedSeed);
 			keyPair = result.keyPair;
 			didDocument = result.didDocument;
