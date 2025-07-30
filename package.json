@@ -1,5 +1,5 @@
 {
-	"name": "@linked-claims/vc-storage",
+	"name": "@cooperation/vc-storage",
 	"type": "module",
 	"version": "1.0.40",
 	"description": "Sign and store your verifiable credentials.",
